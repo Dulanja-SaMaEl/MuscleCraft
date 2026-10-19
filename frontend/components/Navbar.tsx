@@ -83,13 +83,13 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Home', href: '/', sectionId: 'slide-hero' },
-    { label: 'Coaching Program', href: '/memberships', sectionId: 'slide-elevate' },
+    { label: 'Programs', href: '/memberships', sectionId: 'slide-elevate' },
     { label: 'Offerings', href: '/#slide-offer', sectionId: 'slide-offer' },
     { label: 'Pricing', href: '/pricing', sectionId: 'slide-pricing' },
     { label: 'About', href: '/about', sectionId: 'slide-about' },
     { label: 'Reviews', href: '/#slide-reviews', sectionId: 'slide-reviews' },
     { label: 'Contact', href: '/contact', sectionId: 'slide-contact' },
-    { label: 'FAQs', href: '/faq', sectionId: 'slide-faq' },
+    { label: 'FAQ', href: '/faq', sectionId: 'slide-faq' },
   ];
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, link: (typeof navLinks)[0]) => {
@@ -154,13 +154,13 @@ export default function Navbar() {
                 Member
               </button>
               <button
-                onClick={() => switchPersona('usr_inst_1')}
+                onClick={() => switchPersona('usr_inst_adeesha')}
                 className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
-                  currentUser?.id === 'usr_inst_1'
+                  currentUser?.id === 'usr_inst_adeesha' || currentUser?.id === 'usr_inst_1'
                     ? 'bg-blue-600 text-white font-semibold'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Coach Adeesha (Founder & Head Coach)"
+                title="Adeesha Kumarasingha (Founder & Head Coach)"
               >
                 Coach Adeesha
               </button>
@@ -219,7 +219,7 @@ export default function Navbar() {
           </Link>
 
           {/* Center Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center space-x-5 lg:space-x-6" aria-label="Main Navigation">
+          <nav className="hidden md:flex items-center space-x-4 lg:space-x-5" aria-label="Main Navigation">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -227,8 +227,8 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={(e) => handleLinkClick(e, link)}
-                  className={`text-xs lg:text-[13px] font-medium tracking-wide transition-colors ${
-                    isActive ? 'text-gold font-semibold' : 'text-gray-300 hover:text-white'
+                  className={`text-xs lg:text-[13px] font-medium tracking-wide transition-colors whitespace-nowrap ${
+                    isActive ? 'text-crimson-400 font-semibold' : 'text-gray-300 hover:text-white'
                   }`}
                 >
                   {link.label}
@@ -237,70 +237,51 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Right Action / Gold CTA */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Action / CTA */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {currentUser ? (
               <div className="flex items-center space-x-2">
                 {currentUser.role === 'admin' && (
                   <Link
                     href="/admin"
-                    className="hidden sm:flex text-xs bg-red-950/80 text-red-300 border border-red-700/60 px-2.5 py-1 rounded-full hover:bg-red-900 transition-colors font-medium items-center gap-1"
+                    className="flex text-xs bg-crimson-950/80 text-crimson-300 border border-crimson-600/60 px-3.5 py-1.5 rounded-full hover:bg-crimson-900 transition-colors font-semibold items-center gap-1.5 whitespace-nowrap shadow-[0_0_10px_rgba(186,26,26,0.3)]"
                   >
-                    <Shield className="w-3 h-3 text-red-400" />
-                    Admin
+                    <Shield className="w-3.5 h-3.5 text-crimson-400" />
+                    Admin Panel
                   </Link>
                 )}
                 {currentUser.role === 'instructor' && (
                   <Link
                     href="/instructor"
-                    className="hidden sm:flex text-xs bg-blue-950/80 text-blue-300 border border-blue-700/60 px-2.5 py-1 rounded-full hover:bg-blue-900 transition-colors font-medium items-center gap-1"
+                    className="flex text-xs bg-blue-950/80 text-blue-300 border border-blue-700/60 px-3.5 py-1.5 rounded-full hover:bg-blue-900 transition-colors font-semibold items-center gap-1.5 whitespace-nowrap shadow-[0_0_10px_rgba(24,119,242,0.3)]"
                   >
-                    <Dumbbell className="w-3 h-3 text-blue-400" />
-                    Coach
+                    <Dumbbell className="w-3.5 h-3.5 text-blue-400" />
+                    Coach Portal
                   </Link>
                 )}
                 {currentUser.role === 'client' && (
                   <Link
                     href="/client"
-                    className="hidden sm:flex text-xs bg-surface border border-gold/40 text-gold px-2.5 py-1 rounded-full hover:bg-surface-50 transition-colors font-medium items-center gap-1"
+                    className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                   >
-                    <UserCheck className="w-3 h-3" />
-                    Portal
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Client Portal
                   </Link>
                 )}
-
-                <Link
-                  href="/login"
-                  style={{
-                    backgroundColor: '#BA1A1A',
-                    color: '#FFFFFF',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}
-                  className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow cursor-pointer"
-                >
-                  Account
-                </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="hidden sm:inline-block text-xs font-medium text-gray-300 hover:text-white px-2 py-1 transition-colors"
+                  className="hidden sm:inline-block text-xs font-medium text-gray-300 hover:text-white px-2.5 py-1 transition-colors whitespace-nowrap"
                 >
                   Login
                 </Link>
                 <Link
                   href="/checkout"
-                  style={{
-                    backgroundColor: '#BA1A1A',
-                    color: '#FFFFFF',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}
-                  className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow cursor-pointer"
+                  className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow cursor-pointer whitespace-nowrap"
                 >
-                  Sign Up
+                  Join Now
                 </Link>
               </div>
             )}

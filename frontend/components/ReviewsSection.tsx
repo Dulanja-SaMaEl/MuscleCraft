@@ -338,10 +338,10 @@ export default function ReviewsSection() {
           {reviews.map((rev) => (
             <div
               key={rev.id}
-              className="review-card-item will-change-transform flex-shrink-0 w-[310px] sm:w-[390px] scroll-snap-align-start"
+              className="review-card-item will-change-transform flex-shrink-0 w-[320px] sm:w-[410px] scroll-snap-align-start"
               style={{ scrollSnapAlign: 'start' }}
             >
-              <div className="liquid-glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between h-[390px] transition-all duration-300 hover:-translate-y-1 hover:border-crimson-500/40 hover:shadow-[0_20px_50px_rgba(186,26,26,0.2)]">
+              <div className="liquid-glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between h-[400px] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-crimson-500/40 hover:shadow-[0_20px_50px_rgba(186,26,26,0.2)]">
                 <div>
                   {/* Top Row: Stars + Milestone Badge */}
                   <div className="flex items-center justify-between gap-2 mb-4">
@@ -361,8 +361,8 @@ export default function ReviewsSection() {
                 </div>
 
                 <div className="pt-4 border-t border-white/[0.08]">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-3 mb-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="relative w-10 h-10 rounded-full overflow-hidden border border-crimson-500/40 bg-black/50 flex-shrink-0">
                         <Image
                           src={rev.avatar}
@@ -372,7 +372,7 @@ export default function ReviewsSection() {
                           className="object-cover"
                         />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <h4 className="text-sm font-bold text-white tracking-wide truncate">
                           {rev.author}
                         </h4>
@@ -383,11 +383,11 @@ export default function ReviewsSection() {
                     </div>
 
                     {/* Facebook Recommendation Badge */}
-                    <div className="flex items-center gap-1.5 bg-[#1877F2]/10 px-2 py-1 rounded-full border border-[#1877F2]/30 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 bg-[#1877F2]/15 px-2.5 py-1 rounded-full border border-[#1877F2]/40 flex-shrink-0 shadow-sm">
                       <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                       </svg>
-                      <span className="text-[9.5px] text-blue-300 font-semibold uppercase tracking-wider">
+                      <span className="text-[9.5px] text-blue-200 font-bold uppercase tracking-wider whitespace-nowrap">
                         Recommends
                       </span>
                     </div>

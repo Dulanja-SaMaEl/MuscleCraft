@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Award, Dumbbell, Users } from 'lucide-react';
+import { Flame, Target, UserCheck } from 'lucide-react';
 import Card3DTilt from './3d/Card3DTilt';
 import SectionHeader from './motion/SectionHeader';
 import VideoBackground from './VideoBackground';
@@ -20,22 +20,25 @@ export default function WhatWeOffer() {
 
   const offerings = [
     {
-      title: 'Expert Mentorship',
-      icon: Award,
+      title: 'MuscleCraft BurnZone',
+      subtitle: 'Functional & Strength Conditioning',
+      icon: Flame,
       description:
-        'One-on-one structured consultation, biomechanical form audits, and direct weekly accountability from certified strength coaches.',
+        'Functional fitness, CrossFit-style training, high-intensity conditioning, fat loss, weight gain, and total body sculpting engineered for athletic longevity.',
     },
     {
-      title: 'High Quality Equipment',
-      icon: Dumbbell,
+      title: '90 Days Better Me',
+      subtitle: 'Flagship Online Coaching',
+      icon: Target,
       description:
-        'Engineered for maximum athletic output. Calibrated competition steel plates, IPF-certified power racks, and specialized isolation machines.',
+        'Structured online fitness coaching with personalized diet plans, customized workout regimens, weekly progress analytics, and direct 1-on-1 coach support.',
     },
     {
-      title: 'Supportive Community',
-      icon: Users,
+      title: 'Personalized Coaching',
+      subtitle: 'Tailored 1-on-1 Mentorship',
+      icon: UserCheck,
       description:
-        'Surround yourself with driven individuals. Weekly cohort masterminds, peer training partnerships, and shared dedication to personal growth.',
+        'Individual guidance, comprehensive fitness assessments, weekly body measurements, and data-backed plan adjustments tailored to your health and goals.',
     },
   ];
 

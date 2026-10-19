@@ -83,8 +83,8 @@ function CheckoutContent() {
 
       <main className="flex-grow pt-32 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full">
         <div className="mb-10 text-center">
-          <span className="text-xs font-bold text-gold uppercase tracking-widest bg-gold/10 px-3 py-1 rounded-full border border-gold/30">
-            Secure Institutional Enrollment
+          <span className="text-xs font-bold text-crimson-400 uppercase tracking-widest bg-crimson-950/40 px-3 py-1 rounded-full border border-crimson-500/30">
+            Secure Enrollment Portal
           </span>
           <h1
             style={{
@@ -103,8 +103,8 @@ function CheckoutContent() {
         </div>
 
         {successSubmission ? (
-          <div className="bg-[#121215] border border-gold/50 rounded-lg p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-gold-glow">
-            <div className="w-16 h-16 rounded-full bg-gold/20 border border-gold flex items-center justify-center text-gold mx-auto mb-6">
+          <div className="bg-[#121215] border border-crimson-600/50 rounded-2xl p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-crimson-glow">
+            <div className="w-16 h-16 rounded-full bg-crimson-950/50 border border-crimson-500 flex items-center justify-center text-crimson-400 mx-auto mb-6">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
@@ -119,17 +119,17 @@ function CheckoutContent() {
               Transfer Submitted for Verification!
             </h2>
             <p className="text-gray-300 text-sm mb-6">
-              Your transfer reference <span className="font-mono font-bold text-gold">{successSubmission.referenceCode}</span> has been logged into our administrative queue.
+              Your transfer reference <span className="font-mono font-bold text-crimson-400">{successSubmission.referenceCode}</span> has been logged into our administrative queue.
             </p>
 
-            <div className="bg-[#18181d] border border-white/[0.08] rounded p-4 text-left text-xs space-y-2 mb-8">
+            <div className="bg-[#18181d] border border-white/[0.08] rounded-xl p-4 text-left text-xs space-y-2 mb-8">
               <div className="flex justify-between">
                 <span className="text-gray-400">Membership Tier:</span>
                 <span className="text-white font-semibold uppercase">{successSubmission.tier.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Amount Due:</span>
-                <span className="text-gold font-bold">${successSubmission.amount.toFixed(2)} USD</span>
+                <span className="text-crimson-400 font-bold">${successSubmission.amount.toFixed(2)} USD</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Bank & Reference:</span>
@@ -146,13 +146,13 @@ function CheckoutContent() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => router.push('/admin')}
-                className="px-6 py-3 bg-red-950 text-red-200 border border-red-700 font-semibold text-[13px] sm:text-[14px] rounded hover:bg-red-900 transition-colors"
+                className="px-6 py-3 bg-red-950 text-red-200 border border-red-700 font-semibold text-[13px] sm:text-[14px] rounded-full hover:bg-red-900 transition-colors"
               >
                 Switch to Admin Desk (Approve Now)
               </button>
               <button
                 onClick={() => router.push('/client')}
-                className="px-6 py-3 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded transition-colors shadow-gold-glow"
+                className="px-6 py-3 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded-full transition-colors shadow-crimson-glow"
               >
                 Go to Client Dashboard
               </button>
@@ -171,9 +171,9 @@ function CheckoutContent() {
                 <div className="space-y-3">
                   <div
                     onClick={() => setSelectedTier('coaching_90')}
-                    className={`p-4 rounded border cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
                       selectedTier === 'coaching_90'
-                        ? 'border-gold bg-gold/10'
+                        ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
                         : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
                     }`}
                   >
@@ -181,7 +181,7 @@ function CheckoutContent() {
                       <span className="font-bold text-white text-sm">
                         90-Day VIP Coaching
                       </span>
-                      <span className="text-gold font-bold font-mono text-base">
+                      <span className="text-crimson-400 font-bold font-mono text-base">
                         $450.00
                       </span>
                     </div>
@@ -192,9 +192,9 @@ function CheckoutContent() {
 
                   <div
                     onClick={() => setSelectedTier('monthly')}
-                    className={`p-4 rounded border cursor-pointer transition-all ${
+                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
                       selectedTier === 'monthly'
-                        ? 'border-gold bg-gold/10'
+                        ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
                         : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
                     }`}
                   >
@@ -202,7 +202,7 @@ function CheckoutContent() {
                       <span className="font-bold text-white text-sm">
                         Standard Monthly Gym
                       </span>
-                      <span className="text-gold font-bold font-mono text-base">
+                      <span className="text-crimson-400 font-bold font-mono text-base">
                         $50.00
                       </span>
                     </div>
@@ -214,7 +214,7 @@ function CheckoutContent() {
               </div>
 
               {/* MuscleCraft Official Wire Instructions */}
-              <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg space-y-4">
+              <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <Building className="w-4 h-4 text-crimson-400" />
@@ -223,7 +223,7 @@ function CheckoutContent() {
                   <span className="text-[11px] text-gray-400">Domestic Wire & ACH</span>
                 </div>
 
-                <div className="bg-[#0a0a0c] border border-white/[0.06] rounded p-4 space-y-2 text-xs">
+                <div className="bg-[#0a0a0c] border border-white/[0.06] rounded-xl p-4 space-y-2 text-xs">
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
                     <span className="text-gray-400">Bank Name:</span>
                     <span className="text-white font-medium">JPMorgan Chase Bank, N.A.</span>
@@ -241,12 +241,12 @@ function CheckoutContent() {
                     <span className="text-white font-mono font-medium">98421098412</span>
                   </div>
                   <div className="flex justify-between pt-1">
-                    <span className="text-gold font-semibold">Mandatory Reference:</span>
-                    <span className="text-gold font-mono font-bold">{referenceCode}</span>
+                    <span className="text-crimson-400 font-semibold">Mandatory Reference:</span>
+                    <span className="text-crimson-400 font-mono font-bold">{referenceCode}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-gold/10 border border-gold/30 px-3 py-2 rounded">
+                <div className="flex items-center justify-between bg-crimson-950/40 border border-crimson-500/30 px-3 py-2 rounded-xl">
                   <div className="text-xs">
                     <span className="text-gray-400 block text-[10px]">YOUR UNIQUE REFERENCE:</span>
                     <span className="font-mono font-bold text-white text-sm">{referenceCode}</span>
@@ -254,7 +254,7 @@ function CheckoutContent() {
                   <button
                     type="button"
                     onClick={() => copyToClipboard(referenceCode)}
-                    className="text-xs bg-gold/20 hover:bg-gold/30 text-gold px-2.5 py-1 rounded flex items-center gap-1 transition-colors font-medium"
+                    className="text-xs bg-crimson-900/40 hover:bg-crimson-900/70 text-crimson-300 px-2.5 py-1 rounded flex items-center gap-1 transition-colors font-medium cursor-pointer"
                   >
                     <Copy className="w-3 h-3" />
                     {copied ? 'Copied!' : 'Copy'}
@@ -297,7 +297,7 @@ function CheckoutContent() {
                       value={senderAccountName}
                       onChange={(e) => setSenderAccountName(e.target.value)}
                       placeholder="e.g. Marcus Vance or Vance Holdings"
-                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
+                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
                     />
                   </div>
 
@@ -310,7 +310,7 @@ function CheckoutContent() {
                       required
                       value={transferDate}
                       onChange={(e) => setTransferDate(e.target.value)}
-                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-3.5 py-2.5 rounded text-sm text-white outline-none"
+                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white outline-none"
                     />
                   </div>
                 </div>
@@ -325,7 +325,7 @@ function CheckoutContent() {
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
                     placeholder="e.g. Wells Fargo Wire, Chase QuickPay, Citi Wire"
-                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
+                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
                   />
                 </div>
 
@@ -338,11 +338,11 @@ function CheckoutContent() {
                     value={receiptNotes}
                     onChange={(e) => setReceiptNotes(e.target.value)}
                     placeholder="Enter any wire tracking reference, confirmation number, or notes for our accounting desk."
-                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold p-3.5 rounded text-sm text-white placeholder-gray-500 outline-none resize-none"
+                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 p-3.5 rounded text-sm text-white placeholder-gray-500 outline-none resize-none"
                   />
                 </div>
 
-                <div className="bg-[#18181d] p-4 rounded border border-white/[0.06] flex items-center justify-between">
+                <div className="bg-[#18181d] p-4 rounded-xl border border-white/[0.06] flex items-center justify-between">
                   <div>
                     <span className="text-xs text-gray-400 block">Total Due:</span>
                     <span className="text-2xl font-extrabold text-white font-mono">
@@ -351,21 +351,21 @@ function CheckoutContent() {
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] text-gray-400 block">Unique Code:</span>
-                    <span className="text-xs font-mono font-bold text-gold">{referenceCode}</span>
+                    <span className="text-xs font-mono font-bold text-crimson-400">{referenceCode}</span>
                   </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded transition-all duration-200 shadow-md hover:shadow-gold-glow flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-4 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Submitting Transfer...' : 'Submit Transfer for Verification'}
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <p className="text-[11px] text-center text-gray-400 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-gold" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-crimson-400" />
                   Your enrollment will activate immediately upon administrative review.
                 </p>
               </form>

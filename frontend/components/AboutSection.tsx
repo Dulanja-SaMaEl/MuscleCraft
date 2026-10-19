@@ -34,18 +34,18 @@ export default function AboutSection() {
   const galleryImages = [
     {
       src: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=700&auto=format&fit=crop',
-      alt: 'Dedicated female athlete training with intensity',
-      tag: 'Hypertrophy Lab',
+      alt: 'CrossFit-style conditioning & functional fitness',
+      tag: 'MuscleCraft BurnZone',
     },
     {
       src: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=700&auto=format&fit=crop',
-      alt: 'Male athlete focused on lifting bench',
-      tag: 'Strength Conditioning',
+      alt: 'Structured diet & habit transformation',
+      tag: '90 Days Better Me',
     },
     {
       src: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?q=80&w=700&auto=format&fit=crop',
-      alt: 'Athletic coach reviewing form and mechanics',
-      tag: '1-on-1 Mentorship',
+      alt: 'Individual form assessments & weekly coach check-ins',
+      tag: 'Personalized Coaching',
     },
   ];
 
@@ -59,9 +59,9 @@ export default function AboutSection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-4 sm:py-6">
         <SectionHeader
-          eyebrow="The Philosophy"
-          heading="About Us"
-          paragraph="MuscleCraft was established to eliminate the superficial gimmicks of commercial fitness clubs. We operate on raw physiological principles: progressive overload, metabolic optimization, and uncompromised athletic standards."
+          eyebrow="Our Founder & Mission"
+          heading="About MuscleCraft"
+          paragraph="Founded by Adeesha Kumarasingha — NVQ Certified Trainer, ISO 9001 Aerobic Instructor, with a Diploma in Exercise & Sport Science and 7+ years of industry leadership. We exist to help you build sustainable fitness habits, develop physical strength, and sculpt discipline through consistent training."
           centered={false}
           className="max-w-3xl mb-5 sm:mb-7"
         />

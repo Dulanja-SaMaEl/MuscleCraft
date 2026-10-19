@@ -83,10 +83,10 @@ export default function CustomCursor() {
       }`}
       aria-hidden="true"
     >
-      {/* ── Lead Gold Dot ── */}
+      {/* ── Lead Crimson Dot ── */}
       <div
         ref={dotRef}
-        className="fixed top-0 left-0 w-2 h-2 rounded-full bg-[#D4A359] -translate-x-1/2 -translate-y-1/2 shadow-[0_0_8px_rgba(212,163,89,0.9)] will-change-transform"
+        className="fixed top-0 left-0 w-2 h-2 rounded-full bg-crimson-500 -translate-x-1/2 -translate-y-1/2 shadow-[0_0_10px_rgba(220,38,38,0.9)] will-change-transform"
       />
 
       {/* ── Trailing Kinetic Ring (Expands over buttons/interactive targets) ── */}
@@ -94,8 +94,8 @@ export default function CustomCursor() {
         ref={ringRef}
         className={`fixed top-0 left-0 rounded-full border -translate-x-1/2 -translate-y-1/2 will-change-transform transition-all duration-200 ease-out ${
           isHovered
-            ? 'w-12 h-12 border-[#D4A359] bg-[#D4A359]/15 shadow-[0_0_18px_rgba(212,163,89,0.4)] scale-125'
-            : 'w-8 h-8 border-[#D4A359]/40 bg-transparent scale-100'
+            ? 'w-12 h-12 border-crimson-500 bg-crimson-600/20 shadow-[0_0_20px_rgba(220,38,38,0.5)] scale-125'
+            : 'w-8 h-8 border-crimson-500/50 bg-transparent scale-100'
         }`}
       />
     </div>

@@ -192,7 +192,7 @@ export default function SlidePresentationController({ children }: SlidePresentat
       {/* ── Slide Progress Bar at the Top ── */}
       <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-white/[0.06] z-[65] pointer-events-none">
         <div
-          className="h-full bg-gradient-to-r from-[#D4A359] via-[#E5B670] to-[#D4A359] transition-all duration-500 ease-out shadow-[0_0_10px_rgba(212,163,89,0.8)] origin-left"
+          className="h-full bg-gradient-to-r from-crimson-700 via-crimson-500 to-crimson-600 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(186,26,26,0.8)] origin-left"
           style={{ width: `${((currentSlide + 1) / SLIDES.length) * 100}%` }}
         />
       </div>
@@ -212,14 +212,14 @@ export default function SlidePresentationController({ children }: SlidePresentat
               <div
                 className={`transition-all duration-300 rounded-full ${
                   isActive
-                    ? 'w-2.5 h-6 bg-[#D4A359] shadow-[0_0_12px_rgba(212,163,89,0.9)]'
+                    ? 'w-2.5 h-6 bg-crimson-600 shadow-[0_0_12px_rgba(186,26,26,0.9)]'
                     : 'w-2 h-2 bg-white/30 group-hover:bg-white/70'
                 }`}
               />
 
               {/* Tooltip on Hover */}
-              <div className="absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0 whitespace-nowrap bg-[#121216]/95 border border-gold/40 shadow-xl px-3 py-1.5 rounded text-left backdrop-blur-md">
-                <span className="text-[10px] font-mono text-[#D4A359] block font-bold">
+              <div className="absolute right-9 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0 whitespace-nowrap bg-[#121216]/95 border border-crimson-500/40 shadow-xl px-3 py-1.5 rounded text-left backdrop-blur-md">
+                <span className="text-[10px] font-mono text-crimson-400 block font-bold">
                   SLIDE {slide.number}
                 </span>
                 <span className="text-xs font-semibold text-white block">
@@ -235,7 +235,7 @@ export default function SlidePresentationController({ children }: SlidePresentat
       <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#121216]/90 backdrop-blur-md border border-white/[0.1] rounded-full p-1.5 shadow-2xl">
         {/* Slide Counter Badge */}
         <div className="px-3 py-1 text-xs font-mono font-semibold text-gray-200 flex items-center gap-1.5">
-          <span className="text-[#D4A359] font-bold">{SLIDES[currentSlide]?.number}</span>
+          <span className="text-crimson-400 font-bold">{SLIDES[currentSlide]?.number}</span>
           <span className="text-gray-500">/</span>
           <span>{SLIDES.length.toString().padStart(2, '0')}</span>
         </div>
@@ -263,8 +263,8 @@ export default function SlidePresentationController({ children }: SlidePresentat
 
       {/* ── Keyboard / Wheel Navigation Toast Hint ── */}
       {showHint && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-500 bg-black/80 backdrop-blur-md border border-gold/30 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
-          <Compass className="w-3.5 h-3.5 text-[#D4A359] animate-spin" style={{ animationDuration: '6s' }} />
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-500 bg-black/80 backdrop-blur-md border border-crimson-500/30 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
+          <Compass className="w-3.5 h-3.5 text-crimson-400 animate-spin" style={{ animationDuration: '6s' }} />
           <span className="text-xs text-gray-200 font-medium tracking-wide">
             Use <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-white">↑</kbd> <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-white">↓</kbd> or scroll wheel to navigate slides
           </span>

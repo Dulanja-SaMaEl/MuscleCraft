@@ -92,7 +92,7 @@ export default function BannerSection() {
     <section
       id="slide-banner"
       ref={sectionRef}
-      className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full min-h-[100dvh] overflow-hidden bg-[#070709] flex items-center justify-center perspective-1400 border-y border-gold/20 py-20 sm:py-28"
+      className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full min-h-[100dvh] overflow-hidden bg-[#070709] flex items-center justify-center perspective-1400 border-y border-crimson-600/20 py-20 sm:py-28"
     >
       {/* ── CTA Video Background (Slot: "forge") with procedural canvas fallback ── */}
       <VideoBackground name="forge" overlayStrength={0.7} className="z-0" />

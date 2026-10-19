@@ -75,7 +75,7 @@ export default function SectionHeader({
       {eyebrow && (
         <span
           ref={eyebrowRef}
-          className="text-xs font-semibold text-[#D4A359] uppercase tracking-widest font-mono block mb-2 will-change-transform"
+          className="text-xs font-semibold text-crimson-400 uppercase tracking-widest font-mono block mb-2 will-change-transform"
         >
           {eyebrow}
         </span>
@@ -89,10 +89,10 @@ export default function SectionHeader({
         {heading}
       </SplitHeading>
 
-      {/* Decorative Gold Divider Line */}
+      {/* Decorative Crimson Divider Line */}
       <div
         ref={lineRef}
-        className={`h-[2px] w-12 bg-gradient-to-r from-[#D4A359] to-[#C2934B] my-3 rounded-full origin-left will-change-transform ${
+        className={`h-[2px] w-12 bg-gradient-to-r from-crimson-600 via-crimson-500 to-crimson-700 shadow-[0_0_10px_rgba(186,26,26,0.6)] my-3 rounded-full origin-left will-change-transform ${
           centered ? 'mx-auto' : ''
         }`}
       />

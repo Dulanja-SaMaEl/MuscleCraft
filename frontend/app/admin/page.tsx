@@ -262,12 +262,12 @@ export default function AdminDashboard() {
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                 Verified Revenue
               </span>
-              <DollarSign className="w-4 h-4 text-gold" />
+              <DollarSign className="w-4 h-4 text-crimson-400" />
             </div>
             <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
               ${stats.totalRevenue.toFixed(2)}
             </span>
-            <span className="text-[11px] text-gold mt-1 block">
+            <span className="text-[11px] text-crimson-400 mt-1 block">
               Direct institutional wire
             </span>
           </div>
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-white/[0.04]">
                   {filteredPayments.map((p) => (
                     <tr key={p.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 px-4 font-mono font-bold text-gold">{p.referenceCode}</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-crimson-400">{p.referenceCode}</td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-white">{p.userName}</div>
                         <div className="text-[10px] text-gray-400">{p.userEmail}</div>
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
                       <td className="py-3.5 px-4 font-semibold uppercase text-gray-300">
                         {m.role}
                       </td>
-                      <td className="py-3.5 px-4 font-semibold uppercase text-gold">
+                      <td className="py-3.5 px-4 font-semibold uppercase text-crimson-300">
                         {m.tier === 'coaching_90' ? '90-Day VIP' : m.tier === 'monthly' ? 'Monthly Gym' : 'None'}
                       </td>
                       <td className="py-3.5 px-4">
@@ -534,7 +534,7 @@ export default function AdminDashboard() {
                 >
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-gold uppercase text-[10px] bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.08]">
+                      <span className="font-bold text-crimson-400 uppercase text-[10px] bg-black/40 px-1.5 py-0.5 rounded border border-white/[0.08]">
                         {log.action}
                       </span>
                       <span className="text-gray-400">{log.actorEmail}</span>

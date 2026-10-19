@@ -15,7 +15,7 @@ export class MuscleCraftDatabase {
     {
       id: 'usr_inst_adeesha',
       email: 'adeesha@musclecraft.lk',
-      name: 'Coach Adeesha (Founder & Head Coach)',
+      name: 'Adeesha Kumarasingha (Founder & Head Coach)',
       role: 'instructor',
       tier: 'coaching_90',
       status: 'active',
