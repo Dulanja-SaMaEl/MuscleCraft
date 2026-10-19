@@ -1,74 +1,108 @@
-# IronForge Athletic Club — Production Deployment Guide
+# MuscleCraft Platform — Production Deployment Guide
 
-## Architecture Overview
-This application is a **full-stack modern web platform** built with Next.js 14 (App Router). It contains **both the frontend and backend in a unified repository**:
+## Monorepo Architecture Overview
+The repository is structured into two clean, independent folders:
 
-* **Frontend**: Responsive React 18 UI, 3D Scrollytelling engine with GSAP, interactive DTLA map, client portal, instructor workspace, and admin dashboard.
-* **Backend**: Server-side Next.js Route Handlers (`app/api/*`) handling authentication, role-based access control (RBAC), bank transfer payments, coaching telemetry, appointment scheduling, and audit logs.
-* **Database**: Runs out-of-the-box with an in-memory mock database with persistent state, or seamlessly connects to **Supabase PostgreSQL** via environment variables.
+```
+MuscleCraft/
+├── frontend/               # Next.js 14 App Router UI (Client/Admin Portals, 3D Scrollytelling)
+│   ├── app/                # Pages and routes
+│   ├── components/         # 3D Canvas, kinetic UI, and layouts
+│   ├── public/             # Static assets, scrollytelling frames
+│   ├── package.json        # Frontend dependencies
+│   └── vercel.json         # Vercel configuration
+│
+├── backend/                # Node.js + Express REST API
+│   ├── src/
+│   │   ├── server.ts       # Express server entry point (CORS, health checks)
+│   │   ├── routes/         # Auth, Payments, Admin, Measurements, Diet, Videos
+│   │   ├── services/       # Business logic (AuthService, PaymentService, etc.)
+│   │   └── db/             # In-memory mock database & persistence
+│   ├── package.json        # Backend dependencies
+│   └── render.yaml         # Render deployment blueprint
+│
+├── render.yaml             # Multi-service Render blueprint
+├── vercel.json             # Root Vercel config
+└── package.json            # Root workspaces manager
+```
 
 ---
 
-## Option 1: Deploying to Vercel (Recommended for Best Global Edge Performance)
+## 1. Hosting the Frontend on Vercel
 
-Vercel natively hosts both the frontend and backend API routes as serverless functions with zero configuration.
-
-### Steps:
-1. Go to [Vercel](https://vercel.com) and click **"Add New..." > "Project"**.
-2. Connect your GitHub account and import **`Dulanja-SaMaEl/MuscleCraft`**.
-3. Vercel automatically detects **Next.js**:
-   * **Framework Preset**: Next.js
+1. In [Vercel](https://vercel.com), click **"Add New..." > "Project"**.
+2. Import **`Dulanja-SaMaEl/MuscleCraft`**.
+3. In the project setup:
+   * **Root Directory**: Click "Edit" and choose **`frontend`** (or leave default root).
+   * **Framework Preset**: `Next.js`
    * **Build Command**: `next build`
-   * **Output Directory**: `.next`
    * **Install Command**: `npm install`
-4. *(Optional)* Add environment variables from `.env.example` if connecting to Supabase:
-   * `NEXT_PUBLIC_SUPABASE_URL`
-   * `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   * `SUPABASE_SERVICE_ROLE_KEY`
-   * `DATABASE_URL`
-5. Click **Deploy**. Vercel will build both the frontend and backend API routes and provide you with a live URL (e.g., `https://musclecraft.vercel.app`).
+4. *(Optional)* In Environment Variables, set:
+   * `NEXT_PUBLIC_API_URL` = Your live Render backend URL (e.g. `https://musclecraft-backend-api.onrender.com`)
+5. Click **Deploy**.
 
 ---
 
-## Option 2: Deploying to Render (Full-Stack Node.js Web Service)
+## 2. Hosting the Backend on Render
 
-Render runs the full application (frontend + backend APIs) as an active Node.js server.
-
-### Method A: 1-Click Blueprint (Using `render.yaml`)
+### Method A: 1-Click Multi-Service Blueprint (Recommended)
 1. Go to [Render Dashboard](https://dashboard.render.com).
 2. Click **"New +" > "Blueprint"**.
-3. Select your repository: **`Dulanja-SaMaEl/MuscleCraft`**.
-4. Render will read the included [`render.yaml`](./render.yaml) file and configure the service automatically.
+3. Connect **`Dulanja-SaMaEl/MuscleCraft`**.
+4. Render will read the root [`render.yaml`](./render.yaml), which automatically provisions:
+   - **`musclecraft-backend-api`** (Node.js Express API listening on `$PORT`)
+   - **`musclecraft-frontend-web`** (Next.js frontend connected to the backend)
 5. Click **Apply**.
 
-### Method B: Manual Web Service
-1. In the Render Dashboard, click **"New +" > "Web Service"**.
-2. Select your repository: **`Dulanja-SaMaEl/MuscleCraft`**.
-3. Configure the settings:
-   * **Name**: `musclecraft-app`
-   * **Region**: Oregon (or nearest to your users)
-   * **Branch**: `main`
+### Method B: Standalone Web Service on Render
+If you only want to host the backend API on Render (while hosting the frontend on Vercel):
+1. In Render Dashboard, click **"New +" > "Web Service"**.
+2. Connect **`Dulanja-SaMaEl/MuscleCraft`**.
+3. Configure:
+   * **Name**: `musclecraft-backend-api`
+   * **Root Directory**: `backend`
    * **Runtime**: `Node`
-   * **Build Command**: `npm install && npm run build`
+   * **Build Command**: `npm install`
    * **Start Command**: `npm start`
-   * **Plan**: Free or Starter
-4. Render automatically supplies the `$PORT` environment variable, which `next start` binds to.
-5. Click **Create Web Service**.
+   * **Health Check Path**: `/health`
+4. Click **Create Web Service**.
 
 ---
 
-## Option 3: Two-Tier Setup (Frontend on Vercel + Backend on Render)
+## 3. Local Development Commands (From Root)
 
-If you prefer to separate the traffic:
-1. **Frontend on Vercel**: Deploy the repo to Vercel and point `NEXT_PUBLIC_API_URL` to your Render service.
-2. **Backend on Render**: Deploy the repo to Render as a Web Service. The API routes in `/api/*` will serve as the dedicated backend.
+```bash
+# Run both frontend and backend
+npm run dev
+
+# Run only frontend (http://localhost:3000)
+npm run dev:frontend
+
+# Run only backend API (http://localhost:5000)
+npm run dev:backend
+
+# Build frontend
+npm run build:frontend
+
+# Build backend
+npm run build:backend
+```
 
 ---
 
-## Verifying Deployment Health
-After deploying to either Vercel or Render, test these endpoints:
-* **Frontend Home**: `https://your-domain.com/` (Verify 3D hero and scroll animations)
-* **Backend Auth API**: `https://your-domain.com/api/auth/session` (Returns 200 with available personas)
-* **Backend Admin Stats API**: `https://your-domain.com/api/admin/stats` (Returns 200 with facility metrics)
-* **Client Portal**: `https://your-domain.com/client`
-* **Admin Dashboard**: `https://your-domain.com/admin`
+## 4. API Endpoints Reference
+* `GET /health` — Service health check & uptime
+* `GET /api/auth/session` — Session & available personas
+* `POST /api/auth/session` — Authenticate persona
+* `GET /api/payments` — Retrieve user or admin payments
+* `POST /api/payments` — Submit bank transfer
+* `POST /api/payments/:id/approve` — Admin payment approval
+* `POST /api/payments/:id/reject` — Admin payment rejection
+* `GET /api/admin/stats` — Facility telemetry & KPI stats
+* `GET /api/admin/members` — Member directory
+* `GET /api/admin/audit-logs` — Security & action audit logs
+* `GET /api/measurements` — Client body metrics
+* `POST /api/measurements` — Record weekly measurements
+* `GET /api/diet-plans` — Client nutrition protocol
+* `GET /api/appointments` — 1-on-1 coaching consultations
+* `GET /api/videos` — Common and VIP video vault

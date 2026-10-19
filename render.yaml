@@ -1,9 +1,32 @@
 services:
+  # ─────────────────────────────────────────────────────────────
+  # BACKEND SERVICE: Node.js Express REST API
+  # ─────────────────────────────────────────────────────────────
   - type: web
-    name: musclecraft-app
+    name: musclecraft-backend-api
     runtime: node
     plan: starter
     region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+  # ─────────────────────────────────────────────────────────────
+  # FRONTEND SERVICE: Next.js 14 App Router UI
+  # ─────────────────────────────────────────────────────────────
+  - type: web
+    name: musclecraft-frontend-web
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: frontend
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /
@@ -11,13 +34,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NEXT_PUBLIC_APP_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: DATABASE_URL
-        sync: false
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: musclecraft-backend-api
+          property: host
