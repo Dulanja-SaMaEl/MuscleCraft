@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /memberships
+Allow: /pricing
+Allow: /faq
+Allow: /contact
+Allow: /checkout
+Allow: /privacy
+Allow: /terms
+
+# Disallow private client and administrative portals from search indexing
+Disallow: /client
+Disallow: /instructor
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://ironforge-athletics.com/sitemap.xml

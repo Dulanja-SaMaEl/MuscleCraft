@@ -1,0 +1,41 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing & Recordings
+/coverage
+/playwright_video
+/recordings
+/test-results
+
+# Next.js build output
+/.next/
+/out/
+
+# Production
+/build
+/dist
+
+# Debug & Temporary Root Artifacts
+/*.png
+/*.jpg
+/*.webm
+*.tsbuildinfo
+
+# Environment Variables
+.env
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# Operating System files
+.DS_Store
+Thumbs.db
