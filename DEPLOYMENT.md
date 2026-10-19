@@ -1,111 +1,74 @@
-# IronForge Athletic Club — Production Deployment & Architecture Guide
+# IronForge Athletic Club — Production Deployment Guide
 
-## Overview
-This platform is architected as an elite, high-performance web application designed for deployment across **Vercel** (Next.js frontend), **Render** (Node.js API services), **Supabase** (PostgreSQL Database & Auth), and **Cloudflare Stream** (Adaptive Bitrate Video Infrastructure).
+## Architecture Overview
+This application is a **full-stack modern web platform** built with Next.js 14 (App Router). It contains **both the frontend and backend in a unified repository**:
 
----
-
-## 1. System Architecture
-
-```mermaid
-flowchart TD
-    Client["Next.js 14+ App Router Client\n(Vercel Edge Network)"] --> API["Next.js API Routes / Express API\n(Render / Serverless)"]
-    API --> Layer["Layered Domain Services\n(Auth, Payments, Coaching, Video, Admin)"]
-    Layer --> DB[("Supabase PostgreSQL\n(Row-Level Security & Indexes)")]
-    Layer --> CF["Cloudflare Stream\n(HLS / DASH Adaptive Streaming)"]
-```
+* **Frontend**: Responsive React 18 UI, 3D Scrollytelling engine with GSAP, interactive DTLA map, client portal, instructor workspace, and admin dashboard.
+* **Backend**: Server-side Next.js Route Handlers (`app/api/*`) handling authentication, role-based access control (RBAC), bank transfer payments, coaching telemetry, appointment scheduling, and audit logs.
+* **Database**: Runs out-of-the-box with an in-memory mock database with persistent state, or seamlessly connects to **Supabase PostgreSQL** via environment variables.
 
 ---
 
-## 2. Environment Variables Configuration
+## Option 1: Deploying to Vercel (Recommended for Best Global Edge Performance)
 
-Copy `.env.example` to `.env.local` and populate the production credentials:
+Vercel natively hosts both the frontend and backend API routes as serverless functions with zero configuration.
 
-```bash
-# App Configuration
-NEXT_PUBLIC_APP_URL="https://ironforge-athletics.com"
-PORT=3000
-
-# Supabase PostgreSQL & Auth
-NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-
-# Cloudflare Stream Video Integration
-CLOUDFLARE_ACCOUNT_ID="your_cloudflare_account_id"
-CLOUDFLARE_STREAM_API_TOKEN="your_cloudflare_stream_api_token"
-NEXT_PUBLIC_CLOUDFLARE_STREAM_DOMAIN="https://customer-xyz.cloudflarestream.com"
-```
+### Steps:
+1. Go to [Vercel](https://vercel.com) and click **"Add New..." > "Project"**.
+2. Connect your GitHub account and import **`Dulanja-SaMaEl/MuscleCraft`**.
+3. Vercel automatically detects **Next.js**:
+   * **Framework Preset**: Next.js
+   * **Build Command**: `next build`
+   * **Output Directory**: `.next`
+   * **Install Command**: `npm install`
+4. *(Optional)* Add environment variables from `.env.example` if connecting to Supabase:
+   * `NEXT_PUBLIC_SUPABASE_URL`
+   * `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   * `SUPABASE_SERVICE_ROLE_KEY`
+   * `DATABASE_URL`
+5. Click **Deploy**. Vercel will build both the frontend and backend API routes and provide you with a live URL (e.g., `https://musclecraft.vercel.app`).
 
 ---
 
-## 3. Database Deployment (Supabase PostgreSQL)
+## Option 2: Deploying to Render (Full-Stack Node.js Web Service)
 
-1. Open your Supabase Dashboard -> **SQL Editor**.
-2. Run the complete DDL migration script located at:
-   ```
-   supabase/schema.sql
-   ```
-3. This creates:
-   - Enums: `user_role`, `membership_tier`, `user_status`, `payment_status`, `appointment_type`, `video_access_level`.
-   - Tables: `profiles`, `payments`, `body_measurements`, `diet_plans`, `appointments`, `exercise_videos`, `audit_logs`.
-   - Composite B-Tree and covering indexes on critical query paths.
-   - Row Level Security (RLS) policies ensuring complete IDOR protection.
+Render runs the full application (frontend + backend APIs) as an active Node.js server.
 
----
+### Method A: 1-Click Blueprint (Using `render.yaml`)
+1. Go to [Render Dashboard](https://dashboard.render.com).
+2. Click **"New +" > "Blueprint"**.
+3. Select your repository: **`Dulanja-SaMaEl/MuscleCraft`**.
+4. Render will read the included [`render.yaml`](./render.yaml) file and configure the service automatically.
+5. Click **Apply**.
 
-## 4. Vercel Frontend Deployment
-
-1. Push this repository to GitHub or GitLab.
-2. Link the repository in **Vercel**.
-3. Configure the build settings:
-   - **Framework Preset**: Next.js
-   - **Build Command**: `next build`
-   - **Output Directory**: `.next`
-   - **Install Command**: `npm install`
-4. Add all environment variables from Section 2 in the Vercel Project Settings.
-5. Deploy.
+### Method B: Manual Web Service
+1. In the Render Dashboard, click **"New +" > "Web Service"**.
+2. Select your repository: **`Dulanja-SaMaEl/MuscleCraft`**.
+3. Configure the settings:
+   * **Name**: `musclecraft-app`
+   * **Region**: Oregon (or nearest to your users)
+   * **Branch**: `main`
+   * **Runtime**: `Node`
+   * **Build Command**: `npm install && npm run build`
+   * **Start Command**: `npm start`
+   * **Plan**: Free or Starter
+4. Render automatically supplies the `$PORT` environment variable, which `next start` binds to.
+5. Click **Create Web Service**.
 
 ---
 
-## 5. Render Node.js API Deployment (Optional Standalone Service)
+## Option 3: Two-Tier Setup (Frontend on Vercel + Backend on Render)
 
-1. In the **Render Dashboard**, select **New Web Service**.
-2. Connect the repository.
-3. Settings:
-   - **Environment**: Node
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
-4. Set Environment Variables including `DATABASE_URL`.
+If you prefer to separate the traffic:
+1. **Frontend on Vercel**: Deploy the repo to Vercel and point `NEXT_PUBLIC_API_URL` to your Render service.
+2. **Backend on Render**: Deploy the repo to Render as a Web Service. The API routes in `/api/*` will serve as the dedicated backend.
 
 ---
 
-## 6. Cloudflare Stream Video Uploading & Playback
-
-1. In Cloudflare Dashboard, go to **Stream**.
-2. Create an API Token with **Stream: Edit** permissions.
-3. Videos uploaded via the `/instructor` workspace save the Cloudflare video ID into `exercise_videos.cf_stream_id`.
-4. The client portal automatically loads the player for authorized tiers (Common vs 90-Day VIP).
-
----
-
-## 7. Running Tests & Quality Verification
-
-Run the automated test suite locally:
-```bash
-npm test
-```
-
-Expected verification:
-```
-✓ PASS: PaymentService generates unique reference format TRF-IRON-XXXXXX
-✓ PASS: Client can submit manual bank transfer with pending status
-✓ PASS: Admin can approve pending bank transfer and activate membership
-✓ PASS: Client cannot approve payment (RBAC Security Enforcement)
-✓ PASS: Client cannot view another client measurements (IDOR Prevention)
-✓ PASS: Assigned Coach can view assigned client measurements
-✓ PASS: Monthly gym client only receives common videos (Tier Enforcement)
-✓ PASS: 90-Day VIP client receives all videos including exclusive clinics
-✓ PASS: Security and payment events are recorded in audit logs
-```
+## Verifying Deployment Health
+After deploying to either Vercel or Render, test these endpoints:
+* **Frontend Home**: `https://your-domain.com/` (Verify 3D hero and scroll animations)
+* **Backend Auth API**: `https://your-domain.com/api/auth/session` (Returns 200 with available personas)
+* **Backend Admin Stats API**: `https://your-domain.com/api/admin/stats` (Returns 200 with facility metrics)
+* **Client Portal**: `https://your-domain.com/client`
+* **Admin Dashboard**: `https://your-domain.com/admin`
