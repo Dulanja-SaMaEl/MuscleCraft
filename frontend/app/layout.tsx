@@ -71,9 +71,17 @@ export default function RootLayout({
       className={`dark ${plusJakartaSans.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body
         suppressHydrationWarning
-        className="bg-[#080809] text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-gold selection:text-black"
+        className={`${plusJakartaSans.className} bg-[#080809] text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-gold selection:text-black`}
       >
         <AuthProvider>{children}</AuthProvider>
       </body>
