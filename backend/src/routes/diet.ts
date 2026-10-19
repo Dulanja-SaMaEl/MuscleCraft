@@ -1,49 +1,49 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../db/mock-db';
+import { CoachingService } from '../services/coaching-service';
+import { AuthService } from '../services/auth-service';
+import { SaveDietPlanSchema } from '../validation';
 
 const router = Router();
 
 // GET /api/diet-plans
 router.get('/', (req: Request, res: Response) => {
-  const clientId = req.query.clientId as string | undefined;
+  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
+  const clientId = (req.query.clientId as string) || userId;
   if (!clientId) {
     return res.status(400).json({ error: 'Missing clientId query parameter' });
   }
 
-  const plan = db.dietPlans.find((p) => p.userId === clientId && p.active) || null;
-  return res.json({ dietPlan: plan });
+  const caller = AuthService.getCurrentUser(userId || clientId);
+  if (!caller) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  try {
+    const plan = CoachingService.getDietPlan(caller, clientId);
+    return res.json({ dietPlan: plan });
+  } catch (error: any) {
+    return res.status(403).json({ error: error.message });
+  }
 });
 
 // POST /api/diet-plans
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { userId, title, dailyCalories, proteinGrams, carbsGrams, fatGrams, notes } = req.body;
-    if (!userId || !title || !dailyCalories) {
-      return res.status(400).json({ error: 'Missing required diet plan fields' });
+    const userId = (req.headers['x-user-id'] as string) || req.body.instructorId;
+    const caller = AuthService.getCurrentUser(userId);
+    if (!caller) {
+      return res.status(401).json({ error: 'Unauthorized: missing coach authentication' });
     }
 
-    // Deactivate previous plans for user
-    db.dietPlans.forEach((p) => {
-      if (p.userId === userId) p.active = false;
-    });
+    const parsed = SaveDietPlanSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Validation failed', details: parsed.error.format() });
+    }
 
-    const newPlan = {
-      id: `diet_${Date.now()}`,
-      userId,
-      title,
-      dailyCalories,
-      proteinGrams: proteinGrams || 150,
-      carbsGrams: carbsGrams || 200,
-      fatGrams: fatGrams || 60,
-      notes: notes || '',
-      active: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    db.dietPlans.push(newPlan);
-    return res.status(201).json({ success: true, dietPlan: newPlan });
+    const plan = CoachingService.saveDietPlan(caller, parsed.data);
+    return res.status(201).json({ success: true, dietPlan: plan });
   } catch (error: any) {
-    return res.status(500).json({ error: error.message || 'Failed to create diet plan' });
+    return res.status(500).json({ error: error.message || 'Failed to save diet plan' });
   }
 });
 

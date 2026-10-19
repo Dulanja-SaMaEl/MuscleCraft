@@ -8,13 +8,25 @@ import {
   AuditLog,
 } from '../types';
 
-export class IronForgeDatabase {
-  private static instance: IronForgeDatabase;
+export class MuscleCraftDatabase {
+  private static instance: MuscleCraftDatabase;
 
   public users: User[] = [
     {
+      id: 'usr_inst_adeesha',
+      email: 'adeesha@musclecraft.lk',
+      name: 'Coach Adeesha (Founder & Head Coach)',
+      role: 'instructor',
+      tier: 'coaching_90',
+      status: 'active',
+      phone: '+94 77 123 4567',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      membershipExpiresAt: '2028-12-31T23:59:59Z',
+      joinedAt: '2023-01-01T08:00:00Z',
+    },
+    {
       id: 'usr_admin_1',
-      email: 'admin@ironforge.com',
+      email: 'admin@musclecraft.lk',
       name: 'Victor Thorne (Admin)',
       role: 'admin',
       tier: 'coaching_90',
@@ -26,7 +38,7 @@ export class IronForgeDatabase {
     },
     {
       id: 'usr_inst_1',
-      email: 'instructor@ironforge.com',
+      email: 'instructor@musclecraft.lk',
       name: 'Elena Rostova (Head Coach)',
       role: 'instructor',
       tier: 'coaching_90',
@@ -385,12 +397,13 @@ export class IronForgeDatabase {
     },
   ];
 
-  public static getInstance(): IronForgeDatabase {
-    if (!IronForgeDatabase.instance) {
-      IronForgeDatabase.instance = new IronForgeDatabase();
+  public static getInstance(): MuscleCraftDatabase {
+    if (!MuscleCraftDatabase.instance) {
+      MuscleCraftDatabase.instance = new MuscleCraftDatabase();
     }
-    return IronForgeDatabase.instance;
+    return MuscleCraftDatabase.instance;
   }
 }
 
-export const db = IronForgeDatabase.getInstance();
+export const db = MuscleCraftDatabase.getInstance();
+export { MuscleCraftDatabase as IronForgeDatabase };

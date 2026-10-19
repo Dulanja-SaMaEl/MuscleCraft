@@ -213,11 +213,11 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              {/* IronForge Official Wire Instructions */}
+              {/* MuscleCraft Official Wire Instructions */}
               <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Building className="w-4 h-4 text-gold" />
+                    <Building className="w-4 h-4 text-crimson-400" />
                     Official Bank Instructions
                   </h3>
                   <span className="text-[11px] text-gray-400">Domestic Wire & ACH</span>
@@ -230,7 +230,7 @@ function CheckoutContent() {
                   </div>
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
                     <span className="text-gray-400">Account Name:</span>
-                    <span className="text-white font-medium">IronForge Athletic Club LLC</span>
+                    <span className="text-white font-medium">MuscleCraft Athletic Facility LLC</span>
                   </div>
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
                     <span className="text-gray-400">Routing (ABA):</span>

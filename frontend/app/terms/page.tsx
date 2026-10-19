@@ -16,7 +16,7 @@ export default function TermsPage() {
 
         <div className="bg-[#121215] border border-white/[0.08] p-8 rounded-lg space-y-6 text-xs sm:text-sm leading-relaxed">
           <p>
-            Welcome to IronForge Athletic Club. By accessing our training facilities, enrolling in the
+            Welcome to MuscleCraft Athletic Facility. By accessing our training facilities, enrolling in the
             90-Day VIP Coaching cohort, or executing manual bank transfer payments, you agree to comply
             with these binding terms.
           </p>
@@ -27,7 +27,7 @@ export default function TermsPage() {
           <p>
             Heavy resistance training, powerlifting, and aggressive metabolic periodization involve
             inherent physiological demands. You warrant that you have obtained medical clearance before
-            initiating barbell training. IronForge coaches provide performance guidance and nutrition
+            initiating barbell training. MuscleCraft coaches provide performance guidance and nutrition
             recommendations, not clinical medical diagnoses.
           </p>
 

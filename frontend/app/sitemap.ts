@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://ironforge-athletics.com';
+  const baseUrl = 'https://musclecraft.lk';
 
   return [
     {

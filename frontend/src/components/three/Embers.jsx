@@ -12,9 +12,9 @@ function createSoftParticleTexture() {
   if (!ctx) return null;
 
   const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  grad.addColorStop(0, 'rgba(255, 240, 200, 1)');
-  grad.addColorStop(0.2, 'rgba(212, 163, 89, 0.8)');
-  grad.addColorStop(0.5, 'rgba(180, 120, 40, 0.3)');
+  grad.addColorStop(0, 'rgba(255, 235, 235, 1)');
+  grad.addColorStop(0.2, 'rgba(220, 38, 38, 0.9)');
+  grad.addColorStop(0.5, 'rgba(186, 26, 26, 0.4)');
   grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
   ctx.fillStyle = grad;
@@ -91,7 +91,7 @@ export default function Embers({ count = 600 }) {
         />
       </bufferGeometry>
       <pointsMaterial
-        color="#D4A359"
+        color="#E02B37"
         size={0.065}
         map={particleTexture}
         transparent={true}

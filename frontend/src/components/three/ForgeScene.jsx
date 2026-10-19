@@ -73,19 +73,19 @@ function SceneContent({ isMobile }) {
       />
       <spotLight
         position={[8, 3, 3]}
-        intensity={3.5}
-        color="#D4A359"
+        intensity={3.8}
+        color="#BA1A1A"
         angle={0.6}
         penumbra={0.8}
       />
 
       {/* ── DREI ENVIRONMENT WITH LIGHTFORMERS (NO EXTERNAL HDRI) ── */}
       <Environment resolution={256}>
-        {/* 1. Gold rim light from the right */}
+        {/* 1. Crimson rim light from the right */}
         <Lightformer
           form="rect"
-          intensity={6.5}
-          color="#D4A359"
+          intensity={7.0}
+          color="#BA1A1A"
           position={[10, 2, 2]}
           scale={[12, 6, 1]}
           target={[0, 0, 0]}
@@ -103,7 +103,7 @@ function SceneContent({ isMobile }) {
         <Lightformer
           form="circle"
           intensity={1.8}
-          color="#f3d8a8"
+          color="#FFA8A8"
           position={[2, -3, 3]}
           scale={8}
         />

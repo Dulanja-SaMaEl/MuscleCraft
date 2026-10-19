@@ -95,7 +95,7 @@ export default function ElevateJourney() {
       ref={sectionRef}
       className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-transparent border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
     >
-      <div className="ambient-glow-gold top-1/4 left-1/4 pointer-events-none" />
+      <div className="ambient-glow-crimson top-1/4 left-1/4 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -106,12 +106,12 @@ export default function ElevateJourney() {
                 <div className="relative h-[260px] sm:h-[320px] lg:h-[360px] max-h-[40vh] w-full overflow-hidden">
                   <img
                     src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=900&auto=format&fit=crop"
-                    alt="Heavy Barbell Loading at IronForge Gym"
+                    alt="Heavy Barbell Loading at MuscleCraft Gym"
                     className="w-full h-full object-cover filter contrast-125 brightness-90 group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
                   <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
-                    <span className="text-[10px] sm:text-[11px] font-mono font-bold text-gold uppercase tracking-widest bg-black/70 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded border border-gold/40 shadow-gold-glow inline-block">
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold text-crimson-300 uppercase tracking-widest bg-black/70 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded border border-crimson-500/40 shadow-crimson-glow inline-block">
                       Precision Equipment
                     </span>
                     <p className="text-white text-xs sm:text-sm font-semibold mt-2 drop-shadow leading-snug">
@@ -131,7 +131,7 @@ export default function ElevateJourney() {
             <div>
               <span
                 ref={eyebrowRef}
-                className="text-xs font-semibold text-[#D4A359] uppercase tracking-widest font-mono block mb-2 will-change-transform"
+                className="text-xs font-semibold text-crimson-400 uppercase tracking-widest font-mono block mb-2 will-change-transform"
               >
                 Progressive Overload
               </span>
@@ -151,7 +151,7 @@ export default function ElevateJourney() {
               <div
                 ref={lineRef}
                 style={{ transformOrigin: 'left center' }}
-                className="w-12 h-1 bg-[#D4A359] mb-4 rounded-full shadow-[0_0_8px_rgba(212,163,89,0.6)] will-change-transform"
+                className="w-12 h-1 bg-crimson-600 mb-4 rounded-full shadow-[0_0_8px_rgba(186,26,26,0.6)] will-change-transform"
                 aria-hidden="true"
               />
 
@@ -170,7 +170,7 @@ export default function ElevateJourney() {
               <div className="space-y-3.5">
                 {leftFeatures.map((item, idx) => (
                   <div key={idx} className="checklist-item flex items-center gap-3 will-change-transform">
-                    <div className="checklist-tick w-5 h-5 rounded-full bg-gold/20 border border-gold/60 flex items-center justify-center text-gold flex-shrink-0 will-change-transform">
+                    <div className="checklist-tick w-5 h-5 rounded-full bg-crimson-900/30 border border-crimson-500/60 flex items-center justify-center text-crimson-400 flex-shrink-0 will-change-transform">
                       <Check className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-sm font-medium text-gray-200">{item}</span>
@@ -181,7 +181,7 @@ export default function ElevateJourney() {
               <div className="space-y-3.5">
                 {rightFeatures.map((item, idx) => (
                   <div key={idx} className="checklist-item flex items-center gap-3 will-change-transform">
-                    <div className="checklist-tick w-5 h-5 rounded-full bg-gold/20 border border-gold/60 flex items-center justify-center text-gold flex-shrink-0 will-change-transform">
+                    <div className="checklist-tick w-5 h-5 rounded-full bg-crimson-900/30 border border-crimson-500/60 flex items-center justify-center text-crimson-400 flex-shrink-0 will-change-transform">
                       <Check className="w-3.5 h-3.5" />
                     </div>
                     <span className="text-sm font-medium text-gray-200">{item}</span>

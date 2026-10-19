@@ -55,13 +55,13 @@ export default function AboutSection() {
       ref={sectionRef}
       className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-transparent border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
     >
-      <div className="ambient-glow-gold top-1/3 right-1/4 pointer-events-none" />
+      <div className="ambient-glow-crimson top-1/3 right-1/4 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-4 sm:py-6">
         <SectionHeader
           eyebrow="The Philosophy"
           heading="About Us"
-          paragraph="IronForge was established to eliminate the superficial gimmicks of commercial fitness clubs. We operate on raw physiological principles: progressive overload, metabolic optimization, and uncompromised athletic standards."
+          paragraph="MuscleCraft was established to eliminate the superficial gimmicks of commercial fitness clubs. We operate on raw physiological principles: progressive overload, metabolic optimization, and uncompromised athletic standards."
           centered={false}
           className="max-w-3xl mb-5 sm:mb-7"
         />
@@ -84,7 +84,7 @@ export default function AboutSection() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                   <div className="absolute bottom-6 left-6 right-6">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-gold bg-black/75 px-3 py-1 rounded border border-gold/40 shadow-sm inline-block">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-crimson-400 bg-black/75 px-3 py-1 rounded border border-crimson-500/40 shadow-sm inline-block">
                       {img.tag}
                     </span>
                     <p className="text-white text-base font-semibold mt-2.5 drop-shadow leading-snug">

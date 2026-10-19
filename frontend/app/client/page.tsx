@@ -653,7 +653,7 @@ export default function ClientDashboard() {
                 Verified Manual Transfer Receipts
               </h3>
               <p className="text-xs text-gray-400 mb-6">
-                All bank transfers are reconciled and verified by IronForge accounting.
+                All bank transfers are reconciled and verified by MuscleCraft accounting.
               </p>
 
               <div className="overflow-x-auto">

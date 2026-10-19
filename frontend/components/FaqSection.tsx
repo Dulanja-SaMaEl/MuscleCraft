@@ -20,27 +20,27 @@ export default function FaqSection() {
     {
       question: 'What are the facility operating hours?',
       answer:
-        'IronForge operates 24 hours a day, 7 days a week, 365 days a year for all active members via biometric RFID access. Coaching and staff hours are Monday through Friday from 06:00 to 22:00, and weekends from 08:00 to 18:00.',
+        'MuscleCraft operates 24 hours a day, 7 days a week, 365 days a year for active members. Personal training and coaching staff hours are Monday through Saturday from 06:00 to 22:00.',
     },
     {
-      question: 'How does the 90-Day VIP Coaching Program work?',
+      question: 'How does the Personal Coaching & Transformation Program work?',
       answer:
-        'Upon administrative activation of your manual bank transfer, you are assigned an elite strength coach. Week 1 starts with your private 1-on-1 video consultation and personalized nutrition protocol. In Week 2, you join the cohort weekly masterminds, record weekly body measurements, and unlock the private coaching video vault.',
+        'Upon enrollment, you are directly paired with Coach Adeesha and the MuscleCraft team. Week 1 begins with a comprehensive body assessment, health consultation, and tailored meal and workout plan. Your coach checks in continuously, tracking weight and measurements weekly, refining protocols until your target results are locked in.',
     },
     {
       question: 'How do manual bank transfer payments work?',
       answer:
-        'To ensure zero credit card processing surcharges and complete institutional security, we use verified manual bank transfers. When enrolling, our system generates a unique transfer reference code (e.g., TRF-IRON-749210). Once your transfer is submitted, our administrative desk verifies the bank receipt and activates your membership.',
+        'To ensure zero credit card processing surcharges and complete institutional security, we use verified manual bank transfers. When enrolling, our system generates a unique transfer reference code (e.g., TRF-MC-749210). Once your transfer is submitted, our administrative desk verifies the bank receipt and activates your membership.',
     },
     {
       question: 'Can I freeze or pause my membership?',
       answer:
-        'Yes. Monthly gym members and 90-day coaching cohort members can request up to a 30-day medical or travel freeze by contacting the administrative desk or coach.',
+        'Yes. Monthly members and personal coaching clients can request up to a 30-day medical or travel freeze by contacting the administrative desk or coach.',
     },
     {
-      question: 'What specialized equipment is provided in the gym?',
+      question: 'What specialized equipment and coaching tools are provided?',
       answer:
-        'Our facility features competition IPF-certified combo racks, Eleiko calibrated powerlifting plates, Texas power and deadlift bars, rogue safety squat bars, belt squat machines, reverse hypers, and custom dumbbell stations up to 150 lbs.',
+        'Our facility features competition-grade racks, calibrated power plates, specialized isolation machines, personalized tracking dashboards, and tailored nutritional meal planning.',
     },
   ];
 
@@ -162,27 +162,27 @@ export default function FaqSection() {
                 key={idx}
                 className={`faq-item will-change-transform bg-[#101014]/90 border rounded-xl overflow-hidden transition-colors duration-700 backdrop-blur-md ${
                   isOpen
-                    ? 'border-[#D4A359]/50 shadow-[0_0_24px_rgba(212,163,89,0.15)] bg-[#14141a]'
+                    ? 'border-crimson-500/50 shadow-[0_0_24px_rgba(186,26,26,0.2)] bg-[#14141a]'
                     : 'border-white/[0.08] hover:border-white/20'
                 }`}
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full text-left px-5 py-4 sm:px-6 sm:py-5 flex items-center justify-between text-sm sm:text-base font-semibold text-white hover:text-[#D4A359] transition-colors cursor-pointer"
+                  className="w-full text-left px-5 py-4 sm:px-6 sm:py-5 flex items-center justify-between text-sm sm:text-base font-semibold text-white hover:text-crimson-400 transition-colors cursor-pointer"
                   aria-expanded={isOpen}
                   aria-controls={`faq-answer-${idx}`}
                 >
                   <span className="pr-4 flex items-center gap-3">
                     <HelpCircle
                       className={`w-4 h-4 transition-colors duration-700 ${
-                        isOpen ? 'text-[#D4A359]' : 'text-gray-500'
+                        isOpen ? 'text-crimson-500' : 'text-gray-500'
                       }`}
                     />
                     {faq.question}
                   </span>
                   <ChevronDown
                     className={`w-5 h-5 flex-shrink-0 transition-transform duration-700 ease-in-out ${
-                      isOpen ? 'rotate-180 text-[#D4A359]' : 'rotate-0 text-gray-400'
+                      isOpen ? 'rotate-180 text-crimson-400' : 'rotate-0 text-gray-400'
                     }`}
                   />
                 </button>

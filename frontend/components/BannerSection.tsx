@@ -106,7 +106,7 @@ export default function BannerSection() {
       <div className="absolute inset-0 bg-gradient-to-t from-[#080809] via-black/40 to-[#080809] pointer-events-none z-[2]" />
 
       {/* 3D Ambient Core Glow */}
-      <div className="ambient-glow-gold top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[2]" />
+      <div className="ambient-glow-crimson top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[2]" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
 
@@ -143,7 +143,7 @@ export default function BannerSection() {
         </h2>
 
         <p className="banner-cta-anim text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-10 font-normal leading-relaxed drop-shadow">
-          Stop negotiating with your physiological potential. Step onto calibrated iron, execute your nutrition protocol, and claim your physical transformation.
+          Stop negotiating with your physiological potential. Build discipline, execute your customized protocol, and sculpt real strength with MuscleCraft.
         </p>
 
         <div className="banner-cta-anim flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -151,15 +151,15 @@ export default function BannerSection() {
             ref={magneticBtnRef}
             href="/checkout"
             style={{
-              backgroundColor: '#D4A359',
-              color: '#111111',
+              backgroundColor: '#BA1A1A',
+              color: '#FFFFFF',
               fontWeight: 600,
               fontSize: '13.5px',
             }}
-            className="w-full sm:w-auto px-9 py-3.5 bg-[#D4A359] hover:bg-[#c2934b] text-[#111111] font-semibold text-[13.5px] rounded transition-all duration-300 shadow-xl hover:shadow-gold-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2 will-change-transform"
+            className="w-full sm:w-auto px-9 py-3.5 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-xl hover:shadow-crimson-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2 will-change-transform"
           >
             <span>Join Now</span>
-            <ArrowRight className="w-4 h-4 text-[#111111]" />
+            <ArrowRight className="w-4 h-4 text-white" />
           </Link>
           <Link
             href="/memberships"
@@ -167,9 +167,9 @@ export default function BannerSection() {
               fontWeight: 600,
               fontSize: '13.5px',
             }}
-            className="w-full sm:w-auto px-8 py-3.5 bg-black/70 hover:bg-[#15151a] text-gray-200 hover:text-white font-semibold text-[13.5px] rounded border border-white/10 hover:border-gold/40 transition-all duration-300 backdrop-blur-md hover:scale-105"
+            className="w-full sm:w-auto px-8 py-3.5 bg-black/70 hover:bg-[#15151a] text-gray-200 hover:text-white font-semibold text-[13.5px] rounded-full border border-white/10 hover:border-crimson-500/50 transition-all duration-300 backdrop-blur-md hover:scale-105"
           >
-            Explore 90-Day VIP Cohort
+            Explore Coaching Programs
           </Link>
         </div>
       </div>

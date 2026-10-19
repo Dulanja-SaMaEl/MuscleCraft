@@ -62,11 +62,11 @@ export default function ContactPage() {
                   <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto" />
                   <h3 className="text-lg font-bold text-white">Message Transmitted</h3>
                   <p className="text-xs text-green-300 max-w-sm mx-auto">
-                    Thank you. An IronForge coach or administrator will contact you within 24 business hours.
+                    Thank you. A MuscleCraft coach or administrator will contact you within 24 business hours.
                   </p>
                   <button
                     onClick={() => setSubmitted(false)}
-                    className="text-xs font-semibold text-gold underline pt-2"
+                    className="text-xs font-semibold text-crimson-400 underline pt-2"
                   >
                     Send another inquiry
                   </button>
@@ -150,7 +150,7 @@ export default function ContactPage() {
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded transition-all duration-200 shadow-md hover:shadow-gold-glow flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 bg-[#BA1A1A] hover:bg-[#DC2626] text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Send className="w-4 h-4" /> Transmit Message
                   </button>

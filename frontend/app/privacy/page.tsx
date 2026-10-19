@@ -16,7 +16,7 @@ export default function PrivacyPage() {
 
         <div className="bg-[#121215] border border-white/[0.08] p-8 rounded-lg space-y-6 text-xs sm:text-sm leading-relaxed">
           <p>
-            IronForge Athletic Club LLC ("IronForge", "we", "our") respects your privacy and is
+            MuscleCraft Athletic Facility LLC ("MuscleCraft", "we", "our") respects your privacy and is
             committed to safeguarding personal information, medical screening forms, and body
             measurement telemetry collected across our web platform and physical facilities.
           </p>
@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             For privacy inquiries or data erasure requests, please contact our administrative desk at{' '}
-            <strong className="text-gold">privacy@ironforge.com</strong>.
+            <strong className="text-crimson-400">privacy@musclecraft.lk</strong>.
           </p>
         </div>
       </main>

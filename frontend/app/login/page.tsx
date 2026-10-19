@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
@@ -18,11 +19,20 @@ export default function LoginPage() {
 
   const personas = [
     {
+      id: 'usr_inst_adeesha',
+      name: 'Coach Adeesha',
+      role: 'Founder & Head Coach',
+      email: 'adeesha@musclecraft.lk',
+      badgeColor: 'bg-crimson-900/50 text-crimson-300 border-crimson-600/60',
+      icon: Dumbbell,
+      dest: '/instructor',
+    },
+    {
       id: 'usr_client_90',
       name: 'Marcus Vance',
       role: '90-Day VIP Member',
-      email: 'client_90@ironforge.com',
-      badgeColor: 'bg-gold/20 text-gold border-gold/30',
+      email: 'client_90@musclecraft.lk',
+      badgeColor: 'bg-crimson-950/60 text-crimson-300 border-crimson-600/40',
       icon: UserCheck,
       dest: '/client',
     },
@@ -30,25 +40,16 @@ export default function LoginPage() {
       id: 'usr_client_month',
       name: 'Sarah Jenkins',
       role: 'Monthly Gym Member',
-      email: 'client_monthly@ironforge.com',
+      email: 'client_monthly@musclecraft.lk',
       badgeColor: 'bg-gray-800 text-gray-300 border-gray-700',
       icon: UserCheck,
       dest: '/client',
     },
     {
-      id: 'usr_inst_1',
-      name: 'Elena Rostova',
-      role: 'Head Coach / Instructor',
-      email: 'instructor@ironforge.com',
-      badgeColor: 'bg-blue-900/40 text-blue-300 border-blue-700/50',
-      icon: Dumbbell,
-      dest: '/instructor',
-    },
-    {
       id: 'usr_admin_1',
       name: 'Victor Thorne',
       role: 'Platform Administrator',
-      email: 'admin@ironforge.com',
+      email: 'admin@musclecraft.lk',
       badgeColor: 'bg-red-900/40 text-red-300 border-red-700/50',
       icon: Shield,
       dest: '/admin',
@@ -83,26 +84,24 @@ export default function LoginPage() {
       <main className="flex-grow flex items-center justify-center pt-32 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 px-4">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
-            <div className="w-12 h-12 border border-gold/60 rounded flex items-center justify-center bg-black/40 mx-auto mb-4">
-              <svg viewBox="0 0 32 32" fill="none" className="w-7 h-7 text-gold">
-                <path
-                  d="M8 6V26M24 6V26M8 16H24M5 8H11M21 8H27M5 24H11M21 24H27"
-                  stroke="#E5A93C"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <div className="w-14 h-14 border border-crimson-600/40 rounded-full flex items-center justify-center bg-black/60 mx-auto mb-4 p-2 shadow-crimson-glow">
+              <Image
+                src="/images/musclecraft-emblem.png"
+                alt="MuscleCraft Emblem"
+                width={36}
+                height={36}
+                className="object-contain filter drop-shadow-[0_0_6px_rgba(220,38,38,0.6)]"
+              />
             </div>
             <h1
               style={{
                 fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                fontWeight: 600,
+                fontWeight: 700,
                 letterSpacing: '-0.02em',
               }}
-              className="text-[28px] sm:text-[32px] text-white tracking-tight mt-2 leading-tight"
+              className="text-[28px] sm:text-[32px] text-white tracking-tight mt-2 leading-tight uppercase"
             >
-              Sign In to IronForge
+              Sign In to Muscle<span className="text-crimson-500">Craft</span>
             </h1>
             <p className="text-xs text-gray-400 mt-2 font-normal">
               Access your personalized coaching portal, workout videos, and membership records.
@@ -110,8 +109,8 @@ export default function LoginPage() {
           </div>
 
           {/* Quick Demo Access Bar */}
-          <div className="bg-[#121215] border border-gold/30 rounded-lg p-5 space-y-3">
-            <span className="text-[11px] font-bold text-gold uppercase tracking-wider block">
+          <div className="bg-[#121215] border border-crimson-900/40 rounded-lg p-5 space-y-3">
+            <span className="text-[11px] font-bold text-crimson-400 uppercase tracking-wider block">
               ⚡ Instant Reviewer Fast-Pass:
             </span>
             <div className="grid grid-cols-1 gap-2">
@@ -121,14 +120,14 @@ export default function LoginPage() {
                   <button
                     key={p.id}
                     onClick={() => handleSelectPersona(p)}
-                    className="w-full flex items-center justify-between p-2.5 rounded bg-[#18181d] hover:bg-[#202028] border border-white/[0.06] hover:border-gold/40 text-left transition-colors group"
+                    className="w-full flex items-center justify-between p-2.5 rounded bg-[#18181d] hover:bg-[#202028] border border-white/[0.06] hover:border-crimson/50 text-left transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-gray-300 group-hover:text-gold">
+                      <div className="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-gray-300 group-hover:text-crimson-400">
                         <Icon className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white group-hover:text-gold transition-colors">
+                        <div className="text-xs font-bold text-white group-hover:text-crimson-400 transition-colors">
                           {p.name}
                         </div>
                         <div className="text-[10px] text-gray-400">{p.email}</div>
@@ -164,7 +163,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="athlete@example.com"
-                className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
+                className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none transition-colors"
               />
             </div>
 
@@ -178,21 +177,21 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
+                className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none transition-colors"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded transition-all duration-200 shadow-md hover:shadow-gold-glow flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#BA1A1A] hover:bg-[#DC2626] text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? 'Authenticating...' : 'Sign In'}
               <ArrowRight className="w-4 h-4" />
             </button>
 
             <div className="text-center pt-2">
-              <Link href="/checkout" className="text-xs text-gold hover:underline">
+              <Link href="/checkout" className="text-xs text-crimson-400 hover:text-crimson-300 hover:underline">
                 Need to enroll? Submit bank transfer here →
               </Link>
             </div>

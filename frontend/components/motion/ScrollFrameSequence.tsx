@@ -678,7 +678,7 @@ export default function ScrollFrameSequence({
       id="scrolly-hero"
       ref={sectionRef}
       className={`relative w-full h-[100svh] min-h-[100dvh] overflow-hidden bg-[#080809] select-none ${className}`}
-      aria-label="IronForge Scrollytelling Experience"
+      aria-label="MuscleCraft Scrollytelling Experience"
     >
       {/* ── Parallax Transform Wrapper (Damped mouse parallax on desktop) ── */}
       <div
@@ -691,7 +691,7 @@ export default function ScrollFrameSequence({
           <img
             ref={initialImgRef}
             src={firstFramePath}
-            alt="IronForge Athletic Club Facility"
+            alt="MuscleCraft Athletic Facility"
             fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover z-0"
             style={{ objectPosition: `${Math.round(focalX * 100)}% center` }}
@@ -732,13 +732,13 @@ export default function ScrollFrameSequence({
           }}
         />
 
-        {/* ── 3D Effects: Subtle Warm Gold Light Sweep (Follows sequence progress) ── */}
+        {/* ── 3D Effects: Subtle Crimson Light Sweep (Follows sequence progress) ── */}
         <div
           ref={goldLightRef}
           className="absolute inset-0 pointer-events-none z-[11] opacity-0 mix-blend-screen"
           style={{
             background:
-              'radial-gradient(circle at 75% 65%, rgba(212,163,89,0.35) 0%, rgba(212,163,89,0.08) 45%, transparent 70%)',
+              'radial-gradient(circle at 75% 65%, rgba(186,26,26,0.35) 0%, rgba(186,26,26,0.08) 45%, transparent 70%)',
           }}
         />
 
@@ -767,7 +767,7 @@ export default function ScrollFrameSequence({
             >
               <span className="block whitespace-nowrap">Made By Athletes</span>
               <span className="block whitespace-nowrap text-white mt-1">
-                <span className="text-[#D4A359] mr-2 sm:mr-3">
+                <span className="text-crimson-500 mr-2 sm:mr-3">
                   For
                 </span>{' '}
                 Athletes
@@ -776,7 +776,7 @@ export default function ScrollFrameSequence({
 
             {/* Sub-copy */}
             <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-xl mb-7 font-normal leading-relaxed drop-shadow">
-              Welcome to IronForge — Where champions are forged through science-backed coaching,
+              Welcome to MuscleCraft — Where champions are forged through science-backed coaching,
               world-class calibrated facilities, and relentless dedication.
             </p>
 
@@ -785,33 +785,33 @@ export default function ScrollFrameSequence({
               <Link
                 ref={magneticBtnRef1}
                 href="/checkout"
-                aria-label="Join IronForge Today"
+                aria-label="Join MuscleCraft Today"
                 style={{
-                  backgroundColor: '#D4A359',
-                  color: '#111111',
+                  backgroundColor: '#BA1A1A',
+                  color: '#FFFFFF',
                   fontWeight: 600,
                   fontSize: '13.5px',
                 }}
-                className="px-8 py-3.5 hover:bg-[#c2934b] text-[#111111] font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-gold-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
+                className="px-8 py-3.5 hover:bg-crimson-600 text-white font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-crimson-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Join Now</span>
-                <ArrowRight className="w-4 h-4 text-[#111111]" />
+                <ArrowRight className="w-4 h-4 text-white" />
               </Link>
 
               <Link
                 href="/memberships"
                 aria-label="Explore 90-Day VIP Coaching"
                 style={{ fontWeight: 600, fontSize: '13.5px' }}
-                className="px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-gold/50 transition-all duration-300 backdrop-blur-md hover:scale-105 flex items-center justify-center"
+                className="px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-crimson/50 transition-all duration-300 backdrop-blur-md hover:scale-105 flex items-center justify-center"
               >
                 Explore 90-Day VIP Coaching
               </Link>
             </div>
 
             {/* Scroll Cue Indicator */}
-            <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#D4A359]/90">
-              <ChevronDown className="w-4 h-4 text-[#D4A359] animate-[pulse_2s_ease-in-out_infinite]" />
-              <span>Scroll To Enter The Forge</span>
+            <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-crimson-400">
+              <ChevronDown className="w-4 h-4 text-crimson-500 animate-[pulse_2s_ease-in-out_infinite]" />
+              <span>Scroll To Enter The Facility</span>
             </div>
           </div>
 
@@ -828,7 +828,7 @@ export default function ScrollFrameSequence({
               className="text-[clamp(2rem,4.4vw,4rem)] font-extrabold uppercase text-white mb-4 font-sans"
             >
               Built For <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4A359] via-[#F5D899] to-[#C2934B]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-crimson-500 via-rose-300 to-crimson-600">
                 Uncompromising
               </span>{' '}
               Disciplines
@@ -865,7 +865,7 @@ export default function ScrollFrameSequence({
               className="text-[clamp(2rem,4.4vw,3.8rem)] font-extrabold uppercase text-white mb-4 font-sans"
             >
               No Noise. No Gimmicks. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4A359] via-[#F5D899] to-[#C2934B]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-crimson-500 via-rose-300 to-crimson-600">
                 Just Relentless Progress.
               </span>
             </h2>
@@ -882,7 +882,7 @@ export default function ScrollFrameSequence({
                 <span className="text-xs text-gray-400">Competition standard iron & steel</span>
               </div>
               <div className="p-3 rounded-xl bg-[#141418]/80 border border-white/10 backdrop-blur-md">
-                <span className="text-lg font-bold text-[#D4A359] block">Capped Capacity</span>
+                <span className="text-lg font-bold text-crimson-400 block">Capped Capacity</span>
                 <span className="text-xs text-gray-400">Exclusive member roster size</span>
               </div>
             </div>
@@ -901,8 +901,8 @@ export default function ScrollFrameSequence({
               className="text-[clamp(2rem,4.4vw,4.2rem)] font-extrabold uppercase text-white mb-4 font-sans"
             >
               Claim Your Ground <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4A359] via-[#F5D899] to-[#C2934B]">
-                At IronForge
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-crimson-500 via-rose-300 to-crimson-600">
+                At MuscleCraft
               </span>
             </h2>
 
@@ -917,22 +917,22 @@ export default function ScrollFrameSequence({
                 href="/pricing"
                 aria-label="View 90-Day VIP Coaching Pricing"
                 style={{
-                  backgroundColor: '#D4A359',
-                  color: '#111111',
+                  backgroundColor: '#BA1A1A',
+                  color: '#FFFFFF',
                   fontWeight: 600,
                   fontSize: '13.5px',
                 }}
-                className="px-8 py-3.5 hover:bg-[#c2934b] text-[#111111] font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-gold-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
+                className="px-8 py-3.5 hover:bg-crimson-600 text-white font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-crimson-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Join 90-Day VIP</span>
-                <ArrowRight className="w-4 h-4 text-[#111111]" />
+                <ArrowRight className="w-4 h-4 text-white" />
               </Link>
 
               <Link
                 href="/memberships"
                 aria-label="Explore All Memberships"
                 style={{ fontWeight: 600, fontSize: '13.5px' }}
-                className="px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-gold/50 transition-all duration-300 backdrop-blur-md hover:scale-105 flex items-center justify-center"
+                className="px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-crimson/50 transition-all duration-300 backdrop-blur-md hover:scale-105 flex items-center justify-center"
               >
                 Explore Memberships
               </Link>
@@ -957,10 +957,10 @@ export default function ScrollFrameSequence({
             </div>
 
             <div className="px-2 sm:px-4">
-              <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#D4A359] block font-sans tracking-tight">
+              <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-crimson-400 block font-sans tracking-tight">
                 1-on-1
               </span>
-              <span className="text-[10px] sm:text-xs text-amber-200/90 uppercase font-semibold tracking-wider">
+              <span className="text-[10px] sm:text-xs text-rose-200/90 uppercase font-semibold tracking-wider">
                 Direct Coaching
               </span>
             </div>

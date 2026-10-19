@@ -90,23 +90,23 @@ export default function MapSection() {
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
           ref={pinCardRef}
-          className="pointer-events-auto bg-[#121215]/95 border border-gold/60 p-4 rounded-lg shadow-2xl backdrop-blur-md flex items-center gap-4 max-w-sm will-change-transform"
+          className="pointer-events-auto bg-[#121215]/95 border border-crimson-500/60 p-4 rounded-lg shadow-2xl backdrop-blur-md flex items-center gap-4 max-w-sm will-change-transform shadow-[0_0_25px_rgba(186,26,26,0.3)]"
         >
-          <div className="w-10 h-10 rounded-full bg-gold/20 border border-gold flex items-center justify-center text-gold flex-shrink-0 animate-bounce">
-            <MapPin className="w-5 h-5 fill-gold text-black" />
+          <div className="w-10 h-10 rounded-full bg-crimson-500/20 border border-crimson-500 flex items-center justify-center text-crimson-400 flex-shrink-0 animate-bounce">
+            <MapPin className="w-5 h-5 fill-crimson-500 text-black" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-white tracking-wide">
-              IronForge Athletic Club HQ
+              MuscleCraft Facility
             </h4>
             <p className="text-xs text-gray-400 mt-0.5">
-              8400 Olympic Blvd, Los Angeles, CA
+              Build Discipline. Sculpt Strength.
             </p>
             <a
               href="https://maps.google.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[11px] font-semibold text-gold hover:underline flex items-center gap-1 mt-1.5"
+              className="text-[11px] font-semibold text-crimson-400 hover:underline flex items-center gap-1 mt-1.5"
             >
               <Navigation className="w-3 h-3" /> Get Driving Directions
             </a>

@@ -12,7 +12,16 @@ export class AuthService {
   }
 
   static getUserByEmail(email: string): User | null {
-    return db.users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
+    const clean = email.toLowerCase().trim();
+    return (
+      db.users.find((u) => {
+        const uEmail = u.email.toLowerCase();
+        if (uEmail === clean) return true;
+        const uPrefix = uEmail.split('@')[0];
+        const cleanPrefix = clean.split('@')[0];
+        return uPrefix === cleanPrefix;
+      }) || null
+    );
   }
 
   static authenticate(email: string): User | null {

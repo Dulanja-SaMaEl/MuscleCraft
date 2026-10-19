@@ -64,7 +64,7 @@ export default function WhatWeOffer() {
       <VideoBackground name="bar" overlayStrength={0.82} className="z-0" />
 
       {/* Atmospheric ambient glow */}
-      <div className="ambient-glow-gold top-1/2 left-1/4 -translate-y-1/2 pointer-events-none" />
+      <div className="ambient-glow-crimson top-1/2 left-1/4 -translate-y-1/2 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeader
@@ -81,7 +81,7 @@ export default function WhatWeOffer() {
               onClick={() => setActiveMobileOffer(idx)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeMobileOffer === idx
-                  ? 'bg-[#D4A359] text-[#111111] shadow-[0_0_12px_rgba(212,163,89,0.5)] font-bold'
+                  ? 'bg-crimson-600 text-white shadow-[0_0_12px_rgba(186,26,26,0.5)] font-bold'
                   : 'bg-[#121216] text-gray-400 hover:text-white border border-white/10'
               }`}
             >
@@ -104,10 +104,10 @@ export default function WhatWeOffer() {
                 }`}
               >
                 <Card3DTilt
-                  className="liquid-glass-card p-6 sm:p-8 h-full flex flex-col justify-between rounded-2xl group transition-all duration-300 hover:-translate-y-2"
+                  className="liquid-glass-card p-6 sm:p-8 h-full flex flex-col justify-between rounded-2xl group transition-all duration-300 hover:-translate-y-2 hover:border-crimson-500/50"
                 >
                   <div>
-                    <div className="offer-icon w-12 h-12 rounded-xl bg-black/70 border border-gold/40 flex items-center justify-center mb-5 text-gold shadow-gold-glow group-hover:scale-110 group-hover:border-gold transition-all duration-300 will-change-transform">
+                    <div className="offer-icon w-12 h-12 rounded-xl bg-black/70 border border-crimson-500/40 flex items-center justify-center mb-5 text-crimson-400 shadow-crimson-glow group-hover:scale-110 group-hover:border-crimson-400 transition-all duration-300 will-change-transform">
                       <Icon className="w-6 h-6" />
                     </div>
                     <h3 className="font-display text-xl sm:text-2xl tracking-wide text-white mb-3 uppercase">

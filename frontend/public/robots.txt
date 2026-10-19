@@ -15,4 +15,4 @@ Disallow: /instructor
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://ironforge-athletics.com/sitemap.xml
+Sitemap: https://musclecraft.lk/sitemap.xml

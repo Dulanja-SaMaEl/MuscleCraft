@@ -18,10 +18,12 @@ build/
 dist/
 
 # Debug & Temporary Root Artifacts
-*.png
-*.jpg
-*.webm
-*.tsbuildinfo
+/*.png
+/*.jpg
+/*.jpeg
+/*.webm
+/*.tsbuildinfo
+!frontend/public/**
 
 # Environment Variables
 .env

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Shield, Dumbbell, UserCheck, Menu, X } from 'lucide-react';
 import { useAuth } from '@/lib/context/auth-context';
@@ -110,19 +111,19 @@ export default function Navbar() {
       <div className="relative z-50 bg-[#0d0d11]/95 border-b border-white/[0.08] px-3 sm:px-4 py-1 text-xs text-gray-400">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="inline-block w-2 h-2 rounded-full bg-[#D4A359] animate-pulse" />
+            <span className="inline-block w-2 h-2 rounded-full bg-crimson-500 animate-pulse" />
             <span className="font-medium text-gray-300 hidden sm:inline">Live Persona:</span>
             <span className="text-white font-semibold">
               {currentUser ? currentUser.name : 'Guest Visitor'}
             </span>
             {currentUser?.tier === 'coaching_90' && (
-              <span className="bg-[#D4A359]/20 text-[#D4A359] text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-[#D4A359]/30">
-                90-DAY VIP
+              <span className="bg-crimson-900/40 text-crimson-300 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-crimson-500/40">
+                VIP COACHING
               </span>
             )}
             {currentUser?.tier === 'monthly' && (
               <span className="bg-gray-800 text-gray-300 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">
-                MONTHLY
+                MEMBER
               </span>
             )}
           </div>
@@ -134,23 +135,23 @@ export default function Navbar() {
                 onClick={() => switchPersona('usr_client_90')}
                 className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
                   currentUser?.id === 'usr_client_90'
-                    ? 'bg-[#D4A359] text-black font-semibold'
+                    ? 'bg-crimson-600 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Marcus Vance (90-Day VIP Coaching)"
+                title="Neluka Rodrigo (3-Month Client)"
               >
-                90-Day
+                Client
               </button>
               <button
                 onClick={() => switchPersona('usr_client_month')}
                 className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
                   currentUser?.id === 'usr_client_month'
-                    ? 'bg-[#D4A359] text-black font-semibold'
+                    ? 'bg-crimson-600 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Sarah Jenkins (Monthly Gym Member)"
+                title="Member"
               >
-                Monthly
+                Member
               </button>
               <button
                 onClick={() => switchPersona('usr_inst_1')}
@@ -159,18 +160,18 @@ export default function Navbar() {
                     ? 'bg-blue-600 text-white font-semibold'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Coach Elena Rostova"
+                title="Coach Adeesha (Founder & Head Coach)"
               >
-                Coach
+                Coach Adeesha
               </button>
               <button
                 onClick={() => switchPersona('usr_admin_1')}
                 className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
                   currentUser?.id === 'usr_admin_1'
-                    ? 'bg-red-600 text-white font-semibold'
+                    ? 'bg-crimson-800 text-white font-semibold'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Victor Thorne (Platform Admin)"
+                title="Platform Admin"
               >
                 Admin
               </button>
@@ -179,46 +180,40 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ── FLOATING PILL NAVBAR: Centered, blur(18px) saturate(1.4), 1px border rgba(255,255,255,.12), Gold CTA ── */}
+      {/* ── FLOATING PILL NAVBAR: Centered, blur(18px) saturate(1.4), 1px border rgba(255,255,255,.12), Crimson CTA ── */}
       <div className="fixed top-10 sm:top-12 left-0 right-0 z-40 flex justify-center px-3 sm:px-6 pointer-events-none">
         <header
           ref={pillRef}
           style={{
             backdropFilter: 'blur(18px) saturate(1.4)',
             WebkitBackdropFilter: 'blur(18px) saturate(1.4)',
-            backgroundColor: 'rgba(14, 14, 18, 0.72)',
+            backgroundColor: 'rgba(14, 14, 18, 0.76)',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 30px -10px rgba(0, 0, 0, 0.6)',
           }}
           className="pointer-events-auto w-full max-w-5xl rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between transition-all duration-300 will-change-transform"
         >
-          {/* Brand Monogram */}
+          {/* Brand Monogram & MuscleCraft Emblem */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-gold rounded-full"
+            className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-crimson-500 rounded-full"
           >
-            <div className="w-8 h-8 rounded-full border border-gold/60 flex items-center justify-center bg-black/60 group-hover:border-gold transition-colors">
-              <svg
-                viewBox="0 0 32 32"
-                fill="none"
-                className="w-4 h-4 text-gold"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8 6V26M24 6V26M8 16H24M5 8H11M21 8H27M5 24H11M21 24H27"
-                  stroke="#D4A359"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <div className="w-8 h-8 rounded-full border border-crimson-500/50 flex items-center justify-center bg-black/70 group-hover:border-crimson-400 group-hover:scale-105 transition-all shadow-[0_0_12px_rgba(186,26,26,0.35)] overflow-hidden p-0.5">
+              <Image
+                src="/images/musclecraft-emblem.png"
+                alt="MuscleCraft Emblem"
+                width={28}
+                height={28}
+                className="object-contain"
+                priority
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold tracking-wider text-white text-sm sm:text-base leading-tight uppercase font-sans">
-                Iron<span className="text-gold">Forge</span>
+                Muscle<span className="text-crimson-500">Craft</span>
               </span>
-              <span className="text-[8px] tracking-[0.2em] text-gray-400 uppercase hidden sm:block">
-                Athletic Club
+              <span className="text-[7.5px] sm:text-[8px] tracking-[0.16em] text-gray-400 uppercase hidden sm:block font-mono">
+                Build Discipline. Sculpt Strength.
               </span>
             </div>
           </Link>
@@ -277,12 +272,12 @@ export default function Navbar() {
                 <Link
                   href="/login"
                   style={{
-                    backgroundColor: '#D4A359',
-                    color: '#111111',
+                    backgroundColor: '#BA1A1A',
+                    color: '#FFFFFF',
                     fontWeight: 600,
                     fontSize: '13px',
                   }}
-                  className="font-semibold text-xs sm:text-[13px] bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-gold-glow cursor-pointer"
+                  className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow cursor-pointer"
                 >
                   Account
                 </Link>
@@ -298,12 +293,12 @@ export default function Navbar() {
                 <Link
                   href="/checkout"
                   style={{
-                    backgroundColor: '#D4A359',
-                    color: '#111111',
+                    backgroundColor: '#BA1A1A',
+                    color: '#FFFFFF',
                     fontWeight: 600,
                     fontSize: '13px',
                   }}
-                  className="font-semibold text-xs sm:text-[13px] bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] px-4 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-gold-glow cursor-pointer"
+                  className="font-semibold text-xs sm:text-[13px] bg-crimson-600 hover:bg-crimson-500 text-white px-4 sm:px-5 py-1.5 sm:py-2 rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow cursor-pointer"
                 >
                   Sign Up
                 </Link>
@@ -338,7 +333,7 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleLinkClick(e, link)}
-                className="text-gray-200 hover:text-gold text-base py-1 font-medium transition-colors"
+                className="text-gray-200 hover:text-crimson-400 text-base py-1 font-medium transition-colors"
               >
                 {link.label}
               </Link>
@@ -350,7 +345,7 @@ export default function Navbar() {
               <Link
                 href="/client"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 bg-surface border border-gold/40 text-gold rounded-full font-medium text-xs"
+                className="w-full text-center py-2 bg-surface border border-crimson-500/40 text-crimson-400 rounded-full font-medium text-xs"
               >
                 Client Dashboard
               </Link>
@@ -377,9 +372,9 @@ export default function Navbar() {
             <Link
               href="/checkout"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-xs rounded-full transition-colors"
+              className="w-full text-center py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs rounded-full transition-colors shadow-[0_0_15px_rgba(186,26,26,0.4)]"
             >
-              Join IronForge
+              Join MuscleCraft
             </Link>
           </div>
         </div>

@@ -18,16 +18,16 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   if (user.role === 'admin') {
-    return res.json({ payments: PaymentService.getAllPayments() });
+    return res.json({ payments: PaymentService.getPayments(user) });
   }
 
-  return res.json({ payments: PaymentService.getUserPayments(userId) });
+  return res.json({ payments: PaymentService.getPayments(user, userId) });
 });
 
 // POST /api/payments (submit bank transfer)
 router.post('/', (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string || req.body.userId;
+    const userId = (req.headers['x-user-id'] as string) || req.body.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized: missing x-user-id or userId' });
     }
@@ -57,7 +57,8 @@ router.post('/', (req: Request, res: Response) => {
 router.post('/:id/approve', (req: Request, res: Response) => {
   try {
     const adminId = (req.headers['x-user-id'] as string) || req.body.adminId;
-    if (!adminId) {
+    const adminUser = db.users.find((u) => u.id === adminId && u.role === 'admin');
+    if (!adminUser) {
       return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
     }
 
@@ -66,7 +67,7 @@ router.post('/:id/approve', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Validation failed', details: parsed.error.format() });
     }
 
-    const payment = PaymentService.approvePayment(req.params.id, adminId, parsed.data.adminNotes);
+    const payment = PaymentService.approvePayment(adminUser, req.params.id, parsed.data.adminNotes);
     return res.json({ success: true, payment });
   } catch (error: any) {
     const status = error.message.includes('Forbidden') ? 403 : error.message.includes('not found') ? 404 : 400;
@@ -78,7 +79,8 @@ router.post('/:id/approve', (req: Request, res: Response) => {
 router.post('/:id/reject', (req: Request, res: Response) => {
   try {
     const adminId = (req.headers['x-user-id'] as string) || req.body.adminId;
-    if (!adminId) {
+    const adminUser = db.users.find((u) => u.id === adminId && u.role === 'admin');
+    if (!adminUser) {
       return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
     }
 
@@ -87,7 +89,7 @@ router.post('/:id/reject', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Validation failed', details: parsed.error.format() });
     }
 
-    const payment = PaymentService.rejectPayment(req.params.id, adminId, parsed.data.reason);
+    const payment = PaymentService.rejectPayment(adminUser, req.params.id, parsed.data.reason);
     return res.json({ success: true, payment });
   } catch (error: any) {
     const status = error.message.includes('Forbidden') ? 403 : error.message.includes('not found') ? 404 : 400;

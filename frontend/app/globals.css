@@ -3,13 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #080809;
+  --background: #08080A;
   --foreground: #F9FAFB;
-  --surface: #121215;
-  --surface-elevated: #18181d;
-  --gold: #D4A359;
-  --gold-hover: #C2934B;
-  --gold-glow: rgba(212, 163, 89, 0.25);
+  --surface: #121216;
+  --surface-elevated: #18181E;
+  --crimson: #BA1A1A;
+  --crimson-hover: #DC2626;
+  --crimson-glow: rgba(186, 26, 26, 0.35);
+  --gold: #BA1A1A;
+  --gold-hover: #DC2626;
+  --gold-glow: rgba(186, 26, 26, 0.35);
+  --platinum: #E8E5DC;
   --border-subtle: rgba(255, 255, 255, 0.08);
 }
 
@@ -22,7 +26,7 @@ html {
 }
 
 body {
-  background-color: #080809;
+  background-color: #08080A;
   color: #F9FAFB;
   font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-body), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: clip;
@@ -46,18 +50,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #E5A93C;
+  background: #BA1A1A;
 }
 
 /* Focus styles for WCAG AA compliance */
 :focus-visible {
-  outline: 2px solid #E5A93C;
+  outline: 2px solid #BA1A1A;
   outline-offset: 2px;
 }
 
-/* Metallic gold text gradient */
-.text-gold-gradient {
-  background: linear-gradient(135deg, #FFF4DC 0%, #E5A93C 45%, #C2861F 100%);
+/* Metallic crimson & titanium platinum text gradient */
+.text-gold-gradient,
+.text-crimson-gradient {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FF7B7B 30%, #BA1A1A 70%, #7F1010 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -84,24 +89,27 @@ body {
   transform-style: preserve-3d;
 }
 
-.card-ironforge:hover {
+.card-ironforge:hover,
+.card-musclecraft:hover {
   transform: translateY(-8px) scale(1.015);
-  border-color: rgba(229, 169, 60, 0.4);
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 30px rgba(229, 169, 60, 0.2);
+  border-color: rgba(186, 26, 26, 0.5);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 30px rgba(186, 26, 26, 0.25);
 }
 
-.card-ironforge-featured {
+.card-ironforge-featured,
+.card-musclecraft-featured {
   background: linear-gradient(145deg, #18181d 0%, #121216 100%);
-  border: 1px solid rgba(229, 169, 60, 0.5);
-  box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.95), 0 0 35px rgba(229, 169, 60, 0.25);
+  border: 1px solid rgba(186, 26, 26, 0.5);
+  box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.95), 0 0 35px rgba(186, 26, 26, 0.3);
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
   transform-style: preserve-3d;
 }
 
-.card-ironforge-featured:hover {
+.card-ironforge-featured:hover,
+.card-musclecraft-featured:hover {
   transform: translateY(-12px) scale(1.02);
-  border-color: rgba(229, 169, 60, 0.7);
-  box-shadow: 0 35px 80px -15px rgba(0, 0, 0, 0.98), 0 0 50px rgba(229, 169, 60, 0.45);
+  border-color: rgba(220, 38, 38, 0.7);
+  box-shadow: 0 35px 80px -15px rgba(0, 0, 0, 0.98), 0 0 50px rgba(186, 26, 26, 0.45);
 }
 
 /* 3D Floating elements */
@@ -119,11 +127,12 @@ body {
 }
 
 /* Ambient 3D Depth Glow - multi-stop gradient avoids expensive GPU blur passes on mobile */
-.ambient-glow-gold {
+.ambient-glow-gold,
+.ambient-glow-crimson {
   position: absolute;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(229, 169, 60, 0.12) 0%, rgba(229, 169, 60, 0.05) 30%, rgba(229, 169, 60, 0.01) 60%, transparent 75%);
+  background: radial-gradient(circle, rgba(186, 26, 26, 0.16) 0%, rgba(186, 26, 26, 0.06) 30%, rgba(186, 26, 26, 0.01) 60%, transparent 75%);
   pointer-events: none;
   z-index: 1;
 }
@@ -205,11 +214,11 @@ body {
 }
 
 .liquid-glass-card:hover {
-  border-color: rgba(212, 163, 89, 0.6);
+  border-color: rgba(186, 26, 26, 0.6);
   box-shadow: 
     inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
     0 25px 60px -10px rgba(0, 0, 0, 0.85),
-    0 0 35px rgba(212, 163, 89, 0.25);
+    0 0 35px rgba(186, 26, 26, 0.25);
   transform: translateY(-4px);
 }
 

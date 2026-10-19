@@ -65,7 +65,7 @@ export default function Card3DTilt({
         className="pointer-events-none absolute inset-0 z-20 rounded-2xl transition-opacity duration-300"
         style={{
           opacity: glareStyle.opacity,
-          background: `radial-gradient(circle at ${glareStyle.x}% ${glareStyle.y}%, rgba(229, 169, 60, 0.28) 0%, rgba(255, 255, 255, 0.1) 30%, transparent 70%)`,
+          background: `radial-gradient(circle at ${glareStyle.x}% ${glareStyle.y}%, rgba(220, 38, 38, 0.22) 0%, rgba(255, 255, 255, 0.1) 30%, transparent 70%)`,
         }}
       />
 

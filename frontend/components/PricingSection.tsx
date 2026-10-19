@@ -98,7 +98,7 @@ export default function PricingSection() {
       ref={sectionRef}
       className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-[#080809] border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
     >
-      <div className="ambient-glow-gold top-1/3 right-1/4 pointer-events-none" />
+      <div className="ambient-glow-crimson top-1/3 right-1/4 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <SectionHeader
@@ -116,7 +116,7 @@ export default function PricingSection() {
               onClick={() => setActiveMobileTier(t.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeMobileTier === t.id
-                  ? 'bg-[#D4A359] text-[#111111] shadow-[0_0_12px_rgba(212,163,89,0.5)] font-bold'
+                  ? 'bg-crimson-600 text-white shadow-[0_0_12px_rgba(186,26,26,0.5)] font-bold'
                   : 'bg-[#121216] text-gray-400 hover:text-white border border-white/10'
               }`}
             >
@@ -138,10 +138,10 @@ export default function PricingSection() {
                 tier.featured ? 'pricing-flagship-card' : 'pricing-std-card'
               }`}
             >
-              {/* Flagship 90-Day VIP Card Gold Border Glow */}
+              {/* Flagship 90-Day VIP Card Crimson Border Glow */}
               {tier.featured && (
                 <div
-                  className="absolute -inset-[1px] rounded-2xl pointer-events-none -z-10 border border-[#D4A359]/70 shadow-[0_0_24px_rgba(212,163,89,0.25)]"
+                  className="absolute -inset-[1px] rounded-2xl pointer-events-none -z-10 border border-crimson-500/70 shadow-[0_0_24px_rgba(186,26,26,0.35)]"
                   aria-hidden="true"
                 />
               )}
@@ -151,7 +151,7 @@ export default function PricingSection() {
                 maxTilt={tier.featured ? 10 : 7}
                 className={`liquid-glass-card p-6 sm:p-7 lg:p-8 flex flex-col justify-between h-full rounded-2xl relative overflow-hidden ${
                   tier.featured
-                    ? '!bg-[#141418]/95 !border-[#D4A359]/80 shadow-card-featured-3d lg:-translate-y-2'
+                    ? '!bg-[#141418]/95 !border-crimson-500/80 shadow-card-featured-3d lg:-translate-y-2'
                     : ''
                 }`}
               >
@@ -161,18 +161,18 @@ export default function PricingSection() {
                     className="absolute -top-12 -right-12 w-64 h-64 rounded-full pointer-events-none z-0 opacity-25 select-none"
                     aria-hidden="true"
                   >
-                    <div className="w-full h-full rounded-full border-2 border-[#D4A359]/70 flex items-center justify-center animate-[spin_30s_linear_infinite]">
-                      <div className="w-48 h-48 rounded-full border border-[#D4A359]/40 border-dashed flex items-center justify-center">
-                        <div className="w-32 h-32 rounded-full border border-[#D4A359]/30 flex items-center justify-center">
-                          <div className="w-14 h-14 rounded-full bg-[#D4A359]/15 border border-[#D4A359]/50 flex items-center justify-center">
-                            <Flame className="w-6 h-6 text-[#D4A359]/80" />
+                    <div className="w-full h-full rounded-full border-2 border-crimson-500/70 flex items-center justify-center animate-[spin_30s_linear_infinite]">
+                      <div className="w-48 h-48 rounded-full border border-crimson-500/40 border-dashed flex items-center justify-center">
+                        <div className="w-32 h-32 rounded-full border border-crimson-500/30 flex items-center justify-center">
+                          <div className="w-14 h-14 rounded-full bg-crimson-500/15 border border-crimson-500/50 flex items-center justify-center">
+                            <Flame className="w-6 h-6 text-crimson-400" />
                           </div>
                         </div>
                       </div>
-                      <span className="absolute top-3 text-[8.5px] font-mono font-bold text-[#D4A359]/70 tracking-widest uppercase">
-                        IRONFORGE 20KG
+                      <span className="absolute top-3 text-[8.5px] font-mono font-bold text-crimson-400 tracking-widest uppercase">
+                        MUSCLECRAFT 20KG
                       </span>
-                      <span className="absolute bottom-3 text-[8.5px] font-mono font-bold text-[#D4A359]/50 tracking-widest uppercase">
+                      <span className="absolute bottom-3 text-[8.5px] font-mono font-bold text-crimson-400/60 tracking-widest uppercase">
                         CALIBRATED
                       </span>
                     </div>
@@ -183,7 +183,7 @@ export default function PricingSection() {
                   {/* Badge: Moved above title so it NEVER overlaps any text */}
                   {tier.featured ? (
                     <div className="mb-2.5 sm:mb-3">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#D4A359] text-[#111111] font-bold text-[10.5px] uppercase tracking-wider shadow-sm">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-crimson-600 text-white font-bold text-[10.5px] uppercase tracking-wider shadow-sm">
                         <span>{tier.badge}</span>
                       </span>
                     </div>
@@ -228,7 +228,7 @@ export default function PricingSection() {
                       <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-[13px] text-gray-300">
                         <div
                           className={`mt-0.5 rounded-full p-0.5 flex-shrink-0 ${
-                            tier.featured ? 'bg-[#D4A359]/20 text-[#D4A359]' : 'bg-white/10 text-gray-300'
+                            tier.featured ? 'bg-crimson-500/20 text-crimson-400' : 'bg-white/10 text-gray-300'
                           }`}
                         >
                           <Check className="w-3 h-3" />
@@ -239,16 +239,16 @@ export default function PricingSection() {
                   </ul>
                 </div>
 
-                {/* ── BUTTON: font-weight 600, font-size 13px-14px, dark text (#111111) on warm gold (#D4A359) ── */}
+                {/* ── BUTTON: font-weight 600, font-size 13px-14px, white text on crimson (#BA1A1A) ── */}
                 <Link
                   href={tier.href}
                   style={{
-                    backgroundColor: '#D4A359',
-                    color: '#111111',
+                    backgroundColor: '#BA1A1A',
+                    color: '#FFFFFF',
                     fontWeight: 600,
                     fontSize: '13.5px',
                   }}
-                  className="w-full py-3 px-6 rounded font-semibold text-[13.5px] uppercase tracking-wide text-center transition-all duration-300 block shadow-md hover:bg-[#c2934b] text-[#111111] hover:scale-102 cursor-pointer"
+                  className="w-full py-3 px-6 rounded font-semibold text-[13.5px] uppercase tracking-wide text-center transition-all duration-300 block shadow-md bg-crimson-600 hover:bg-crimson-500 text-white hover:scale-102 cursor-pointer shadow-[0_0_15px_rgba(186,26,26,0.35)]"
                 >
                   Join Now
                 </Link>

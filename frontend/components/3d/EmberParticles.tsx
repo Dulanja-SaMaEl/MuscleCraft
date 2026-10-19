@@ -25,9 +25,9 @@ export default function EmberParticles({ count, isMobile = false }: EmberParticl
 
     const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
     gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    gradient.addColorStop(0.25, 'rgba(245, 184, 75, 0.85)');
-    gradient.addColorStop(0.6, 'rgba(229, 169, 60, 0.35)');
-    gradient.addColorStop(1, 'rgba(229, 169, 60, 0)');
+    gradient.addColorStop(0.25, 'rgba(239, 68, 68, 0.9)');
+    gradient.addColorStop(0.6, 'rgba(186, 26, 26, 0.4)');
+    gradient.addColorStop(1, 'rgba(186, 26, 26, 0)');
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 64, 64);
@@ -54,13 +54,13 @@ export default function EmberParticles({ count, isMobile = false }: EmberParticl
     const col = new Float32Array(particleCount * 3);
     const vel = new Float32Array(particleCount * 3);
 
-    // Warm ember color palette: Molten Gold, Burning Amber, White Spark
+    // Warm ember color palette: Molten Crimson, Burning Scarlet, White Spark
     const colorChoices = [
-      new THREE.Color('#E5A93C'), // Reference gold
-      new THREE.Color('#F5B84B'), // Light gold
-      new THREE.Color('#FF7A1A'), // Forge fire amber
-      new THREE.Color('#FF4500'), // Hot ember
-      new THREE.Color('#FFF5DC'), // Incandescent spark
+      new THREE.Color('#BA1A1A'), // MuscleCraft crimson
+      new THREE.Color('#DC2626'), // Vivid scarlet
+      new THREE.Color('#EF4444'), // Forge fire ember
+      new THREE.Color('#991212'), // Deep crimson
+      new THREE.Color('#FFF5F5'), // Incandescent spark
     ];
 
     for (let i = 0; i < particleCount; i++) {

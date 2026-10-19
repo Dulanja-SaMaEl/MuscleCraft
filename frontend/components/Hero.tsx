@@ -156,7 +156,7 @@ export default function Hero() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full my-auto flex flex-col justify-center">
         <div className="max-w-3xl text-center lg:text-left mx-auto lg:mx-0">
 
-          {/* ── HUGE EDITORIAL HEADLINE: 8-12vw in bold condensed display face with one word in gold italic ── */}
+          {/* ── HUGE EDITORIAL HEADLINE: Official Brand Tagline with Crimson Accent ── */}
           <h1
             ref={headlineRef}
             style={{
@@ -165,36 +165,36 @@ export default function Hero() {
             }}
             className="text-[clamp(2.1rem,4.8vw,4.8rem)] font-extrabold uppercase text-white mb-5 overflow-hidden font-sans"
           >
-            <span className="hero-line block whitespace-nowrap">Made By Athletes</span>
+            <span className="hero-line block whitespace-nowrap">Build Discipline</span>
             <span className="hero-line block whitespace-nowrap text-white mt-1">
-              <span className="text-[#D4A359] mr-2 sm:mr-3">
-                For
+              <span className="text-crimson-500 mr-2 sm:mr-3">
+                Sculpt
               </span>{' '}
-              Athletes
+              Strength
             </span>
           </h1>
 
           {/* Sub-copy */}
           <p className="hero-subtext text-sm sm:text-base md:text-lg text-gray-300 max-w-xl mx-auto lg:mx-0 mb-8 font-normal leading-relaxed drop-shadow">
-            Welcome to IronForge — Where champions are forged through science-backed coaching,
-            world-class calibrated facilities, and relentless dedication.
+            Welcome to MuscleCraft — Where discipline is built and strength is sculpted through science-backed coaching,
+            tailored nutrition, and relentless dedication.
           </p>
 
-          {/* ── Two Buttons Beneath (Warm gold #D4A359 & Glass Explore) ── */}
+          {/* ── Two Buttons Beneath (Luxury Crimson #BA1A1A & Glass Explore) ── */}
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
             <Link
               ref={magneticBtnRef}
               href="/checkout"
               style={{
-                backgroundColor: '#D4A359',
-                color: '#111111',
+                backgroundColor: '#BA1A1A',
+                color: '#FFFFFF',
                 fontWeight: 600,
                 fontSize: '13.5px',
               }}
-              className="hero-cta w-full sm:w-auto px-8 py-3.5 hover:bg-[#c2934b] text-[#111111] font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-gold-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
+              className="hero-cta w-full sm:w-auto px-8 py-3.5 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13.5px] rounded-full transition-all duration-300 shadow-lg hover:shadow-crimson-glow hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
             >
               <span>Join Now</span>
-              <ArrowRight className="w-4 h-4 text-[#111111]" />
+              <ArrowRight className="w-4 h-4 text-white" />
             </Link>
 
             <Link
@@ -203,9 +203,9 @@ export default function Hero() {
                 fontWeight: 600,
                 fontSize: '13.5px',
               }}
-              className="hero-cta w-full sm:w-auto px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-gold/50 transition-all duration-300 backdrop-blur-md hover:scale-105"
+              className="hero-cta w-full sm:w-auto px-7 py-3.5 bg-[#141418] hover:bg-[#1c1c24] text-white font-semibold text-[13.5px] rounded-full border border-white/20 hover:border-crimson-500/50 transition-all duration-300 backdrop-blur-md hover:scale-105"
             >
-              Explore 90-Day VIP Coaching
+              Explore Coaching Programs
             </Link>
           </div>
         </div>
@@ -224,10 +224,10 @@ export default function Hero() {
           </div>
 
           <div className="px-2 sm:px-4">
-            <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#D4A359] block font-sans tracking-tight">
+            <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-crimson-500 block font-sans tracking-tight">
               1-on-1
             </span>
-            <span className="text-[10px] sm:text-xs text-amber-200/90 uppercase font-semibold tracking-wider">
+            <span className="text-[10px] sm:text-xs text-crimson-200/90 uppercase font-semibold tracking-wider">
               Direct Coaching
             </span>
           </div>

@@ -1,29 +1,137 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import { Star, ChevronLeft, ChevronRight, X, ExternalLink, CheckCircle2 } from 'lucide-react';
 import SplitHeading from './motion/SplitHeading';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { revealOnScroll } from './motion/scrollReveal';
-import { MOTION_TOKENS } from './motion/tokens';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 interface Review {
+  id: string;
   author: string;
   program: string;
   quote: string;
   rating: number;
   date: string;
   metric: string;
+  avatar: string;
+  screenshot: string;
+  hasGraph?: boolean;
 }
 
 export default function ReviewsSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const eyebrowRef = useRef<HTMLSpanElement | null>(null);
   const lineRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  const [activeScreenshot, setActiveScreenshot] = useState<string | null>(null);
+  const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
+
+  const reviews: Review[] = [
+    {
+      id: 'neluka',
+      author: 'Neluka Rodrigo',
+      program: '3-Month Distant PT with Coach Adeesha',
+      quote:
+        'I followed a three-month distant personal training program with Adeesha of Musclecraft. It was a weight loss program carefully tailored to my health conditions, including a structured meal plan and exercise routine. Adeesha followed up with me weekly and kept me motivated... During these three months, I managed to lose 9 kg, which I honestly never expected! It truly transformed me physically and mentally. All credit goes to Adeesha.',
+      rating: 5,
+      date: '8 Jan',
+      metric: '-9 kg Weight Loss',
+      avatar: '/reviews/avatars/neluka.png',
+      screenshot: '/reviews/Screenshot_20261019_162929_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'sandy',
+      author: 'Sandy Wickramasinghe',
+      program: 'Personal Training & Nutrition Program',
+      quote:
+        'I’ve had a really good experience at this gym. From the beginning, the trainer provided me with a proper diet plan along with the workouts. What motivated me the most was seeing real results — I started to notice my weight going down and my waist size reducing. The trainer is supportive and guides you properly, making the journey enjoyable. Highly recommended!',
+      rating: 5,
+      date: '14 Mar',
+      metric: 'Waist & Weight Reduction',
+      avatar: '/reviews/avatars/sandy.png',
+      screenshot: '/reviews/Screenshot_20261019_162907_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'kaveen',
+      author: 'Kaveen Tharanga',
+      program: 'Personal Online Coaching',
+      quote:
+        'Amazing MuscleCraft coach! Always motivating and providing guidance tailored to my goals. Thanks to the support, I’ve seen real progress in my fitness journey. 1-month progress graph: Weight dropped from 85kg down to 79kg (-6kg) and waist size reduced. Highly recommend!',
+      rating: 5,
+      date: '9 Jan',
+      metric: '-6 kg in 1 Month (85→79kg)',
+      avatar: '/reviews/avatars/kaveen.png',
+      screenshot: '/reviews/Screenshot_20261019_162923_Facebook.jpg.jpeg',
+      hasGraph: true,
+    },
+    {
+      id: 'sevwandi',
+      author: 'Sevwandi Dinusha',
+      program: 'Weight Loss & Habit Rebuild',
+      quote:
+        'I am extremely grateful to my coach for helping me achieve my weight loss goals in a healthy and sustainable way. The personalized meal plans were balanced and easy to follow, making it possible to enjoy food while still seeing great results. Continuous guidance, motivation, and support kept me focused and confident. Highly recommend our gym MUSCLECRAFT!',
+      rating: 5,
+      date: '4 Jun',
+      metric: 'Sustainable Diet & Habits',
+      avatar: '/reviews/avatars/sevwandi.png',
+      screenshot: '/reviews/Screenshot_20261019_163123_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'sach',
+      author: 'Sach Thara',
+      program: 'Custom Workout & Safety Coaching',
+      quote:
+        'Couldn\'t ask for a better gym and a trainer! It has the best personal trainer who designs customized workouts for you and creates the perfect balance between encouraging and demanding your absolute best. He truly cares about his clients\' results and safety. Best decision I made for my health!',
+      rating: 5,
+      date: '24 Aug',
+      metric: 'Custom Safety & Technique',
+      avatar: '/reviews/avatars/sach.png',
+      screenshot: '/reviews/Screenshot_20261019_163117_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'thabeetha',
+      author: 'Thabeetha Nayomi Karunasinghe',
+      program: 'Custom Workout & Diet Protocol',
+      quote:
+        '100% recommended! Anyone can join with complete confidence. You get a personalized workout plan and diet plan tailored specifically for you. What makes them unique is they don\'t abandon you after joining — they follow up constantly, keep you motivated, and refine your plan until you achieve your dream results. Thank you Musclecraft team!',
+      rating: 5,
+      date: '31 Jan',
+      metric: '100% Recommended • Constant Care',
+      avatar: '/reviews/avatars/thabeetha.png',
+      screenshot: '/reviews/Screenshot_20261019_162917_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'thimira',
+      author: 'Thimira Lalinda Gamage',
+      program: 'Online Coaching Member',
+      quote:
+        'I’m currently doing online coaching with this gym and the experience has been amazing. The coaches are very friendly, supportive, and always check on my progress. They give clear guidance and keep you accountable every step of the way.',
+      rating: 5,
+      date: '19 May',
+      metric: '5/5 Star Online Coaching',
+      avatar: '/reviews/avatars/thimira.png',
+      screenshot: '/reviews/Screenshot_20261019_162858_Facebook.jpg.jpeg',
+    },
+    {
+      id: 'yehansi',
+      author: 'Yehansi Kushmitha',
+      program: 'Busy Professional Training',
+      quote:
+        'What a trainer! Amazing workouts and easy for busy people. Highly recommended to anyone balancing a packed schedule while wanting to stay in peak shape!',
+      rating: 5,
+      date: '12 Jun',
+      metric: 'Workouts for Busy Lifestyles',
+      avatar: '/reviews/avatars/yehansi.png',
+      screenshot: '/reviews/Screenshot_20261019_162843_Facebook.jpg.jpeg',
+    },
+  ];
 
   useGSAP(
     () => {
@@ -41,8 +149,8 @@ export default function ReviewsSection() {
         trigger: trackRef.current,
         x: 45,
         y: 0,
-        stagger: 0.14,
-        duration: 1.2,
+        stagger: 0.12,
+        duration: 1.1,
         start: 'top 88%',
       });
 
@@ -66,55 +174,7 @@ export default function ReviewsSection() {
     },
     { scope: sectionRef }
   );
-  const reviews: Review[] = [
-    {
-      author: 'Marcus Vance',
-      program: '90-Day VIP Coaching Member',
-      quote:
-        'The 90-day program altered my entire understanding of lifting mechanics and nutritional discipline. Dropped 4.5kg of fat while adding 20kg to my competition deadlift.',
-      rating: 5,
-      date: '2 weeks ago',
-      metric: '+20kg Deadlift PR',
-    },
-    {
-      author: 'Sarah Jenkins',
-      program: 'Monthly Gym Member',
-      quote:
-        'Easily the most serious, high-standard training environment in the city. The calibrated equipment is pristine, atmosphere is strictly focused, and zero influencer distractions.',
-      rating: 5,
-      date: '1 month ago',
-      metric: 'Consistent 5x/wk',
-    },
-    {
-      author: 'David Reynolds',
-      program: '90-Day VIP Coaching Member',
-      quote:
-        'Coach Elena’s weekly video check-ins and form audits are worth 10x the price alone. Having an elite coach analyze your bar path and biomechanics changes everything.',
-      rating: 5,
-      date: '3 weeks ago',
-      metric: '-6% Body Fat',
-    },
-    {
-      author: 'Jordan Hayes',
-      program: 'Competitive Powerlifter',
-      quote:
-        'Eleiko IPF-certified calibrated plates and Texas deadlift bars on competition-grade platforms. If you care about legitimate kilo-for-kilo strength, this is home.',
-      rating: 5,
-      date: '1 month ago',
-      metric: 'IPF Regional Qualifier',
-    },
-    {
-      author: 'Elena Mikhailov',
-      program: '90-Day VIP Coaching Member',
-      quote:
-        'The bespoke macro protocol and weekly check-in accountability kept me completely locked in. I achieved the best body composition of my athletic career.',
-      rating: 5,
-      date: 'Just now',
-      metric: 'Cohort Graduate',
-    },
-  ];
 
-  const trackRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -155,7 +215,6 @@ export default function ReviewsSection() {
     }
   };
 
-  // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!trackRef.current) return;
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -171,7 +230,7 @@ export default function ReviewsSection() {
     if (!isDragging || !trackRef.current) return;
     e.preventDefault();
     const x = e.pageX - trackRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Drag sensitivity
+    const walk = (x - startX) * 1.5;
     trackRef.current.scrollLeft = scrollLeft - walk;
 
     const now = performance.now();
@@ -191,7 +250,6 @@ export default function ReviewsSection() {
     }
   };
 
-  // Chevron step navigation
   const scrollStep = (direction: 'left' | 'right') => {
     if (!trackRef.current) return;
     const cardWidth = 380;
@@ -206,18 +264,18 @@ export default function ReviewsSection() {
     <section
       id="slide-reviews"
       ref={sectionRef}
-      className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-[#080809] border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
+      className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-[#08080A] border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
     >
-      <div className="ambient-glow-gold bottom-10 left-1/3 pointer-events-none" />
+      <div className="ambient-glow-crimson bottom-10 left-1/3 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-10">
           <div>
             <span
               ref={eyebrowRef}
-              className="text-xs font-semibold text-[#D4A359] uppercase tracking-widest font-mono block mb-2 will-change-transform"
+              className="text-xs font-semibold text-crimson-400 uppercase tracking-widest font-mono block mb-2 will-change-transform"
             >
-              Social Proof & Results
+              Verified Client Transformations
             </span>
             <SplitHeading
               as="h2"
@@ -226,14 +284,14 @@ export default function ReviewsSection() {
                 fontWeight: 600,
                 letterSpacing: '-0.02em',
               }}
-              className="text-[26px] sm:text-[30px] md:text-[34px] text-white tracking-tight leading-tight"
+              className="text-[26px] sm:text-[30px] md:text-[36px] text-white tracking-tight leading-tight uppercase font-sans"
             >
-              Reviews
+              Real Results. Real Stories.
             </SplitHeading>
             <div
               ref={lineRef}
               style={{ transformOrigin: 'left center' }}
-              className="w-12 h-1 bg-[#D4A359] mt-3 rounded-full shadow-[0_0_8px_rgba(212,163,89,0.6)] will-change-transform"
+              className="w-14 h-1 bg-crimson-600 mt-3 rounded-full shadow-[0_0_12px_rgba(186,26,26,0.7)] will-change-transform"
               aria-hidden="true"
             />
           </div>
@@ -241,19 +299,19 @@ export default function ReviewsSection() {
           {/* Carousel Chevrons & Drag Instruction */}
           <div className="flex items-center gap-4 mt-6 md:mt-0">
             <span className="text-xs text-gray-400 font-mono hidden sm:inline">
-              Swipe or Drag with inertia →
+              Swipe or Drag to explore →
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => scrollStep('left')}
-                className="w-10 h-10 rounded-full bg-[#141418] border border-white/10 hover:border-gold/50 flex items-center justify-center text-gray-300 hover:text-gold transition-colors cursor-pointer"
+                className="w-10 h-10 rounded-full bg-[#141418] border border-white/10 hover:border-crimson-500/50 flex items-center justify-center text-gray-300 hover:text-crimson-400 transition-colors cursor-pointer"
                 aria-label="Previous review"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => scrollStep('right')}
-                className="w-10 h-10 rounded-full bg-[#141418] border border-white/10 hover:border-gold/50 flex items-center justify-center text-gray-300 hover:text-gold transition-colors cursor-pointer"
+                className="w-10 h-10 rounded-full bg-[#141418] border border-white/10 hover:border-crimson-500/50 flex items-center justify-center text-gray-300 hover:text-crimson-400 transition-colors cursor-pointer"
                 aria-label="Next review"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -277,63 +335,76 @@ export default function ReviewsSection() {
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {reviews.map((rev, idx) => (
+          {reviews.map((rev) => (
             <div
-              key={idx}
-              className="review-card-item will-change-transform flex-shrink-0 w-[300px] sm:w-[380px] scroll-snap-align-start"
+              key={rev.id}
+              className="review-card-item will-change-transform flex-shrink-0 w-[310px] sm:w-[390px] scroll-snap-align-start"
               style={{ scrollSnapAlign: 'start' }}
             >
-              <div className="liquid-glass-card rounded-2xl p-7 flex flex-col justify-between h-[340px] transition-all duration-300 hover:-translate-y-1">
+              <div className="liquid-glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between h-[390px] transition-all duration-300 hover:-translate-y-1 hover:border-crimson-500/40 hover:shadow-[0_20px_50px_rgba(186,26,26,0.2)]">
                 <div>
-                  {/* Top Row: Stars + Metric Badge */}
-                  <div className="flex items-center justify-between mb-5">
+                  {/* Top Row: Stars + Milestone Badge */}
+                  <div className="flex items-center justify-between gap-2 mb-4">
                     <div className="flex items-center gap-1">
                       {[...Array(rev.rating)].map((_, i) => (
-                        <Star key={i} className="review-star w-4 h-4 fill-gold text-gold will-change-transform" />
+                        <Star key={i} className="review-star w-4 h-4 fill-crimson-500 text-crimson-500 will-change-transform" />
                       ))}
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-gold bg-gold/10 px-2 py-0.5 rounded border border-gold/30">
+                    <span className="text-[10px] font-mono font-bold text-crimson-300 bg-crimson-950/60 px-2.5 py-0.5 rounded-full border border-crimson-500/30 whitespace-nowrap">
                       {rev.metric}
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-200 leading-relaxed italic line-clamp-5">
+                  <p className="text-sm text-gray-200 leading-relaxed italic line-clamp-6">
                     "{rev.quote}"
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-white tracking-wide">
-                      {rev.author}
-                    </h4>
-                    <span className="text-[11px] text-gray-400 block mt-0.5">
-                      {rev.program}
-                    </span>
+                <div className="pt-4 border-t border-white/[0.08]">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border border-crimson-500/40 bg-black/50 flex-shrink-0">
+                        <Image
+                          src={rev.avatar}
+                          alt={rev.author}
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-white tracking-wide truncate">
+                          {rev.author}
+                        </h4>
+                        <span className="text-[11px] text-gray-400 block truncate">
+                          {rev.program}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Facebook Recommendation Badge */}
+                    <div className="flex items-center gap-1.5 bg-[#1877F2]/10 px-2 py-1 rounded-full border border-[#1877F2]/30 flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      <span className="text-[9.5px] text-blue-300 font-semibold uppercase tracking-wider">
+                        Recommends
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Google Verified Review Badge */}
-                  <div className="flex items-center gap-1.5 bg-white/[0.04] px-2 py-1 rounded border border-white/[0.08]">
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-                      <path
-                        fill="#4285F4"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      />
-                    </svg>
-                    <span className="text-[10px] text-gray-400 font-medium">Verified</span>
-                  </div>
+                  {/* View Original Proof Button */}
+                  <button
+                    onClick={() => {
+                      setActiveScreenshot(rev.screenshot);
+                      setActiveAuthor(rev.author);
+                    }}
+                    className="w-full text-center py-1.5 px-3 rounded-lg bg-white/[0.04] hover:bg-crimson-950/40 border border-white/[0.08] hover:border-crimson-500/40 text-[11px] text-gray-300 hover:text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer font-mono"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-crimson-400" />
+                    <span>View Verified Review Proof</span>
+                    <ExternalLink className="w-3 h-3 text-gray-500" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -347,17 +418,58 @@ export default function ReviewsSection() {
               key={i}
               onClick={() => {
                 if (!trackRef.current) return;
-                const cardWidth = 380;
+                const cardWidth = 390;
                 trackRef.current.scrollTo({ left: i * cardWidth, behavior: 'smooth' });
               }}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                currentIndex === i ? 'w-8 bg-gold' : 'w-2 bg-white/20'
+                currentIndex === i ? 'w-8 bg-crimson-600 shadow-[0_0_8px_rgba(186,26,26,0.6)]' : 'w-2 bg-white/20'
               }`}
               aria-label={`Jump to review ${i + 1}`}
             />
           ))}
         </div>
       </div>
+
+      {/* ── Modal Lightbox for Screenshot Proof ── */}
+      {activeScreenshot && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setActiveScreenshot(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-xl w-full max-h-[90vh] bg-[#121216] border border-white/20 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-black/40">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-crimson-500 animate-pulse" />
+                <h3 className="text-sm font-bold text-white font-sans">
+                  Verified Facebook Review — {activeAuthor}
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveScreenshot(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white flex items-center justify-center transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Image Body */}
+            <div className="relative flex-1 overflow-auto p-4 flex items-center justify-center bg-black/50">
+              <img
+                src={activeScreenshot}
+                alt={`Original review screenshot for ${activeAuthor}`}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-lg border border-white/10"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -23,7 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize with persisted persona or default to 90-day coaching client Marcus Vance
   const loadSession = async () => {
     try {
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('ironforge_user_id') : null;
+      const storedId =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('musclecraft_user_id') || localStorage.getItem('ironforge_user_id')
+          : null;
       const res = await fetch(`/api/auth/session${storedId ? `?userId=${storedId}` : ''}`);
       if (res.ok) {
         const data = await res.json();
@@ -53,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setCurrentUser(data.user);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('ironforge_user_id', data.user.id);
+          localStorage.setItem('musclecraft_user_id', data.user.id);
         }
       }
     } catch (err) {
@@ -74,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setCurrentUser(data.user);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('ironforge_user_id', data.user.id);
+          localStorage.setItem('musclecraft_user_id', data.user.id);
         }
         return true;
       }
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('musclecraft_user_id');
       localStorage.removeItem('ironforge_user_id');
     }
   };

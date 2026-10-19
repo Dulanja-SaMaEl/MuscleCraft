@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                   }}
                   className="text-[24px] sm:text-[28px] text-white tracking-tight"
                 >
-                  IronForge Command Center
+                  MuscleCraft Command Center
                 </h1>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider bg-red-900/40 text-red-300 border-red-700/60">
                   Platform Admin

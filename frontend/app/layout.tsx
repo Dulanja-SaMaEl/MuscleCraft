@@ -25,34 +25,40 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'IronForge Athletic Club — Made By Athletes For Athletes',
+  title: 'MuscleCraft — Build Discipline. Sculpt Strength.',
   description:
-    'Elite strength facility, calibrated competition equipment, and premier 90-day physical transformation coaching with personalized nutrition and 1-on-1 mentorship.',
+    'MuscleCraft premier strength facility, customized transformation workout protocols, personalized nutrition plans, and transformative 1-on-1 mentorship with Coach Adeesha.',
   keywords: [
+    'MuscleCraft',
     'gym',
-    'fitness club',
-    '90-day coaching',
+    'fitness coaching',
+    'online coaching',
+    'workout plan',
+    'diet plan',
     'body recomposition',
+    'weight loss',
     'strength training',
-    'powerlifting',
     'personal trainer',
-    'Los Angeles gym',
   ],
-  authors: [{ name: 'IronForge Athletic Club' }],
-  metadataBase: new URL('https://ironforge-athletics.com'),
+  authors: [{ name: 'MuscleCraft' }],
+  metadataBase: new URL('https://musclecraft.lk'),
+  icons: {
+    icon: '/images/musclecraft-emblem.png',
+    apple: '/images/musclecraft-emblem.png',
+  },
   openGraph: {
-    title: 'IronForge Athletic Club — Made By Athletes For Athletes',
+    title: 'MuscleCraft — Build Discipline. Sculpt Strength.',
     description:
-      'Science-backed athletic training, competition equipment, and premier 90-day transformation cohort.',
-    url: 'https://ironforge-athletics.com',
-    siteName: 'IronForge Athletic Club',
+      'Build discipline and sculpt strength with customized workout and diet plans, proven 1-on-1 coaching, and verified client transformations.',
+    url: 'https://musclecraft.lk',
+    siteName: 'MuscleCraft',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'IronForge Athletic Club',
-    description: 'Where champions are forged. Elite strength & 90-day coaching.',
+    title: 'MuscleCraft — Build Discipline. Sculpt Strength.',
+    description: 'Build discipline. Sculpt strength. Premier workout & diet coaching.',
   },
   robots: {
     index: true,
@@ -78,10 +84,11 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
           rel="stylesheet"
         />
+        <link rel="icon" href="/images/musclecraft-emblem.png" />
       </head>
       <body
         suppressHydrationWarning
-        className={`${plusJakartaSans.className} bg-[#080809] text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-gold selection:text-black`}
+        className={`${plusJakartaSans.className} bg-[#08080A] text-gray-100 min-h-screen flex flex-col font-sans antialiased selection:bg-crimson selection:text-white`}
       >
         <AuthProvider>{children}</AuthProvider>
       </body>

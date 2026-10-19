@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import gsap from 'gsap';
-import { Flame } from 'lucide-react';
 import { MOTION_TOKENS } from './tokens';
 
 export default function PreloaderCurtain({ onFinish }: { onFinish?: () => void }) {
@@ -23,6 +23,7 @@ export default function PreloaderCurtain({ onFinish }: { onFinish?: () => void }
     if (isDone) {
       if (onFinish) onFinish();
       window.dispatchEvent(new CustomEvent('ironforge:curtain-lifted'));
+      window.dispatchEvent(new CustomEvent('musclecraft:curtain-lifted'));
       return;
     }
 
@@ -46,6 +47,7 @@ export default function PreloaderCurtain({ onFinish }: { onFinish?: () => void }
             setIsDone(true);
             if (onFinish) onFinish();
             window.dispatchEvent(new CustomEvent('ironforge:curtain-lifted'));
+            window.dispatchEvent(new CustomEvent('musclecraft:curtain-lifted'));
           },
         });
 
@@ -81,39 +83,46 @@ export default function PreloaderCurtain({ onFinish }: { onFinish?: () => void }
     <div
       ref={curtainRef}
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#08080a] pointer-events-auto"
-      aria-label="Loading IronForge Athletic Club"
+      aria-label="Loading MuscleCraft Athletic Platform"
     >
       <div ref={contentRef} className="relative flex flex-col items-center max-w-xs w-full px-6 text-center">
-        {/* Glowing Forge Emblem */}
+        {/* Glowing MuscleCraft Emblem */}
         <div className="relative mb-5">
-          <div className="w-16 h-16 rounded-2xl bg-[#121216] border border-[#D4A359]/40 flex items-center justify-center shadow-[0_0_20px_rgba(212,163,89,0.35)] animate-pulse">
-            <Flame className="w-8 h-8 text-[#D4A359]" />
+          <div className="w-16 h-16 rounded-2xl bg-[#121216] border border-crimson-600/40 flex items-center justify-center shadow-[0_0_25px_rgba(186,26,26,0.45)] animate-pulse p-2.5">
+            <Image
+              src="/images/musclecraft-emblem.png"
+              alt="MuscleCraft Emblem"
+              width={48}
+              height={48}
+              className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(220,38,38,0.7)]"
+              priority
+            />
           </div>
-          <div className="absolute inset-0 rounded-2xl border border-[#D4A359]/20 scale-125 animate-ping opacity-25" />
+          <div className="absolute inset-0 rounded-2xl border border-crimson-500/20 scale-125 animate-ping opacity-25" />
         </div>
 
         {/* Brand Headline */}
         <span
-          style={{ fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 700 }}
+          style={{ fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif', fontWeight: 800 }}
           className="text-xl tracking-widest text-white uppercase mb-1"
         >
-          IRONFORGE
+          MUSCLE<span className="text-crimson-500">CRAFT</span>
         </span>
-        <span className="text-[10px] font-mono tracking-widest text-[#D4A359] uppercase mb-6">
-          ATHLETIC CLUB • FORGE IMMERSIVE
+        <span className="text-[10px] font-mono tracking-widest text-crimson-400 uppercase mb-6 font-semibold">
+          BUILD DISCIPLINE • SCULPT STRENGTH
         </span>
 
         {/* Progress Bar */}
         <div className="w-full bg-[#141418] h-1.5 rounded-full overflow-hidden border border-white/10 p-[1px] mb-3">
           <div
-            className="h-full bg-gradient-to-r from-[#D4A359] via-[#E2B46E] to-[#D4A359] rounded-full transition-all duration-75 ease-out shadow-[0_0_10px_rgba(212,163,89,0.8)]"
+            className="h-full bg-gradient-to-r from-crimson-700 via-crimson-500 to-rose-400 rounded-full transition-all duration-75 ease-out shadow-[0_0_12px_rgba(186,26,26,0.85)]"
             style={{ width: `${progress}%` }}
           />
         </div>
 
         {/* Counter */}
         <span className="text-xs font-mono font-bold text-gray-400">
-          {progress}% IGNITING
+          {progress}% CALIBRATING
         </span>
       </div>
     </div>

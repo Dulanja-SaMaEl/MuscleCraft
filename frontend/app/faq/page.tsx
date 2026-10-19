@@ -20,7 +20,7 @@ export default function FaqPage() {
         name: 'What are the facility operating hours?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'IronForge operates 24 hours a day, 7 days a week, 365 days a year for active members via biometric RFID access. Staffed hours are Mon-Fri 06:00-22:00, Sat-Sun 08:00-18:00.',
+          text: 'MuscleCraft operates 24 hours a day, 7 days a week, 365 days a year for active members via biometric RFID access. Staffed hours are Mon-Fri 06:00-22:00, Sat-Sun 08:00-18:00.',
         },
       },
       {
@@ -28,7 +28,7 @@ export default function FaqPage() {
         name: 'How does the 90-Day VIP Coaching Program work?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Upon administrative activation of your manual bank transfer, you are assigned an elite strength coach. Week 1 starts with your private 1-on-1 video consultation and personalized nutrition protocol. In Week 2, you join the cohort weekly masterminds, record weekly body measurements, and unlock the private coaching video vault.',
+          text: 'Upon administrative activation of your manual bank transfer, you are assigned an elite strength coach led by Coach Adeesha. Week 1 starts with your private 1-on-1 consultation and personalized nutrition protocol. In Week 2, you join the cohort weekly masterminds, record weekly body measurements, and unlock the private coaching video vault.',
         },
       },
       {
@@ -36,7 +36,7 @@ export default function FaqPage() {
         name: 'How do manual bank transfer payments work?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'When enrolling, our system generates a unique transfer reference code (e.g., TRF-IRON-749210). Once your transfer is submitted, our administrative desk verifies the bank receipt and activates your membership.',
+          text: 'When enrolling, our system generates a unique transfer reference code (e.g., TRF-MC-749210). Once your transfer is submitted, our administrative desk verifies the bank receipt and activates your membership.',
         },
       },
     ],

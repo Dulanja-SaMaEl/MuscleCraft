@@ -25,7 +25,7 @@ app.use(express.json());
 app.get(['/', '/health'], (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
-    service: 'MuscleCraft / IronForge Backend API',
+    service: 'MuscleCraft Backend API',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
     endpoints: [

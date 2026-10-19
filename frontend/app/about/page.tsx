@@ -9,10 +9,17 @@ import { Award, ShieldCheck, Dumbbell, Target, CheckCircle2 } from 'lucide-react
 export default function AboutPage() {
   const coaches = [
     {
+      name: 'Coach Adeesha',
+      role: 'Founder & Head Performance Coach',
+      spec: 'Biomechanical Periodization & Recomposition',
+      bio: 'Visionary behind MuscleCraft with over a decade of proven client transformations. Specializes in customized progressive overload, strict form correction, and sustainable body recomp.',
+      img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop',
+    },
+    {
       name: 'Elena Rostova',
-      role: 'Head Strength & Conditioning Coach',
+      role: 'Senior Strength & Conditioning Specialist',
       spec: 'Competitive Powerlifting & Hypertrophy Periodization',
-      bio: 'Former national powerlifter with over 12 years of coaching experience. Specializes in biomechanical optimization, deadlift wedge mechanics, and targeted metabolic recomposition.',
+      bio: 'Former national powerlifter with over 12 years of coaching experience. Specializes in deadlift wedge mechanics, kinetic chain alignment, and targeted metabolic recomposition.',
       img: 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&auto=format&fit=crop',
     },
     {
@@ -20,7 +27,7 @@ export default function AboutPage() {
       role: 'Athletic Performance Director',
       spec: 'Olympic Weightlifting & Central Nervous System Recovery',
       bio: 'Certified CSCS and sports physiologist. Oversees athlete programming, injury risk mitigation, and the 90-day physical transformation curriculum.',
-      img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop',
+      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop',
     },
   ];
 
@@ -31,7 +38,7 @@ export default function AboutPage() {
       <main className="flex-grow pt-32 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         {/* Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <span className="text-xs font-bold text-gold uppercase tracking-widest bg-gold/10 px-3 py-1 rounded-full border border-gold/30">
+          <span className="text-xs font-bold text-crimson-400 uppercase tracking-widest bg-crimson-950/40 px-3 py-1 rounded-full border border-crimson-600/30">
             Our Athletic Ethos
           </span>
           <h1
@@ -45,7 +52,7 @@ export default function AboutPage() {
             Where Champions Are Forged
           </h1>
           <p className="text-gray-300 text-base sm:text-lg leading-relaxed font-normal">
-            IronForge was founded on a singular conviction: genuine physical transformation requires
+            MuscleCraft was founded on a singular conviction: genuine physical transformation requires
             uncompromising coaching standards, elite calibrated equipment, and a culture of relentless effort.
           </p>
         </div>
@@ -65,20 +72,20 @@ export default function AboutPage() {
             </h2>
             <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
               Mainstream commercial gyms design their business model around members who never show up.
-              At IronForge, we do the exact opposite. We cap our coaching cohorts to ensure every athlete
+              At MuscleCraft, we do the exact opposite. We cap our coaching cohorts to ensure every athlete
               receives meticulous attention, weekly data audits, and tailored physiological periodization.
             </p>
             <div className="space-y-3 pt-2">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-gold flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-crimson-400 flex-shrink-0" />
                 <span className="text-sm font-semibold text-white">100% Calibrated Competition Barbells & Steel Plates</span>
               </div>
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-gold flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-crimson-400 flex-shrink-0" />
                 <span className="text-sm font-semibold text-white">Biometric 24/7 Access for Unrestricted Scheduling</span>
               </div>
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-gold flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-crimson-400 flex-shrink-0" />
                 <span className="text-sm font-semibold text-white">Direct Coach Oversight & Structured Body Analytics</span>
               </div>
             </div>
@@ -87,7 +94,7 @@ export default function AboutPage() {
           <div className="relative rounded-lg overflow-hidden border border-white/10 shadow-2xl">
             <img
               src="https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=900&auto=format&fit=crop"
-              alt="IronForge Gym Facility"
+              alt="MuscleCraft Athletic Facility"
               className="w-full h-[380px] object-cover filter contrast-125 brightness-90"
             />
           </div>
@@ -106,14 +113,14 @@ export default function AboutPage() {
             >
               Elite Coaching Leadership
             </h2>
-            <div className="w-12 h-1 bg-gold mx-auto mt-3 rounded-full" />
+            <div className="w-12 h-1 bg-crimson mx-auto mt-3 rounded-full" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {coaches.map((c, idx) => (
               <div
                 key={idx}
-                className="bg-[#121215] border border-white/[0.08] hover:border-gold/40 rounded-lg overflow-hidden transition-all shadow-card-dark"
+                className="bg-[#121215] border border-white/[0.08] hover:border-crimson/40 rounded-lg overflow-hidden transition-all shadow-card-dark"
               >
                 <img
                   src={c.img}
@@ -121,7 +128,7 @@ export default function AboutPage() {
                   className="w-full h-64 object-cover filter contrast-110 brightness-95"
                 />
                 <div className="p-6 space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-gold tracking-widest font-mono">
+                  <span className="text-[10px] font-bold uppercase text-crimson-400 tracking-widest font-mono">
                     {c.spec}
                   </span>
                   <h3 className="text-xl font-bold text-white">{c.name}</h3>
@@ -134,7 +141,7 @@ export default function AboutPage() {
         </div>
 
         {/* CTA Banner */}
-        <div className="bg-[#121215] border border-gold/40 rounded-lg p-10 text-center shadow-gold-glow max-w-3xl mx-auto">
+        <div className="bg-[#121215] border border-crimson-600/40 rounded-lg p-10 text-center shadow-crimson-glow max-w-3xl mx-auto">
           <h3
             style={{
               fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
@@ -150,7 +157,7 @@ export default function AboutPage() {
           </p>
           <Link
             href="/checkout?tier=coaching_90"
-            className="px-7 py-3 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded transition-all duration-300 inline-block shadow-gold-glow"
+            className="px-7 py-3 bg-[#BA1A1A] hover:bg-[#DC2626] text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded transition-all duration-300 inline-block shadow-crimson-glow"
           >
             Join 90-Day VIP Coaching
           </Link>

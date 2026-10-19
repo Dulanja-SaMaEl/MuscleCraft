@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db/mock-db';
+import { CoachingService } from '../services/coaching-service';
 
 const router = Router();
 
 // GET /api/appointments
 router.get('/', (req: Request, res: Response) => {
-  const userId = req.query.userId as string | undefined;
+  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
   if (!userId) {
-    return res.status(400).json({ error: 'Missing userId query parameter' });
+    return res.status(400).json({ error: 'Missing userId parameter' });
   }
 
   const user = db.users.find((u) => u.id === userId);
@@ -15,40 +16,48 @@ router.get('/', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  let appointments = db.appointments;
-  if (user.role === 'client') {
-    appointments = db.appointments.filter((a) => a.clientId === userId);
-  } else if (user.role === 'instructor') {
-    appointments = db.appointments.filter((a) => a.instructorId === userId);
+  try {
+    const appointments = CoachingService.getAppointments(user);
+    return res.json({ appointments });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch appointments' });
   }
-
-  return res.json({ appointments });
 });
 
 // POST /api/appointments
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { clientId, instructorId, type, scheduledAt, notes } = req.body;
-    if (!clientId || !instructorId || !type || !scheduledAt) {
+    const requesterId = (req.headers['x-user-id'] as string) || req.body.userId || req.body.clientId;
+    if (!requesterId) {
+      return res.status(401).json({ error: 'Missing user authentication' });
+    }
+
+    const caller = db.users.find((u) => u.id === requesterId);
+    if (!caller) {
+      return res.status(404).json({ error: 'Caller user not found' });
+    }
+
+    const { title, instructorId, type, scheduledAt, clientId, durationMinutes, meetingLink, notes } = req.body;
+    if (!instructorId || !type || !scheduledAt) {
       return res.status(400).json({ error: 'Missing required appointment fields' });
     }
 
-    const newAppt = {
-      id: `appt_${Date.now()}`,
-      clientId,
+    const appt = CoachingService.scheduleAppointment(caller, {
+      title: title || (type === 'group_coaching' ? 'Group Performance Masterclass' : '1-on-1 Consultation'),
+      type: type === 'group_coaching' ? 'group_coaching' : 'individual_consultation',
       instructorId,
-      type,
+      clientId: clientId || (caller.role === 'client' ? caller.id : undefined),
       scheduledAt,
-      status: 'scheduled' as const,
-      notes: notes || '',
-      createdAt: new Date().toISOString(),
-    };
+      durationMinutes: durationMinutes ? Number(durationMinutes) : 60,
+      meetingLink,
+      notes,
+    });
 
-    db.appointments.push(newAppt);
-    return res.status(201).json({ success: true, appointment: newAppt });
+    return res.status(201).json({ success: true, appointment: appt });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Failed to schedule appointment' });
   }
 });
 
 export default router;
+

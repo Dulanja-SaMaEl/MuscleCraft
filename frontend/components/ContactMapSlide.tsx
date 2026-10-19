@@ -60,7 +60,7 @@ export default function ContactMapSlide() {
       ref={sectionRef}
       className="presentation-slide scroll-mt-28 sm:scroll-mt-36 relative w-full overflow-hidden bg-[#080809] border-t border-white/[0.04] py-20 sm:py-28 lg:py-32"
     >
-      <div className="ambient-glow-gold top-1/2 right-1/4 pointer-events-none" />
+      <div className="ambient-glow-crimson top-1/2 right-1/4 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
@@ -76,7 +76,7 @@ export default function ContactMapSlide() {
               {/* Visit Us */}
               <div className="contact-card will-change-transform">
                 <Card3DTilt maxTilt={6} className="p-3.5 sm:p-4 rounded-xl flex items-center gap-3.5 bg-[#101014]/90 border border-white/[0.08]">
-                  <div className="w-10 h-10 rounded-lg bg-gold/10 border border-gold/40 flex items-center justify-center text-gold flex-shrink-0 shadow-gold-glow">
+                  <div className="w-10 h-10 rounded-lg bg-crimson-900/30 border border-crimson-500/40 flex items-center justify-center text-crimson-400 flex-shrink-0 shadow-crimson-glow">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
@@ -84,7 +84,7 @@ export default function ContactMapSlide() {
                       Flagship Facility
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      8400 Olympic Blvd, Los Angeles, CA 90036
+                      MuscleCraft Strength Facility
                     </p>
                   </div>
                 </Card3DTilt>
@@ -93,7 +93,7 @@ export default function ContactMapSlide() {
               {/* Operating Hours */}
               <div className="contact-card will-change-transform">
                 <Card3DTilt maxTilt={6} className="p-3.5 sm:p-4 rounded-xl flex items-center gap-3.5 bg-[#101014]/90 border border-white/[0.08]">
-                  <div className="w-10 h-10 rounded-lg bg-gold/10 border border-gold/40 flex items-center justify-center text-gold flex-shrink-0 shadow-gold-glow">
+                  <div className="w-10 h-10 rounded-lg bg-crimson-900/30 border border-crimson-500/40 flex items-center justify-center text-crimson-400 flex-shrink-0 shadow-crimson-glow">
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
@@ -101,7 +101,7 @@ export default function ContactMapSlide() {
                       Operating Hours
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      <span className="text-[#D4A359] font-semibold">24/7 Biometric</span> • Coaches: Mon–Fri 06:00–22:00
+                      <span className="text-crimson-400 font-semibold">24/7 Access</span> • Coaching: Mon–Sat 06:00–22:00
                     </p>
                   </div>
                 </Card3DTilt>
@@ -110,7 +110,7 @@ export default function ContactMapSlide() {
               {/* Direct Channels */}
               <div className="contact-card will-change-transform">
                 <Card3DTilt maxTilt={6} className="p-3.5 sm:p-4 rounded-xl flex items-center gap-3.5 bg-[#101014]/90 border border-white/[0.08]">
-                  <div className="w-10 h-10 rounded-lg bg-gold/10 border border-gold/40 flex items-center justify-center text-gold flex-shrink-0 shadow-gold-glow">
+                  <div className="w-10 h-10 rounded-lg bg-crimson-900/30 border border-crimson-500/40 flex items-center justify-center text-crimson-400 flex-shrink-0 shadow-crimson-glow">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
@@ -118,7 +118,7 @@ export default function ContactMapSlide() {
                       Direct Inquiries
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      (555) 019-2834 • coach@ironforge.com
+                      coach@musclecraft.lk • info@musclecraft.lk
                     </p>
                   </div>
                 </Card3DTilt>
@@ -142,23 +142,23 @@ export default function ContactMapSlide() {
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
               <div
                 ref={pinCardRef}
-                className="pointer-events-auto bg-[#121215]/95 border border-gold/60 p-4 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-4 max-w-sm will-change-transform"
+                className="pointer-events-auto bg-[#121215]/95 border border-crimson-500/60 p-4 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-4 max-w-sm will-change-transform shadow-[0_0_25px_rgba(186,26,26,0.3)]"
               >
-                <div className="w-10 h-10 rounded-full bg-gold/20 border border-gold flex items-center justify-center text-gold flex-shrink-0">
-                  <MapPin className="w-5 h-5 fill-gold text-black" />
+                <div className="w-10 h-10 rounded-full bg-crimson-500/20 border border-crimson-500 flex items-center justify-center text-crimson-400 flex-shrink-0">
+                  <MapPin className="w-5 h-5 fill-crimson-500 text-black" />
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-white tracking-wide">
-                    IronForge Athletic Club HQ
+                    MuscleCraft Facility
                   </h4>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    8400 Olympic Blvd, Los Angeles, CA
+                    Build Discipline. Sculpt Strength.
                   </p>
                   <a
                     href="https://maps.google.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] font-semibold text-gold hover:underline flex items-center gap-1 mt-1.5"
+                    className="text-[11px] font-semibold text-crimson-400 hover:underline flex items-center gap-1 mt-1.5"
                   >
                     <Navigation className="w-3 h-3" /> Get Driving Directions
                   </a>

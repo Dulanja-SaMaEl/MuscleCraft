@@ -54,7 +54,7 @@ export default function ContactSection() {
 
   return (
     <section id="contact" className="scroll-mt-28 sm:scroll-mt-36 py-24 bg-[#080809] border-t border-white/[0.04] relative">
-      <div className="ambient-glow-gold top-1/2 right-1/4" />
+      <div className="ambient-glow-crimson top-1/2 right-1/4" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <SectionHeader
@@ -70,18 +70,18 @@ export default function ContactSection() {
           {/* Visit Us */}
           <div className="contact-card will-change-transform">
             <Card3DTilt className="p-8">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gold/10 border border-gold/40 flex items-center justify-center text-gold mb-5 shadow-gold-glow">
+              <div className="w-14 h-14 mx-auto rounded-full bg-crimson/10 border border-crimson/40 flex items-center justify-center text-crimson mb-5 shadow-crimson-glow">
                 <MapPin className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide">
                 Visit Us
               </h3>
               <p className="text-sm text-gray-300 leading-relaxed">
-                IronForge Athletic Club
+                MuscleCraft Athletic Facility
                 <br />
                 8400 Olympic Boulevard, Suite 100
                 <br />
-                Los Angeles, CA 90036
+                Colombo & Los Angeles
               </p>
             </Card3DTilt>
           </div>
@@ -89,16 +89,16 @@ export default function ContactSection() {
           {/* Office Hours */}
           <div className="contact-card will-change-transform">
             <Card3DTilt className="p-8">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gold/10 border border-gold/40 flex items-center justify-center text-gold mb-5 shadow-gold-glow">
+              <div className="w-14 h-14 mx-auto rounded-full bg-crimson/10 border border-crimson/40 flex items-center justify-center text-crimson mb-5 shadow-crimson-glow">
                 <Clock className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide">
-                Office Hours
+                Operating Hours
               </h3>
               <p className="text-sm text-gray-300 leading-relaxed">
-                <span className="text-white font-semibold">Facility:</span> 24/7 Access
+                <span className="text-white font-semibold">Facility:</span> 24/7 Biometric Access
                 <br />
-                <span className="text-white font-semibold">Staff & Coaches:</span>
+                <span className="text-white font-semibold">Coach Adeesha & Staff:</span>
                 <br />
                 Mon – Fri: 06:00 – 22:00
                 <br />
@@ -110,18 +110,18 @@ export default function ContactSection() {
           {/* Contact Us */}
           <div className="contact-card will-change-transform">
             <Card3DTilt className="p-8">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gold/10 border border-gold/40 flex items-center justify-center text-gold mb-5 shadow-gold-glow">
+              <div className="w-14 h-14 mx-auto rounded-full bg-crimson/10 border border-crimson/40 flex items-center justify-center text-crimson mb-5 shadow-crimson-glow">
                 <Phone className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2 uppercase tracking-wide">
-                Contact Us
+                Direct Contact
               </h3>
               <p className="text-sm text-gray-300 leading-relaxed">
-                <span className="text-white font-semibold">Desk:</span> (555) 019-2834
+                <span className="text-white font-semibold">Front Desk:</span> +94 77 123 4567
                 <br />
-                <span className="text-white font-semibold">VIP Coaching:</span> coach@ironforge.com
+                <span className="text-white font-semibold">Head Coach:</span> coach@musclecraft.lk
                 <br />
-                <span className="text-white font-semibold">General:</span> info@ironforge.com
+                <span className="text-white font-semibold">General:</span> info@musclecraft.lk
               </p>
             </Card3DTilt>
           </div>

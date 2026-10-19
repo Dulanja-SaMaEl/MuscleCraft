@@ -2,7 +2,7 @@
   "name": "musclecraft-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "MuscleCraft / IronForge Athletic Platform — Monorepo Architecture",
+  "description": "MuscleCraft Athletic Platform — Monorepo Architecture",
   "workspaces": [
     "frontend",
     "backend"

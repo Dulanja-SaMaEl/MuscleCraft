@@ -5,16 +5,16 @@ import { Flame, Shield, Award, Dumbbell } from 'lucide-react';
 
 export default function MarqueeStrip() {
   const words = [
-    'STRENGTH',
-    'HYPERTROPHY',
-    'POWERLIFTING',
-    'RECOVERY',
-    '100% CALIBRATED IRON',
-    '1-ON-1 VIP COACHING',
-    '24/7 BIOMETRIC ACCESS',
-    'SCIENCE-BACKED PROTOCOLS',
-    'COMPETITION CALIBRATED',
-    'ELEIKO & ROGUE RACKS',
+    'BUILD DISCIPLINE',
+    'SCULPT STRENGTH',
+    'MUSCLECRAFT',
+    'CUSTOM WORKOUT PLANS',
+    'PERSONALIZED NUTRITION',
+    '1-ON-1 COACHING',
+    'HYPERTROPHY & RECOMP',
+    'BODY TRANSFORMATION',
+    'CONSISTENT PROGRESS',
+    'VERIFIED RESULTS',
   ];
 
   // Repeat twice for seamless infinite scrolling
@@ -25,9 +25,9 @@ export default function MarqueeStrip() {
       className="relative w-full overflow-hidden bg-[#0a0a0e]/90 backdrop-blur-lg border-y border-white/[0.08] py-4 select-none group z-20"
       aria-label="Athletic Disciplines and Facility Highlights"
     >
-      {/* Ambient gold side fades */}
-      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#080809] to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#080809] to-transparent z-10 pointer-events-none" />
+      {/* Ambient side fades */}
+      <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#08080A] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#08080A] to-transparent z-10 pointer-events-none" />
 
       {/* Infinite Scrolling Track */}
       <div className="flex w-fit items-center whitespace-nowrap animate-marquee group-hover:[animation-play-state:paused] will-change-transform">
@@ -44,8 +44,8 @@ export default function MarqueeStrip() {
               <span className="text-white drop-shadow">{item}</span>
             </span>
 
-            {/* Precision Gold Accent Separator */}
-            <span className="text-[#D4A359] text-xs font-mono opacity-60" aria-hidden="true">
+            {/* Precision Crimson Accent Separator */}
+            <span className="text-crimson-500 text-xs font-mono opacity-80" aria-hidden="true">
               •
             </span>
           </div>
