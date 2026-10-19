@@ -36,40 +36,43 @@ export default function Navbar() {
         }
       );
 
-        // Shrink slightly on scroll & subtle sticky physics
+        // Shrink slightly on scroll & subtle sticky physics with state latching for 60fps performance
+        let wasScrolled = false;
+        let wasHidden = false;
+
         ScrollTrigger.create({
           start: 'top top',
           onUpdate: (self) => {
             if (!pill) return;
-            const scrolled = self.scroll() > 50;
+            const scrollPos = self.scroll();
+            const scrolled = scrollPos > 50;
 
-            if (scrolled) {
+            if (scrolled !== wasScrolled) {
+              wasScrolled = scrolled;
               gsap.to(pill, {
-                scale: 0.96,
-                paddingTop: '8px',
-                paddingBottom: '8px',
-                backgroundColor: 'rgba(12, 12, 16, 0.88)',
-                boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 163, 89, 0.1)',
-                duration: 0.3,
-                overwrite: 'auto',
-              });
-            } else {
-              gsap.to(pill, {
-                scale: 1,
-                paddingTop: '12px',
-                paddingBottom: '12px',
-                backgroundColor: 'rgba(14, 14, 18, 0.72)',
-                boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
+                scale: scrolled ? 0.96 : 1,
+                paddingTop: scrolled ? '8px' : '12px',
+                paddingBottom: scrolled ? '8px' : '12px',
+                backgroundColor: scrolled ? 'rgba(12, 12, 16, 0.88)' : 'rgba(14, 14, 18, 0.72)',
+                boxShadow: scrolled
+                  ? '0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 163, 89, 0.1)'
+                  : '0 10px 30px -10px rgba(0, 0, 0, 0.5)',
                 duration: 0.3,
                 overwrite: 'auto',
               });
             }
 
-            // Hide on fast scroll down past 200px, return on scroll up
-            if (self.direction === 1 && self.scroll() > 220) {
-              gsap.to(pill, { y: -80, opacity: 0, duration: 0.3, ease: 'power2.out' });
-            } else if (self.direction === -1) {
-              gsap.to(pill, { y: 0, opacity: 1, duration: 0.3, ease: 'power2.out' });
+            // Hide on fast scroll down past 220px, return on scroll up
+            const shouldHide = self.direction === 1 && scrollPos > 220;
+            if (shouldHide !== wasHidden) {
+              wasHidden = shouldHide;
+              gsap.to(pill, {
+                y: shouldHide ? -80 : 0,
+                opacity: shouldHide ? 0 : 1,
+                duration: 0.3,
+                ease: 'power2.out',
+                overwrite: 'auto',
+              });
             }
           },
         });

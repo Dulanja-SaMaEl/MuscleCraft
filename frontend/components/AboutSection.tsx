@@ -78,6 +78,8 @@ export default function AboutSection() {
                   <img
                     src={img.src}
                     alt={img.alt}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover filter contrast-110 brightness-90 group-hover:scale-108 transition-transform duration-700 ease-out"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />

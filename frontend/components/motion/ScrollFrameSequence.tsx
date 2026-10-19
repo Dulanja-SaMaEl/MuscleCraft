@@ -47,12 +47,13 @@ export default function ScrollFrameSequence({
   const magneticBtnRef4 = useMagnetic<HTMLAnchorElement>(0.28);
 
   // Runtime State
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [framesFailed, setFramesFailed] = useState(false);
   const [firstFramePainted, setFirstFramePainted] = useState(false);
   const firstFramePaintedRef = useRef(false);
-  const [loadProgress, setLoadProgress] = useState(0);
   const [isSectionInView, setIsSectionInView] = useState(true);
 
   // Animation values & caches (stored in refs to prevent per-frame re-renders)
@@ -61,11 +62,15 @@ export default function ScrollFrameSequence({
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const loadedImagesRef = useRef<Map<number, HTMLImageElement>>(new Map());
   const loadingSetRef = useRef<Set<number>>(new Set());
-  const activeConfigRef = useRef(framesManifest.desktop);
+  const activeConfigRef = useRef(
+    typeof window !== 'undefined' && window.innerWidth <= 768
+      ? framesManifest.mobile
+      : framesManifest.desktop
+  );
 
-  // Animated Stats for Beat 1
-  const [statPercent, setStatPercent] = useState(0);
-  const [statHours, setStatHours] = useState(0);
+  // Animated Stats DOM Refs for Beat 1 (eliminates 100+ React re-renders on page load)
+  const statPercentRef = useRef<HTMLSpanElement>(null);
+  const statHoursRef = useRef<HTMLSpanElement>(null);
 
   // Determine device tier & mobile preferences on mount
   useEffect(() => {
@@ -122,6 +127,10 @@ export default function ScrollFrameSequence({
       let ctx = ctxRef.current;
       if (!ctx) {
         ctx = canvas.getContext('2d', { alpha: false });
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
+        }
         ctxRef.current = ctx;
       }
       if (!ctx) return;
@@ -147,8 +156,6 @@ export default function ScrollFrameSequence({
       let dx = cw * 0.5 - desiredCenter;
       dx = Math.min(0, Math.max(cw - dw, dx));
 
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, dx, dy, dw, dh);
 
       if (!firstFramePaintedRef.current) {
@@ -156,21 +163,43 @@ export default function ScrollFrameSequence({
         setFirstFramePainted(true);
       }
     },
-    [focalX, getNearestLoadedImage]
+    [focalX, getNearestLoadedImage, isMobile]
   );
 
-  // Resize handler with devicePixelRatio capped at 1.5
+  // Resize handler: ignore mobile URL bar height changes (<120px) to prevent GPU texture reallocations
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = sectionRef.current;
     if (!canvas || !container) return;
 
+    let prevWidth = 0;
+    let prevHeight = 0;
+
     const handleResize = () => {
       const rect = container.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      ctxRef.current = canvas.getContext('2d', { alpha: false });
+      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.0 : 1.5);
+      const newWidth = Math.round(rect.width * dpr);
+      const newHeight = Math.round(rect.height * dpr);
+
+      // Do not reallocate canvas surface on mobile address bar collapse (<120px height change)
+      if (
+        prevWidth > 0 &&
+        Math.abs(newWidth - prevWidth) < 2 &&
+        Math.abs(newHeight - prevHeight) < 120
+      ) {
+        return;
+      }
+
+      prevWidth = newWidth;
+      prevHeight = newHeight;
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
+      }
+      ctxRef.current = ctx;
       drawFrame(currentFrameIndexRef.current);
     };
 
@@ -179,7 +208,7 @@ export default function ScrollFrameSequence({
     ro.observe(container);
 
     return () => ro.disconnect();
-  }, [drawFrame]);
+  }, [drawFrame, isMobile]);
 
   // IntersectionObserver to pause rendering when scrolled out of view
   useEffect(() => {
@@ -232,8 +261,6 @@ export default function ScrollFrameSequence({
             if (isCancelled) return;
             loadedImagesRef.current.set(idx, img);
             loadingSetRef.current.delete(idx);
-            const currentLoaded = loadedImagesRef.current.size;
-            setLoadProgress(Math.round((currentLoaded / totalCount) * 100));
             resolve(img);
           };
 
@@ -256,8 +283,8 @@ export default function ScrollFrameSequence({
         if (isCancelled) return;
         drawFrame(1);
 
-        // Step 2: Load Frames 1-30 in Priority Batch
-        const priorityLimit = Math.min(30, totalCount);
+        // Step 2: Load Priority Batch (12 frames on mobile, 30 on desktop)
+        const priorityLimit = Math.min(isMobile ? 12 : 30, totalCount);
         const priorityPromises: Promise<HTMLImageElement>[] = [];
         for (let i = 2; i <= priorityLimit; i++) {
           priorityPromises.push(loadSingleFrame(i));
@@ -267,14 +294,14 @@ export default function ScrollFrameSequence({
           if (isCancelled) return;
           ScrollTrigger.refresh();
 
-          // Step 3: Load all remaining frames (31 to totalCount) with 6 parallel workers
+          // Step 3: Stream remaining frames with tuned mobile concurrency
           const remainingIndices: number[] = [];
           for (let i = priorityLimit + 1; i <= totalCount; i++) {
             remainingIndices.push(i);
           }
 
           let activeIndex = 0;
-          const concurrency = 6;
+          const concurrency = isMobile ? 3 : 6;
 
           const worker = async () => {
             while (activeIndex < remainingIndices.length && !isCancelled) {
@@ -403,12 +430,12 @@ export default function ScrollFrameSequence({
         0
       );
 
-      // 2. Camera-depth feel: scale canvas gently from 1.00 to 1.06 (skip if reduced motion)
-      if (!isReducedMotion) {
+      // 2. Camera-depth feel: scale canvas gently on desktop only (skips on mobile for GPU fillrate)
+      if (!isReducedMotion && !isMobile) {
         tl.to(
           canvas,
           {
-            scale: 1.06,
+            scale: 1.05,
             ease: 'none',
             duration: 1.0,
           },
@@ -428,7 +455,6 @@ export default function ScrollFrameSequence({
 
       // ── STORY BEAT 1: 0% - 15% (Hero Headline, CTA, Stats) ──
       // Beat 1 and stats are visible on load by default.
-      // Soft luxury initial entrance on mount without setting autoAlpha: 0 on children:
       if (beat1Ref.current) {
         gsap.fromTo(
           beat1Ref.current,
@@ -457,7 +483,7 @@ export default function ScrollFrameSequence({
         );
       }
 
-      // Scroll exit for Beat 1 wrapper (scrubs out on scroll, scrubs back in on reverse)
+      // Scroll exit for Beat 1 wrapper
       if (beat1Ref.current) {
         tl.to(
           beat1Ref.current,
@@ -485,8 +511,15 @@ export default function ScrollFrameSequence({
       }
 
       // ── STORY BEAT 2: 14% - 38% (Disciplines: Strength, Hypertrophy, Powerlifting) ──
+      // Pure GPU composited opacity & transform (omits blur filter on mobile)
       if (beat2Ref.current) {
-        gsap.set(beat2Ref.current, { opacity: 0, y: 28, scale: 0.98, filter: 'blur(4px)', visibility: 'hidden' });
+        gsap.set(beat2Ref.current, {
+          opacity: 0,
+          y: 28,
+          scale: 0.98,
+          filter: isMobile ? undefined : 'blur(4px)',
+          visibility: 'hidden',
+        });
         // Entrance: 13% -> 23%
         tl.to(
           beat2Ref.current,
@@ -494,7 +527,7 @@ export default function ScrollFrameSequence({
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            filter: isMobile ? undefined : 'blur(0px)',
             ease: 'power2.inOut',
             duration: 0.1,
             onStart: () => {
@@ -513,7 +546,7 @@ export default function ScrollFrameSequence({
             opacity: 0,
             y: -28,
             scale: 0.98,
-            filter: 'blur(4px)',
+            filter: isMobile ? undefined : 'blur(4px)',
             ease: 'power2.inOut',
             duration: 0.1,
             onComplete: () => {
@@ -529,7 +562,13 @@ export default function ScrollFrameSequence({
 
       // ── STORY BEAT 3: 42% - 68% (Facility Philosophy & IronForge Standard) ──
       if (beat3Ref.current) {
-        gsap.set(beat3Ref.current, { opacity: 0, y: 28, scale: 0.98, filter: 'blur(4px)', visibility: 'hidden' });
+        gsap.set(beat3Ref.current, {
+          opacity: 0,
+          y: 28,
+          scale: 0.98,
+          filter: isMobile ? undefined : 'blur(4px)',
+          visibility: 'hidden',
+        });
         // Entrance: 42% -> 52%
         tl.to(
           beat3Ref.current,
@@ -537,7 +576,7 @@ export default function ScrollFrameSequence({
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            filter: isMobile ? undefined : 'blur(0px)',
             ease: 'power2.inOut',
             duration: 0.1,
             onStart: () => {
@@ -556,7 +595,7 @@ export default function ScrollFrameSequence({
             opacity: 0,
             y: -28,
             scale: 0.98,
-            filter: 'blur(4px)',
+            filter: isMobile ? undefined : 'blur(4px)',
             ease: 'power2.inOut',
             duration: 0.1,
             onComplete: () => {
@@ -572,7 +611,13 @@ export default function ScrollFrameSequence({
 
       // ── STORY BEAT 4: 72% - 100% (Final CTA & Cohort Entry) ──
       if (beat4Ref.current) {
-        gsap.set(beat4Ref.current, { opacity: 0, y: 28, scale: 0.98, filter: 'blur(4px)', visibility: 'hidden' });
+        gsap.set(beat4Ref.current, {
+          opacity: 0,
+          y: 28,
+          scale: 0.98,
+          filter: isMobile ? undefined : 'blur(4px)',
+          visibility: 'hidden',
+        });
         // Entrance: 72% -> 84%
         tl.to(
           beat4Ref.current,
@@ -580,7 +625,7 @@ export default function ScrollFrameSequence({
             opacity: 1,
             y: 0,
             scale: 1,
-            filter: 'blur(0px)',
+            filter: isMobile ? undefined : 'blur(0px)',
             ease: 'power2.inOut',
             duration: 0.11,
             onStart: () => {
@@ -594,7 +639,7 @@ export default function ScrollFrameSequence({
         );
       }
 
-      // Animated Stats count-up on load
+      // Animated Stats count-up on load (Direct DOM update - 0 React re-renders)
       const countTarget = { percent: 0, hours: 0 };
       gsap.to(countTarget, {
         percent: 100,
@@ -603,8 +648,12 @@ export default function ScrollFrameSequence({
         delay: 0.3,
         ease: 'power2.out',
         onUpdate: () => {
-          setStatPercent(Math.floor(countTarget.percent));
-          setStatHours(Math.floor(countTarget.hours));
+          if (statPercentRef.current) {
+            statPercentRef.current.textContent = String(Math.floor(countTarget.percent));
+          }
+          if (statHoursRef.current) {
+            statHoursRef.current.textContent = String(Math.floor(countTarget.hours));
+          }
         },
       });
 
@@ -900,7 +949,7 @@ export default function ScrollFrameSequence({
           <div className="liquid-glass-card rounded-2xl p-3 sm:p-4 grid grid-cols-3 divide-x divide-white/10 text-center shadow-2xl">
             <div className="px-2 sm:px-4">
               <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white block font-sans tracking-tight">
-                {statPercent}%
+                <span ref={statPercentRef}>100</span>%
               </span>
               <span className="text-[10px] sm:text-xs text-gray-400 uppercase font-semibold tracking-wider">
                 Calibrated Iron
@@ -918,7 +967,7 @@ export default function ScrollFrameSequence({
 
             <div className="px-2 sm:px-4">
               <span className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white block font-sans tracking-tight">
-                {statHours}/7
+                <span ref={statHoursRef}>24</span>/7
               </span>
               <span className="text-[10px] sm:text-xs text-gray-400 uppercase font-semibold tracking-wider">
                 Biometric Access

@@ -24,7 +24,11 @@ export default function MoltenGoldShader() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const wasVisible = isVisible;
           isVisible = entry.isIntersecting;
+          if (isVisible && !wasVisible) {
+            render();
+          }
         });
       },
       { threshold: 0.05 }
@@ -140,10 +144,11 @@ export default function MoltenGoldShader() {
     const resize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      // Cap DPR at 1.5 for performance
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      canvas.width = parent.clientWidth * dpr;
-      canvas.height = parent.clientHeight * dpr;
+      // Cap DPR for mobile devices to avoid GPU fragment overhead
+      const isMobileDevice = window.innerWidth < 768;
+      const dpr = isMobileDevice ? 0.8 : Math.min(window.devicePixelRatio || 1, 1.25);
+      canvas.width = Math.round(parent.clientWidth * dpr);
+      canvas.height = Math.round(parent.clientHeight * dpr);
       gl.viewport(0, 0, canvas.width, canvas.height);
     };
 
@@ -153,19 +158,20 @@ export default function MoltenGoldShader() {
     const startTime = performance.now();
 
     const render = () => {
-      if (isVisible) {
-        const currentTime = (performance.now() - startTime) * 0.001;
+      if (!isVisible) return;
 
-        gl.useProgram(program);
-        gl.enableVertexAttribArray(positionLocation);
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+      const currentTime = (performance.now() - startTime) * 0.001;
 
-        gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-        gl.uniform1f(timeLocation, currentTime);
+      gl.useProgram(program);
+      gl.enableVertexAttribArray(positionLocation);
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
-      }
+      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+      gl.uniform1f(timeLocation, currentTime);
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
       animationFrameId = requestAnimationFrame(render);
     };
 

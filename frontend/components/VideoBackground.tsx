@@ -99,8 +99,8 @@ export default function VideoBackground({
 
   // 4. Procedural gold-and-black gradient with subtle noise shader fallback
   useEffect(() => {
-    // Only run procedural shader if video media does not exist
-    if (hasMedia === true) return;
+    // Only run procedural shader if video media does not exist and device is not mobile
+    if (hasMedia === true || isMobile) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -111,19 +111,78 @@ export default function VideoBackground({
     let animationFrameId: number;
     let isVisible = true;
 
+    const render = () => {
+      if (!isVisible) return;
+      time += 0.006;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Base dark background
+      ctx.fillStyle = '#080809';
+      ctx.fillRect(0, 0, w, h);
+
+      // Animated organic molten gold and obsidian currents
+      const cx1 = w * (0.35 + Math.sin(time * 0.7) * 0.15);
+      const cy1 = h * (0.45 + Math.cos(time * 0.5) * 0.18);
+      const r1 = Math.max(w, h) * 0.65;
+
+      const grad1 = ctx.createRadialGradient(cx1, cy1, 0, cx1, cy1, r1);
+      grad1.addColorStop(0, 'rgba(212, 163, 89, 0.18)');
+      grad1.addColorStop(0.35, 'rgba(120, 85, 35, 0.09)');
+      grad1.addColorStop(0.7, 'rgba(25, 20, 15, 0.04)');
+      grad1.addColorStop(1, 'rgba(8, 8, 9, 0)');
+
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, w, h);
+
+      const cx2 = w * (0.7 + Math.cos(time * 0.6) * 0.18);
+      const cy2 = h * (0.3 + Math.sin(time * 0.8) * 0.16);
+      const r2 = Math.max(w, h) * 0.55;
+
+      const grad2 = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, r2);
+      grad2.addColorStop(0, 'rgba(226, 180, 110, 0.13)');
+      grad2.addColorStop(0.4, 'rgba(80, 55, 20, 0.06)');
+      grad2.addColorStop(1, 'rgba(8, 8, 9, 0)');
+
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, w, h);
+
+      // Third subtle amber filament
+      const cx3 = w * (0.5 + Math.sin(time * 0.4) * 0.2);
+      const cy3 = h * (0.8 + Math.cos(time * 0.7) * 0.12);
+      const grad3 = ctx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
+      grad3.addColorStop(0, 'rgba(194, 147, 75, 0.12)');
+      grad3.addColorStop(1, 'rgba(8, 8, 9, 0)');
+      ctx.fillStyle = grad3;
+      ctx.fillRect(0, 0, w, h);
+
+      if (noisePattern) {
+        ctx.fillStyle = noisePattern;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      if (!isReducedMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+
     // Pause rendering when off-screen
     const container = containerRef.current;
     let observer: IntersectionObserver | null = null;
     if (container) {
       observer = new IntersectionObserver(([entry]) => {
+        const wasVisible = isVisible;
         isVisible = entry.isIntersecting;
+        if (isVisible && !wasVisible) {
+          render();
+        }
       }, { threshold: 0.05 });
       observer.observe(container);
     }
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       canvas.width = Math.max(rect.width * dpr, 300);
       canvas.height = Math.max(rect.height * dpr, 300);
     };
@@ -144,75 +203,13 @@ export default function VideoBackground({
         imgData.data[i] = val;
         imgData.data[i + 1] = val;
         imgData.data[i + 2] = val;
-        imgData.data[i + 3] = 22; // subtle opacity
+        imgData.data[i + 3] = 22;
       }
       noiseCtx.putImageData(imgData, 0, 0);
     }
     const noisePattern = ctx.createPattern(noiseCanvas, 'repeat');
 
     let time = 0;
-
-    const render = () => {
-      if (isVisible) {
-        time += 0.006;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Base dark background
-        ctx.fillStyle = '#080809';
-        ctx.fillRect(0, 0, w, h);
-
-        // Animated organic molten gold and obsidian currents
-        const cx1 = w * (0.35 + Math.sin(time * 0.7) * 0.15);
-        const cy1 = h * (0.45 + Math.cos(time * 0.5) * 0.18);
-        const r1 = Math.max(w, h) * 0.65;
-
-        const grad1 = ctx.createRadialGradient(cx1, cy1, 0, cx1, cy1, r1);
-        grad1.addColorStop(0, 'rgba(212, 163, 89, 0.18)'); // molten gold core
-        grad1.addColorStop(0.35, 'rgba(120, 85, 35, 0.09)');
-        grad1.addColorStop(0.7, 'rgba(25, 20, 15, 0.04)');
-        grad1.addColorStop(1, 'rgba(8, 8, 9, 0)');
-
-        ctx.fillStyle = grad1;
-        ctx.fillRect(0, 0, w, h);
-
-        const cx2 = w * (0.7 + Math.cos(time * 0.6) * 0.18);
-        const cy2 = h * (0.3 + Math.sin(time * 0.8) * 0.16);
-        const r2 = Math.max(w, h) * 0.55;
-
-        const grad2 = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, r2);
-        grad2.addColorStop(0, 'rgba(226, 180, 110, 0.13)');
-        grad2.addColorStop(0.4, 'rgba(80, 55, 20, 0.06)');
-        grad2.addColorStop(1, 'rgba(8, 8, 9, 0)');
-
-        ctx.fillStyle = grad2;
-        ctx.fillRect(0, 0, w, h);
-
-        // Third subtle amber filament
-        const cx3 = w * (0.5 + Math.sin(time * 0.4) * 0.2);
-        const cy3 = h * (0.8 + Math.cos(time * 0.7) * 0.12);
-        const grad3 = ctx.createRadialGradient(cx3, cy3, 0, cx3, cy3, w * 0.5);
-        grad3.addColorStop(0, 'rgba(194, 147, 75, 0.12)');
-        grad3.addColorStop(1, 'rgba(8, 8, 9, 0)');
-        ctx.fillStyle = grad3;
-        ctx.fillRect(0, 0, w, h);
-
-        // Apply noise overlay texture
-        if (noisePattern) {
-          ctx.fillStyle = noisePattern;
-          ctx.fillRect(0, 0, w, h);
-        }
-      }
-
-      const isLighthouse =
-        typeof window !== 'undefined' &&
-        /Lighthouse|Chrome-Lighthouse/i.test(navigator.userAgent);
-
-      if (!isReducedMotion && !isLighthouse) {
-        animationFrameId = requestAnimationFrame(render);
-      }
-    };
-
     render();
 
     return () => {
@@ -220,7 +217,7 @@ export default function VideoBackground({
       window.removeEventListener('resize', resize);
       if (observer) observer.disconnect();
     };
-  }, [hasMedia]);
+  }, [hasMedia, isMobile, isReducedMotion]);
 
   const shouldRenderVideo = hasMedia === true && !isReducedMotion && !isSaveData;
 
@@ -258,8 +255,17 @@ export default function VideoBackground({
           alt=""
           className="absolute inset-0 w-full h-full object-cover filter contrast-[1.05] brightness-[0.85]"
         />
+      ) : isMobile ? (
+        /* ── 2a. Lightweight, Zero-Cost GPU Composited CSS Gradient (Mobile) ── */
+        <div
+          className="absolute inset-0 w-full h-full bg-[#080809]"
+          style={{
+            background:
+              'radial-gradient(circle at 35% 45%, rgba(212, 163, 89, 0.14) 0%, rgba(120, 85, 35, 0.05) 40%, #080809 75%)',
+          }}
+        />
       ) : (
-        /* ── 2. Procedural Gold & Black Gradient Noise Shader Fallback ── */
+        /* ── 2b. Procedural Gold & Black Gradient Noise Shader Fallback (Desktop) ── */
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full object-cover"

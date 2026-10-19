@@ -63,6 +63,7 @@ export function revealOnScroll(
       stagger,
       ease,
       overwrite: 'auto',
+      clearProps: 'transform,willChange',
     });
   };
 

@@ -118,15 +118,29 @@ body {
   }
 }
 
-/* Ambient 3D Depth Glow */
+/* Ambient 3D Depth Glow - multi-stop gradient avoids expensive GPU blur passes on mobile */
 .ambient-glow-gold {
   position: absolute;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(229, 169, 60, 0.12) 0%, rgba(229, 169, 60, 0.02) 50%, transparent 70%);
-  filter: blur(60px);
+  background: radial-gradient(circle, rgba(229, 169, 60, 0.12) 0%, rgba(229, 169, 60, 0.05) 30%, rgba(229, 169, 60, 0.01) 60%, transparent 75%);
   pointer-events: none;
   z-index: 1;
+}
+
+@media (min-width: 1024px) {
+  .ambient-glow-gold {
+    filter: blur(40px);
+  }
+}
+
+/* Touch Device Optimization: Disable expensive preserve-3d layer trees on mobile */
+@media (hover: none) or (pointer: coarse) {
+  .preserve-3d,
+  .card-ironforge,
+  .card-ironforge-featured {
+    transform-style: flat !important;
+  }
 }
 
 /* Hero vignette overlay matching reference image */
@@ -167,16 +181,27 @@ body {
   animation: marquee 26s linear infinite;
 }
 
-/* Liquid-Glass Surface Engine */
+/* Liquid-Glass Surface Engine with mobile performance tiers */
 .liquid-glass-card {
-  background: rgba(18, 18, 22, 0.65);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(18, 18, 22, 0.78);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 
     inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
-    0 20px 40px -10px rgba(0, 0, 0, 0.7);
+    0 15px 35px -10px rgba(0, 0, 0, 0.7);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 768px) {
+  .liquid-glass-card {
+    background: rgba(18, 18, 22, 0.65);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow: 
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+      0 20px 40px -10px rgba(0, 0, 0, 0.7);
+  }
 }
 
 .liquid-glass-card:hover {
@@ -190,13 +215,21 @@ body {
 
 /* Floating pill navbar liquid-glass */
 .navbar-floating-pill {
-  background: rgba(12, 12, 16, 0.75);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  background: rgba(12, 12, 16, 0.85);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 
     inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
     0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 768px) {
+  .navbar-floating-pill {
+    background: rgba(12, 12, 16, 0.75);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
 }
 
 

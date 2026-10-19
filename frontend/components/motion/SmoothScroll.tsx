@@ -18,14 +18,16 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
   useEffect(() => {
     // Check prefers-reduced-motion
     if (typeof window === 'undefined') return;
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
     const lenis = new Lenis({
-      duration: 1.25,
+      duration: isTouch ? 0 : 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
+      syncTouch: true,
       wheelMultiplier: 0.88,
-      touchMultiplier: 1.2,
+      touchMultiplier: 1.0,
       infinite: false,
     });
     lenisRef.current = lenis;
@@ -33,12 +35,12 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     // Wire lenis scroll to ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
 
-    // Driven by gsap.ticker
+    // Driven by gsap.ticker with lag smoothing to prevent stutter on frame drops
     const tickerCallback = (time: number) => {
       lenis.raf(time * 1000);
     };
     gsap.ticker.add(tickerCallback);
-    gsap.ticker.lagSmoothing(0);
+    gsap.ticker.lagSmoothing(500, 33);
 
     // Support window jump events
     const handleJump = (e: Event) => {
