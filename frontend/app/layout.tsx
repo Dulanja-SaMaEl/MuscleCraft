@@ -85,6 +85,23 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="icon" href="/images/musclecraft-emblem.png" />
+        {/* Preload First Frame for Instant LCP Paint */}
+        <link
+          rel="preload"
+          as="image"
+          href="/media/frames/desktop/frame_0001.webp"
+          type="image/webp"
+          fetchPriority="high"
+          media="(min-width: 769px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/media/frames/mobile/frame_0001.webp"
+          type="image/webp"
+          fetchPriority="high"
+          media="(max-width: 768px)"
+        />
       </head>
       <body
         suppressHydrationWarning
