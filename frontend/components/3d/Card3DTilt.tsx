@@ -56,13 +56,13 @@ export default function Card3DTilt({
         transform: transformStyle,
         transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease',
       }}
-      className={`relative preserve-3d rounded-2xl overflow-hidden ${
+      className={`relative preserve-3d rounded-2xl overflow-visible ${
         featured ? 'card-ironforge-featured' : 'card-ironforge'
       } ${className}`}
     >
       {/* Dynamic 3D Glare Reflection */}
       <div
-        className="pointer-events-none absolute inset-0 z-20 rounded-2xl transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 z-20 rounded-2xl overflow-hidden transition-opacity duration-300"
         style={{
           opacity: glareStyle.opacity,
           background: `radial-gradient(circle at ${glareStyle.x}% ${glareStyle.y}%, rgba(220, 38, 38, 0.22) 0%, rgba(255, 255, 255, 0.1) 30%, transparent 70%)`,

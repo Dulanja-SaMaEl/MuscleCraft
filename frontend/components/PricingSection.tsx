@@ -354,7 +354,7 @@ export default function PricingSection() {
         {/* Cards Grid */}
         <div
           ref={gridRef}
-          className={`grid gap-6 items-stretch ${
+          className={`grid gap-6 items-stretch pt-6 pb-2 ${
             activeCategory === 'signature'
               ? 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto'
               : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
@@ -363,7 +363,7 @@ export default function PricingSection() {
           {currentCards.map((tier) => {
             const cardContent = (
               <div
-                className={`relative flex flex-col justify-between h-full rounded-2xl p-6 sm:p-7 transition-all duration-300 border ${
+                className={`relative flex flex-col justify-between h-full rounded-2xl p-6 sm:p-7 min-h-[560px] transition-all duration-300 border ${
                   tier.featured
                     ? 'bg-gradient-to-b from-[#181822] to-[#101015] border-crimson-600/70 shadow-[0_0_25px_rgba(186,26,26,0.3)] pricing-flagship-card'
                     : 'bg-[#111115] border-white/[0.08] hover:border-white/20 pricing-std-card hover:bg-[#141419]'
@@ -371,7 +371,7 @@ export default function PricingSection() {
               >
                 {/* Popular or Savings Badge */}
                 {tier.popularTag && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-crimson-600 to-rose-600 text-white font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-full shadow-[0_0_12px_rgba(186,26,26,0.8)] border border-white/20 flex items-center gap-1">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-crimson-600 to-rose-600 text-white font-black text-[10.5px] uppercase tracking-widest px-3.5 py-1 rounded-full shadow-[0_0_15px_rgba(186,26,26,0.85)] border border-white/20 flex items-center gap-1 z-30 whitespace-nowrap">
                     <Flame className="w-3 h-3 fill-white" />
                     {tier.popularTag}
                   </div>
