@@ -43,3 +43,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const videoId = searchParams.get('videoId');
+    const caller = AuthService.getCurrentUser(userId);
+
+    if (!caller) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!videoId) {
+      return NextResponse.json({ error: 'Missing videoId parameter' }, { status: 400 });
+    }
+
+    VideoService.deleteVideo(caller, videoId);
+    return NextResponse.json({ success: true, message: 'Video removed' });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}

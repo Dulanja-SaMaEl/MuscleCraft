@@ -20,11 +20,42 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   try {
+    if (targetClientId === 'all' || req.query.all === 'true') {
+      const allMeasurements = CoachingService.getAllClientMeasurements(requester);
+      return res.json({ measurements: allMeasurements });
+    }
+
     const measurements = CoachingService.getMeasurements(requester, targetClientId);
     return res.json({ measurements });
   } catch (error: any) {
     const status = error.message.includes('Forbidden') ? 403 : 400;
     return res.status(status).json({ error: error.message });
+  }
+});
+
+// PATCH /api/measurements (Submit coach feedback)
+router.patch('/', (req: Request, res: Response) => {
+  const requesterId = (req.headers['x-user-id'] as string) || req.body.requesterId;
+  const { measurementId, feedback } = req.body;
+
+  if (!requesterId) {
+    return res.status(401).json({ error: 'Unauthorized: missing user authentication' });
+  }
+
+  const requester = db.users.find((u) => u.id === requesterId);
+  if (!requester) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  if (!measurementId || !feedback) {
+    return res.status(400).json({ error: 'Missing measurementId or feedback' });
+  }
+
+  try {
+    const updated = CoachingService.addCoachFeedback(requester, measurementId, feedback);
+    return res.json({ success: true, measurement: updated });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
   }
 });
 

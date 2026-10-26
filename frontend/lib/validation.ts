@@ -62,11 +62,32 @@ export const ScheduleAppointmentSchema = z.object({
 
 export const AddVideoSchema = z.object({
   title: z.string().min(3).max(120),
-  category: z.enum(['Warmup', 'Hypertrophy', 'Powerlifting', 'Mobility', 'Coaching Clinic']),
+  category: z.enum([
+    'Warmup',
+    'Hypertrophy',
+    'Powerlifting',
+    'Mobility',
+    'Coaching Clinic',
+    'Technique Review',
+    'Personalized Session',
+  ]),
   duration: z.string().min(2).max(20),
-  accessLevel: z.enum(['common', 'coaching_90']),
-  cfStreamId: z.string().min(3),
+  accessLevel: z.enum(['common', 'coaching_90']).default('common'),
+  targetScope: z.enum(['all_members', 'specific_client', 'coaching_90_vip']).default('all_members'),
+  targetClientId: z.string().optional(),
+  targetClientName: z.string().optional(),
+  cfStreamId: z.string().min(1).default('cf_stream_local'),
   videoUrl: z.string().url().optional(),
   thumbnailUrl: z.string().url(),
   description: z.string().min(5).max(500),
+});
+
+export const BroadcastMessageSchema = z.object({
+  title: z.string().min(3).max(150),
+  body: z.string().min(5).max(2000),
+  audience: z.enum(['all_members', 'coaching_90_vip', 'sole_members', 'couple_members', 'specific_client']),
+  targetClientId: z.string().optional(),
+  targetClientName: z.string().optional(),
+  channels: z.array(z.enum(['in_app', 'sms', 'email', 'push'])).min(1),
+  priority: z.enum(['normal', 'high', 'urgent']).default('normal'),
 });

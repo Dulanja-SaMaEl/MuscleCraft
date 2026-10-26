@@ -186,6 +186,7 @@ export class MuscleCraftDatabase {
   public dietPlans: DietPlan[] = [];
   public appointments: Appointment[] = [];
   public videos: ExerciseVideo[] = [];
+  public broadcastMessages: any[] = [];
   public auditLogs: AuditLog[] = [];
 
   public static getInstance(): MuscleCraftDatabase {

@@ -7,6 +7,7 @@ import measurementRoutes from './routes/measurements';
 import dietRoutes from './routes/diet';
 import appointmentRoutes from './routes/appointments';
 import videoRoutes from './routes/videos';
+import broadcastRoutes from './routes/broadcast';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,6 +51,7 @@ app.use('/api/measurements', measurementRoutes);
 app.use('/api/diet-plans', dietRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/broadcast', broadcastRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {

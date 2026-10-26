@@ -283,11 +283,12 @@ export interface Appointment {
 }
 
 export type VideoAccessLevel = 'common' | 'coaching_90';
+export type VideoTargetScope = 'all_members' | 'specific_client' | 'coaching_90_vip';
 
 export interface ExerciseVideo {
   id: string;
   title: string;
-  category: 'Warmup' | 'Hypertrophy' | 'Powerlifting' | 'Mobility' | 'Coaching Clinic';
+  category: 'Warmup' | 'Hypertrophy' | 'Powerlifting' | 'Mobility' | 'Coaching Clinic' | 'Technique Review' | 'Personalized Session';
   duration: string;
   accessLevel: VideoAccessLevel;
   cfStreamId: string;
@@ -295,6 +296,34 @@ export interface ExerciseVideo {
   thumbnailUrl: string;
   description: string;
   instructorName: string;
+  targetScope?: VideoTargetScope;
+  targetClientId?: string;
+  targetClientName?: string;
+  createdAt?: string;
+}
+
+export type BroadcastAudience =
+  | 'all_members'
+  | 'coaching_90_vip'
+  | 'sole_members'
+  | 'couple_members'
+  | 'specific_client';
+
+export type BroadcastChannel = 'in_app' | 'sms' | 'email' | 'push';
+
+export interface BroadcastMessage {
+  id: string;
+  title: string;
+  body: string;
+  senderName: string;
+  audience: BroadcastAudience;
+  targetClientId?: string;
+  targetClientName?: string;
+  channels: BroadcastChannel[];
+  priority: 'normal' | 'high' | 'urgent';
+  createdAt: string;
+  status: 'sent' | 'scheduled' | 'draft';
+  recipientCount: number;
 }
 
 export interface AuditLog {

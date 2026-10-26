@@ -18,10 +18,39 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
     }
 
+    if (clientId === 'all' || searchParams.get('all') === 'true') {
+      const allMeasurements = CoachingService.getAllClientMeasurements(caller);
+      return NextResponse.json({ measurements: allMeasurements });
+    }
+
     const measurements = CoachingService.getMeasurements(caller, clientId);
     return NextResponse.json({ measurements });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    const caller = AuthService.getCurrentUser(userId);
+
+    if (!caller) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { measurementId, feedback } = body;
+
+    if (!measurementId || !feedback) {
+      return NextResponse.json({ error: 'Missing measurementId or feedback' }, { status: 400 });
+    }
+
+    const updated = CoachingService.addCoachFeedback(caller, measurementId, feedback);
+    return NextResponse.json({ success: true, measurement: updated });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
 

@@ -14,6 +14,30 @@ export class CoachingService {
   }
 
   // --- MEASUREMENTS ---
+  static getAllClientMeasurements(caller: User): (BodyMeasurement & {
+    userName?: string;
+    userTier?: string;
+    userEmail?: string;
+    avatarUrl?: string;
+  })[] {
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      throw new Error('Forbidden: Only instructors and administrators can view all client analytics.');
+    }
+
+    return db.measurements
+      .map((m) => {
+        const user = db.users.find((u) => u.id === m.userId);
+        return {
+          ...m,
+          userName: user ? user.name : 'Unknown Client',
+          userTier: user ? user.packageName || user.tier : 'Unknown Tier',
+          userEmail: user ? user.email : '',
+          avatarUrl: user?.avatarUrl,
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
   static getMeasurements(caller: User, targetClientId: string): BodyMeasurement[] {
     if (!this.canAccessClientData(caller, targetClientId)) {
       throw new Error('Forbidden: You are not authorized to view these measurements.');

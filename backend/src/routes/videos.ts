@@ -31,5 +31,39 @@ router.get('/', (req: Request, res: Response) => {
   return res.json({ videos });
 });
 
+// POST /api/videos (Upload / Submit session video)
+router.post('/', (req: Request, res: Response) => {
+  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string) || req.body.userId;
+  const caller = db.users.find((u) => u.id === userId);
+
+  if (!caller) {
+    return res.status(401).json({ error: 'Unauthorized: User not found' });
+  }
+
+  try {
+    const video = VideoService.addVideo(caller, req.body);
+    return res.status(201).json({ success: true, video });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
+// DELETE /api/videos/:id
+router.delete('/:id', (req: Request, res: Response) => {
+  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
+  const caller = db.users.find((u) => u.id === userId);
+
+  if (!caller) {
+    return res.status(401).json({ error: 'Unauthorized: User not found' });
+  }
+
+  try {
+    VideoService.deleteVideo(caller, req.params.id);
+    return res.json({ success: true, message: 'Video deleted' });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
 
