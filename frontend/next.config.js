@@ -57,6 +57,21 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL;
+    if (backendUrl) {
+      const cleanUrl = backendUrl.replace(/\/$/, '');
+      return {
+        beforeFiles: [
+          {
+            source: '/api/:path*',
+            destination: `${cleanUrl}/api/:path*`,
+          },
+        ],
+      };
+    }
+    return [];
+  },
 };
 
 module.exports = nextConfig;
