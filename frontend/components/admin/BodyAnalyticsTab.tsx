@@ -503,71 +503,83 @@ export default function BodyAnalyticsTab({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFeedbackModalMeasurement(null);
+          }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden"
         >
-          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative">
-            <button
-              onClick={() => setFeedbackModalMeasurement(null)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
-                <MessageSquare className="w-5 h-5" />
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-xl w-full shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Pinned Header */}
+            <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#14141d]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Coach Feedback Desk</h3>
+                  <p className="text-xs text-gray-400">
+                    Week {feedbackModalMeasurement.weekNumber} Review for{' '}
+                    <span className="text-white font-semibold">
+                      {feedbackModalMeasurement.userId}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Coach Feedback Desk</h3>
-                <p className="text-xs text-gray-400">
-                  Week {feedbackModalMeasurement.weekNumber} Review for{' '}
-                  <span className="text-white font-semibold">
-                    {feedbackModalMeasurement.userId}
-                  </span>
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setFeedbackModalMeasurement(null)}
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="mb-4 bg-[#161620] p-4 rounded-xl border border-white/[0.06] text-xs text-gray-300 space-y-1">
-              <div>
-                <span className="text-gray-400">Weight Logged:</span>{' '}
-                <span className="font-bold text-white font-mono">
-                  {feedbackModalMeasurement.weightKg} kg
-                </span>{' '}
-                {feedbackModalMeasurement.bodyFatPercentage && (
-                  <span>({feedbackModalMeasurement.bodyFatPercentage}% BF)</span>
+            {/* Scrollable Body */}
+            <div className="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              <div className="bg-[#161620] p-4 rounded-xl border border-white/[0.06] text-xs text-gray-300 space-y-1">
+                <div>
+                  <span className="text-gray-400">Weight Logged:</span>{' '}
+                  <span className="font-bold text-white font-mono">
+                    {feedbackModalMeasurement.weightKg} kg
+                  </span>{' '}
+                  {feedbackModalMeasurement.bodyFatPercentage && (
+                    <span>({feedbackModalMeasurement.bodyFatPercentage}% BF)</span>
+                  )}
+                </div>
+                {feedbackModalMeasurement.notes && (
+                  <div className="italic text-gray-400 mt-1">
+                    &ldquo;{feedbackModalMeasurement.notes}&rdquo;
+                  </div>
                 )}
               </div>
-              {feedbackModalMeasurement.notes && (
-                <div className="italic text-gray-400 mt-1">
-                  &ldquo;{feedbackModalMeasurement.notes}&rdquo;
-                </div>
-              )}
+
+              <div className="space-y-2">
+                <label htmlFor="coachFeedback" className="text-xs font-bold text-gray-300 block">
+                  Coach Adeesha&apos;s Review & Training Cues:
+                </label>
+                <textarea
+                  id="coachFeedback"
+                  rows={4}
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="e.g. Great progress on the waistline. Keep pushing the squat depth and maintain protein at 190g..."
+                  className="w-full bg-[#161620] border border-white/10 rounded-2xl p-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="coachFeedback" className="text-xs font-bold text-gray-300 block">
-                Coach Adeesha&apos;s Review & Training Cues:
-              </label>
-              <textarea
-                id="coachFeedback"
-                rows={4}
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="e.g. Great progress on the waistline. Keep pushing the squat depth and maintain protein at 190g..."
-                className="w-full bg-[#161620] border border-white/10 rounded-2xl p-4 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-3 mt-6">
+            {/* Pinned Footer */}
+            <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 flex-shrink-0 bg-[#0c0c11]">
               <button
+                type="button"
                 onClick={() => setFeedbackModalMeasurement(null)}
-                className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer"
+                className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 disabled={isSubmitting || !feedbackText.trim()}
                 onClick={handleSendFeedback}
                 className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(186,26,26,0.5)] min-h-[44px] flex items-center gap-2 cursor-pointer"

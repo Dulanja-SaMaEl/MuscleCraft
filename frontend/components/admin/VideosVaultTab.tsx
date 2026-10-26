@@ -417,202 +417,212 @@ export default function VideosVaultTab({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddModal(false);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden"
         >
-          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 cursor-pointer"
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400 shadow-[0_0_20px_rgba(186,26,26,0.4)]">
-                <Video className="w-6 h-6" />
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-2xl w-full shadow-2xl relative flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden">
+            {/* Pinned Modal Header */}
+            <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#14141d]">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400 shadow-[0_0_15px_rgba(186,26,26,0.35)]">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Submit Session Video</h3>
+                  <p className="text-xs text-gray-400">
+                    Assign to an individual client or publish to the all-members gym library.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Submit Session Video</h3>
-                <p className="text-xs text-gray-400">
-                  Assign to an individual client or publish to the all-members gym library.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Target Scope Selector */}
-              <div>
-                <label className="text-xs font-bold text-gray-300 block mb-2">
-                  Target Recipient / Scope:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, targetScope: 'specific_client' })}
-                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all min-h-[56px] cursor-pointer ${
-                      formData.targetScope === 'specific_client'
-                        ? 'bg-crimson-950/60 border-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.3)]'
-                        : 'bg-[#161620] border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <User className="w-5 h-5 text-crimson-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-xs font-bold block">👤 Client-Specific Session</span>
-                      <span className="text-[11px] text-gray-400 block mt-0.5">
-                        Private technique breakdown for one athlete
-                      </span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, targetScope: 'all_members' })}
-                    className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all min-h-[56px] cursor-pointer ${
-                      formData.targetScope === 'all_members'
-                        ? 'bg-emerald-950/60 border-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                        : 'bg-[#161620] border-white/10 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Globe className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-xs font-bold block">🌐 All Clients & Members</span>
-                      <span className="text-[11px] text-gray-400 block mt-0.5">
-                        Broadcast to everyone in the common library
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Conditional Client Selector */}
-              {formData.targetScope === 'specific_client' && (
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+                {/* Target Scope Selector */}
                 <div>
-                  <label htmlFor="targetClientSelect" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Select Assigned Client:
+                  <label className="text-xs font-bold text-gray-300 block mb-2">
+                    Target Recipient / Scope:
                   </label>
-                  <select
-                    id="targetClientSelect"
-                    value={formData.targetClientId}
-                    onChange={(e) => setFormData({ ...formData, targetClientId: e.target.value })}
-                    className="w-full bg-[#161620] border border-white/10 text-white text-xs font-semibold rounded-xl px-4 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer"
-                  >
-                    {clientMembers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.packageName || c.tier}) - {c.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, targetScope: 'specific_client' })}
+                      className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all min-h-[56px] cursor-pointer ${
+                        formData.targetScope === 'specific_client'
+                          ? 'bg-crimson-950/60 border-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.3)]'
+                          : 'bg-[#161620] border-white/10 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <User className="w-5 h-5 text-crimson-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-bold block">👤 Client-Specific Session</span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5">
+                          Private technique breakdown for one athlete
+                        </span>
+                      </div>
+                    </button>
 
-              {/* Video Title */}
-              <div>
-                <label htmlFor="videoTitle" className="text-xs font-bold text-gray-300 block mb-1.5">
-                  Video Title:
-                </label>
-                <input
-                  id="videoTitle"
-                  type="text"
-                  required
-                  placeholder="e.g. Marcus Vance — Week 4 Squat Depth & Knee Tracking Correction"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px]"
-                />
-              </div>
-
-              {/* Category & Duration */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="videoCategory" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Category:
-                  </label>
-                  <select
-                    id="videoCategory"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    className="w-full bg-[#161620] border border-white/10 text-white text-xs font-semibold rounded-xl px-4 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer"
-                  >
-                    <option value="Personalized Session">Personalized Session</option>
-                    <option value="Technique Review">Technique Review</option>
-                    <option value="Powerlifting">Powerlifting</option>
-                    <option value="Hypertrophy">Hypertrophy</option>
-                    <option value="Mobility">Mobility</option>
-                    <option value="Coaching Clinic">Coaching Clinic</option>
-                    <option value="Warmup">Warmup</option>
-                  </select>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, targetScope: 'all_members' })}
+                      className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all min-h-[56px] cursor-pointer ${
+                        formData.targetScope === 'all_members'
+                          ? 'bg-emerald-950/60 border-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                          : 'bg-[#161620] border-white/10 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Globe className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-bold block">🌐 All Clients & Members</span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5">
+                          Broadcast to everyone in the common library
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
+                {/* Conditional Client Selector */}
+                {formData.targetScope === 'specific_client' && (
+                  <div>
+                    <label htmlFor="targetClientSelect" className="text-xs font-bold text-gray-300 block mb-1.5">
+                      Select Assigned Client:
+                    </label>
+                    <select
+                      id="targetClientSelect"
+                      value={formData.targetClientId}
+                      onChange={(e) => setFormData({ ...formData, targetClientId: e.target.value })}
+                      className="w-full bg-[#161620] border border-white/10 text-white text-xs font-semibold rounded-xl px-4 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer"
+                    >
+                      {clientMembers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.packageName || c.tier}) - {c.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Video Title */}
                 <div>
-                  <label htmlFor="videoDuration" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Duration (MM:SS):
+                  <label htmlFor="videoTitle" className="text-xs font-bold text-gray-300 block mb-1.5">
+                    Video Title:
                   </label>
                   <input
-                    id="videoDuration"
+                    id="videoTitle"
                     type="text"
                     required
-                    placeholder="08:30"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                    placeholder="e.g. Marcus Vance — Week 4 Squat Depth & Knee Tracking Correction"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px]"
+                  />
+                </div>
+
+                {/* Category & Duration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="videoCategory" className="text-xs font-bold text-gray-300 block mb-1.5">
+                      Category:
+                    </label>
+                    <select
+                      id="videoCategory"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                      className="w-full bg-[#161620] border border-white/10 text-white text-xs font-semibold rounded-xl px-4 py-2.5 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer"
+                    >
+                      <option value="Personalized Session">Personalized Session</option>
+                      <option value="Technique Review">Technique Review</option>
+                      <option value="Powerlifting">Powerlifting</option>
+                      <option value="Hypertrophy">Hypertrophy</option>
+                      <option value="Mobility">Mobility</option>
+                      <option value="Coaching Clinic">Coaching Clinic</option>
+                      <option value="Warmup">Warmup</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="videoDuration" className="text-xs font-bold text-gray-300 block mb-1.5">
+                      Duration (MM:SS):
+                    </label>
+                    <input
+                      id="videoDuration"
+                      type="text"
+                      required
+                      placeholder="08:30"
+                      value={formData.duration}
+                      onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                      className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Video URL */}
+                <div>
+                  <label htmlFor="videoUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
+                    Video Stream URL:
+                  </label>
+                  <input
+                    id="videoUrl"
+                    type="url"
+                    required
+                    placeholder="https://commondatastorage.googleapis.com/... or MP4 link"
+                    value={formData.videoUrl}
+                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                    className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
+                  />
+                </div>
+
+                {/* Thumbnail URL */}
+                <div>
+                  <label htmlFor="thumbnailUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
+                    Thumbnail Image URL:
+                  </label>
+                  <input
+                    id="thumbnailUrl"
+                    type="url"
+                    required
+                    placeholder="https://images.unsplash.com/..."
+                    value={formData.thumbnailUrl}
+                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                    className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
+                  />
+                </div>
+
+                {/* Description / Coach Instructions */}
+                <div>
+                  <label htmlFor="videoDesc" className="text-xs font-bold text-gray-300 block mb-1.5">
+                    Coach Instructions & Athlete Cues:
+                  </label>
+                  <textarea
+                    id="videoDesc"
+                    required
+                    rows={3}
+                    placeholder="Describe key technique adjustments, bar path, breathing cues, and what the athlete should execute next session..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full bg-[#161620] border border-white/10 rounded-xl p-3.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
                   />
                 </div>
               </div>
 
-              {/* Video URL */}
-              <div>
-                <label htmlFor="videoUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
-                  Video Stream URL:
-                </label>
-                <input
-                  id="videoUrl"
-                  type="url"
-                  required
-                  placeholder="https://commondatastorage.googleapis.com/... or MP4 link"
-                  value={formData.videoUrl}
-                  onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
-                />
-              </div>
-
-              {/* Thumbnail URL */}
-              <div>
-                <label htmlFor="thumbnailUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
-                  Thumbnail Image URL:
-                </label>
-                <input
-                  id="thumbnailUrl"
-                  type="url"
-                  required
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.thumbnailUrl}
-                  onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
-                />
-              </div>
-
-              {/* Description / Coach Instructions */}
-              <div>
-                <label htmlFor="videoDesc" className="text-xs font-bold text-gray-300 block mb-1.5">
-                  Coach Instructions & Athlete Cues:
-                </label>
-                <textarea
-                  id="videoDesc"
-                  required
-                  rows={3}
-                  placeholder="Describe key technique adjustments, bar path, breathing cues, and what the athlete should execute next session..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-[#161620] border border-white/10 rounded-xl p-3.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.06]">
+              {/* Pinned Modal Footer */}
+              <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 flex-shrink-0 bg-[#0c0c11]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>

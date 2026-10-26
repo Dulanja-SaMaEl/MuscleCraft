@@ -48,10 +48,16 @@ import BodyAnalyticsTab from '@/components/admin/BodyAnalyticsTab';
 import VideosVaultTab from '@/components/admin/VideosVaultTab';
 import BroadcastTab from '@/components/admin/BroadcastTab';
 import DatabaseHealthTab from '@/components/admin/DatabaseHealthTab';
+import PackagesManagerTab from '@/components/admin/PackagesManagerTab';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { currentUser, switchPersona } = useAuth();
+  const { currentUser, switchPersona, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   // Navigation State
   const [activeTab, setActiveTab] = useState<
@@ -585,6 +591,19 @@ export default function AdminDashboard() {
             </span>
             <ExternalLink className="w-3 h-3 text-gray-500" />
           </Link>
+
+          {/* Logout Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/40 flex items-center justify-between transition-colors min-h-[38px] cursor-pointer"
+            title="Log out of Admin Portal"
+          >
+            <span className="flex items-center gap-2">
+              <LogOut className="w-3.5 h-3.5" /> Logout
+            </span>
+            <span className="text-[10px] text-rose-500/70 font-mono">Exit Desk</span>
+          </button>
         </div>
       </aside>
 
@@ -653,6 +672,17 @@ export default function AdminDashboard() {
               aria-label="Refresh telemetry data"
             >
               <RefreshCw className="w-4 h-4" />
+            </button>
+
+            {/* Direct Logout CTA */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-600/30 text-rose-300 hover:text-rose-100 text-xs font-semibold transition-colors cursor-pointer min-h-[44px]"
+              title="Sign Out of Admin Portal"
+              aria-label="Sign Out of Admin Portal"
+            >
+              <LogOut className="w-4 h-4 text-rose-400" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </header>
@@ -1037,96 +1067,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Suggested Operational Features */}
-              <div className="bg-gradient-to-br from-[#13131c] via-[#0f0f14] to-[#14141f] border border-crimson-600/30 rounded-3xl p-6 sm:p-8 shadow-2xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-crimson-950/60 border border-crimson-500/40 flex items-center justify-center text-crimson-400">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                      Recommended Operational Details for Admin Desk
-                    </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      High-agency features for gym owners to drive retention, cash flow, and client accountability
-                    </p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-crimson-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" /> 1. Expiring Memberships & Renewal CRM
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Track members expiring within 7 days (e.g. <strong>Chamari Atapattu</strong>, expiring in 4 days). Trigger 1-click WhatsApp renewal prompt with pre-filled payment instructions.
-                    </p>
-                    <span className="text-[10px] bg-crimson-950/80 text-crimson-300 border border-crimson-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      Active in Members tab
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5" /> 2. Admission Fee & Cash Flow Vault
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Clear separation between recurring package fees and one-time admission fees (Rs. 500 Sole / Rs. 1,000 Couple) to track gym margin and physical keycard distribution.
-                    </p>
-                    <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      Rs. 18,500 LKR Collected MTD
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Dumbbell className="w-3.5 h-3.5" /> 3. Weekly Client Check-in Queue
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Owner review hub for client body measurements, weight loss graphs, and physique photos with direct coach feedback editor.
-                    </p>
-                    <span className="text-[10px] bg-blue-950/80 text-blue-300 border border-blue-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      {stats.pendingCoachReviews} check-ins awaiting review
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <UserPlus className="w-3.5 h-3.5" /> 4. Multi-Coach Delegation (Upcoming)
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Designed to append secondary trainers seamlessly. When activated, the owner can assign client rosters to coaches while maintaining executive financial oversight.
-                    </p>
-                    <span className="text-[10px] bg-purple-950/80 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      Module architecture ready
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5" /> 5. Sri Lankan Bank Slip Verification
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Instant reconciliation for Commercial Bank, Sampath Vishwa, HNB, and BOC slips with reference IDs (TRF-MC-XXXXXX) to eliminate unpaid access.
-                    </p>
-                    <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      1-Click Approve / Reject
-                    </span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-[#09090c] border border-white/[0.06] space-y-2">
-                    <span className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <History className="w-3.5 h-3.5" /> 6. Tamper-Proof Audit Trail
-                    </span>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      Immutable log capturing who approved what payment, when a client was suspended/activated, and every diet adjustment made.
-                    </p>
-                    <span className="text-[10px] bg-rose-950/80 text-rose-300 border border-rose-800/40 px-2 py-0.5 rounded font-mono inline-block">
-                      Live Audit Ledger Active
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1492,100 +1433,12 @@ export default function AdminDashboard() {
           )}
 
           {/* ───────────────────────────────────────────────────────────
-              TAB: GYM PACKAGES MASTER
+              TAB: GYM PACKAGES MASTER (EDITABLE)
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'packages' && (
-            <div className="space-y-6">
-              <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-crimson-500" />
-                    Official Gym Packages & Pricing Architecture
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Current MuscleCraft rate card in Sri Lankan Rupees (LKR) with one-time admission fees.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 bg-crimson-950/40 border border-crimson-800/40 px-3.5 py-1.5 rounded-xl text-xs text-crimson-300 font-semibold font-mono">
-                  Admission: Rs. 500 Sole · Rs. 1,000 Couple
-                </div>
-              </div>
-
-              {/* Sole Packages Table */}
-              <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 shadow-xl">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-crimson-500" />
-                  Sole Membership Packages (Individual Access)
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { duration: '1 Month', price: 'Rs. 4,500', admission: 'Rs. 500', total: 'Rs. 5,000 to start', rate: 'Rs. 4,500 / mo', enrollments: 18 },
-                    { duration: '3 Months', price: 'Rs. 12,000', admission: 'Rs. 500', total: 'Rs. 12,500 to start', rate: 'Rs. 4,000 / mo (Save Rs. 1,500)', enrollments: 24, popular: true },
-                    { duration: '6 Months', price: 'Rs. 22,000', admission: 'Rs. 500', total: 'Rs. 22,500 to start', rate: 'Rs. 3,666 / mo (Save Rs. 5,000)', enrollments: 14 },
-                    { duration: '1 Year', price: 'Rs. 40,000', admission: 'Rs. 500', total: 'Rs. 40,500 to start', rate: 'Rs. 3,333 / mo (Save Rs. 14,000)', enrollments: 9, bestValue: true },
-                  ].map((pkg) => (
-                    <div key={pkg.duration} className="p-5 rounded-2xl bg-[#16161f] border border-white/[0.06] relative">
-                      {pkg.popular && (
-                        <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-crimson-600 text-white px-2 py-0.5 rounded-full shadow">
-                          Popular
-                        </span>
-                      )}
-                      {pkg.bestValue && (
-                        <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white px-2 py-0.5 rounded-full shadow">
-                          Best Value
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-400 font-semibold block">{pkg.duration}</span>
-                      <span className="text-2xl font-extrabold text-white font-mono mt-1 block">{pkg.price}</span>
-                      <span className="text-[11px] text-crimson-400 font-medium block mt-1">{pkg.rate}</span>
-                      <div className="mt-3 pt-3 border-t border-white/[0.06] text-[11px] text-gray-400 space-y-1">
-                        <div>Admission Fee: <strong>{pkg.admission}</strong></div>
-                        <div>Initial Total: <strong>{pkg.total}</strong></div>
-                        <div className="text-gray-500 font-mono">Active Members: {pkg.enrollments}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Couple Packages Table */}
-              <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 shadow-xl">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-                  Couple Membership Packages (2 Partner Access)
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { duration: '1 Month', price: 'Rs. 8,000', admission: 'Rs. 1,000', total: 'Rs. 9,000 to start (for 2)', rate: 'Rs. 4,000 / person / mo', enrollments: 6 },
-                    { duration: '3 Months', price: 'Rs. 22,500', admission: 'Rs. 1,000', total: 'Rs. 23,500 to start (for 2)', rate: 'Rs. 3,750 / person / mo', enrollments: 8, popular: true },
-                    { duration: '6 Months', price: 'Rs. 42,000', admission: 'Rs. 1,000', total: 'Rs. 43,000 to start (for 2)', rate: 'Rs. 3,500 / person / mo', enrollments: 5 },
-                    { duration: '1 Year', price: 'Rs. 78,000', admission: 'Rs. 1,000', total: 'Rs. 79,000 to start (for 2)', rate: 'Rs. 3,250 / person / mo (Save Rs. 18,000)', enrollments: 4, bestValue: true },
-                  ].map((pkg) => (
-                    <div key={pkg.duration} className="p-5 rounded-2xl bg-[#16161f] border border-white/[0.06] relative">
-                      {pkg.popular && (
-                        <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-purple-600 text-white px-2 py-0.5 rounded-full shadow">
-                          Popular Duo
-                        </span>
-                      )}
-                      {pkg.bestValue && (
-                        <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-indigo-600 text-white px-2 py-0.5 rounded-full shadow">
-                          Best Value
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-400 font-semibold block">{pkg.duration}</span>
-                      <span className="text-2xl font-extrabold text-white font-mono mt-1 block">{pkg.price}</span>
-                      <span className="text-[11px] text-purple-400 font-medium block mt-1">{pkg.rate}</span>
-                      <div className="mt-3 pt-3 border-t border-white/[0.06] text-[11px] text-gray-400 space-y-1">
-                        <div>Admission Fee: <strong>{pkg.admission}</strong></div>
-                        <div>Initial Total: <strong>{pkg.total}</strong></div>
-                        <div className="text-gray-500 font-mono">Active Pairs: {pkg.enrollments}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PackagesManagerTab
+              onNotify={(type, text) => setActionMessage({ type, text })}
+            />
           )}
 
 

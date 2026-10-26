@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
@@ -17,11 +18,18 @@ import {
   TrendingDown,
   Search,
   MessageSquare,
+  LogOut,
 } from 'lucide-react';
 import { User, BodyMeasurement, Appointment, ExerciseVideo } from '@/lib/types';
 
 export default function InstructorWorkspace() {
-  const { currentUser } = useAuth();
+  const router = useRouter();
+  const { currentUser, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
   const [activeTab, setActiveTab] = useState<'roster' | 'schedule' | 'diet_builder' | 'video_upload'>('roster');
 
   const [clients, setClients] = useState<User[]>([]);
@@ -226,6 +234,17 @@ export default function InstructorWorkspace() {
                 <span>Upcoming Appointments: <strong>{appointments.length}</strong></span>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-4 py-2.5 rounded border border-rose-500/30 hover:border-rose-500/60 bg-rose-950/30 hover:bg-rose-950/50 text-rose-300 hover:text-rose-200 font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Log out of Coach Portal"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Logout
+            </button>
           </div>
         </div>
 

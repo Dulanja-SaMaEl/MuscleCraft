@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
@@ -18,11 +19,18 @@ import {
   FileText,
   User,
   ShieldAlert,
+  LogOut,
 } from 'lucide-react';
 import { BodyMeasurement, DietPlan, Appointment, ExerciseVideo, PaymentRecord } from '@/lib/types';
 
 export default function ClientDashboard() {
-  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { currentUser, logout, loading: authLoading } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
   const [activeTab, setActiveTab] = useState<'overview' | 'measurements' | 'diet' | 'videos' | 'billing'>('overview');
 
   // Data states
@@ -191,12 +199,21 @@ export default function ClientDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <button
               onClick={() => setLogModalOpen(true)}
-              className="flex-1 md:flex-initial px-4 py-2.5 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+              className="flex-1 md:flex-initial px-4 py-2.5 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Log Weekly Measurements
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-4 py-2.5 rounded border border-rose-500/30 hover:border-rose-500/60 bg-rose-950/30 hover:bg-rose-950/50 text-rose-300 hover:text-rose-200 font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              title="Log out of Client Portal"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Logout
             </button>
           </div>
         </div>

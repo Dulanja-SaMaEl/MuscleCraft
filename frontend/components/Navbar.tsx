@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Shield, Dumbbell, UserCheck, Menu, X } from 'lucide-react';
+import { Shield, Dumbbell, UserCheck, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/context/auth-context';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -14,7 +14,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { currentUser, switchPersona } = useAuth();
+  const { currentUser, switchPersona, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pillRef = useRef<HTMLDivElement | null>(null);
   const headerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -257,6 +257,15 @@ export default function Navbar() {
                     Client Portal
                   </Link>
                 )}
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-rose-400 transition-colors cursor-pointer"
+                  title="Logout"
+                  aria-label="Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -337,6 +346,19 @@ export default function Navbar() {
               >
                 Admin Command Center
               </Link>
+            )}
+
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-center py-2 bg-rose-950/40 border border-rose-500/30 text-rose-300 hover:text-white rounded-full font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Log Out ({currentUser.name})
+              </button>
             )}
 
             <Link
