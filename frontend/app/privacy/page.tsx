@@ -1,8 +1,20 @@
-'use client';
-
 import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — Client Data & Health Telemetry Protection',
+  description:
+    'MuscleCraft privacy policy and security standards for safeguarding athlete records, body analytics telemetry, and financial verification data.',
+  alternates: {
+    canonical: '/privacy',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function PrivacyPage() {
   return (

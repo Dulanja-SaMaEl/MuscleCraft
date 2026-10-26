@@ -1,8 +1,20 @@
-'use client';
-
 import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service & Facility Rules — Membership Agreement',
+  description:
+    'MuscleCraft terms of service, gym membership agreement, bank transfer reconciliation procedures, and facility conduct standards.',
+  alternates: {
+    canonical: '/terms',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function TermsPage() {
   return (

@@ -1,6 +1,5 @@
-'use client';
-
 import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
@@ -18,6 +17,21 @@ import {
   Users,
   User,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Training Programs & Memberships — BurnZone & 90 Days Better Me',
+  description:
+    'Explore MuscleCraft training programs: BurnZone Functional Fitness, 90 Days Better Me personalized online coaching, and VIP strength mentorship by Coach Adeesha.',
+  alternates: {
+    canonical: '/memberships',
+  },
+  openGraph: {
+    title: 'MuscleCraft Training Programs & Coaching Tiers',
+    description:
+      'Compare Sole, Couple, and 90-Day VIP Coaching programs. Evidence-based progressive overload and structured nutrition.',
+    url: 'https://musclecraft.lk/memberships',
+  },
+};
 
 export default function MembershipsPage() {
   const comparisonItems = [

@@ -1,10 +1,24 @@
-'use client';
-
 import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { Award, ShieldCheck, Dumbbell, Target, CheckCircle2 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'About Us — Coach Adeesha Kumarasingha & MuscleCraft Philosophy',
+  description:
+    'Learn about MuscleCraft and founder Adeesha Kumarasingha (NVQ Certified, ISO 9001 Instructor, Dip. Sports Science). Discover our mission to build sustainable fitness habits and sculpt strength.',
+  alternates: {
+    canonical: '/about',
+  },
+  openGraph: {
+    title: 'About MuscleCraft — Founder Adeesha Kumarasingha',
+    description:
+      'Structured training, functional fitness, and personalized accountability with over 7 years of fitness industry leadership.',
+    url: 'https://musclecraft.lk/about',
+  },
+};
 
 export default function AboutPage() {
   const coaches = [

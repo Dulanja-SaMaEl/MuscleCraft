@@ -1,12 +1,26 @@
-'use client';
-
 import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PricingSection from '@/components/PricingSection';
 import FaqSection from '@/components/FaqSection';
 import Link from 'next/link';
 import { ShieldCheck, Building, CheckCircle2, ArrowRight } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Membership Packages & Rates — Sole & Couple Pricing in LKR',
+  description:
+    'Official MuscleCraft gym membership rates. Sole packages from Rs. 4,500/month, Couple memberships from Rs. 8,000/month. Transparent admission fees with zero hidden charges.',
+  alternates: {
+    canonical: '/pricing',
+  },
+  openGraph: {
+    title: 'MuscleCraft Pricing — Sole & Couple Membership Rates',
+    description:
+      'Clear, honest gym pricing in Sri Lankan Rupees. Save up to Rs. 18,000 on annual commitments.',
+    url: 'https://musclecraft.lk/pricing',
+  },
+};
 
 export default function PricingPage() {
   return (

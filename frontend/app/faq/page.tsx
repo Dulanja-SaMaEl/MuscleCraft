@@ -1,15 +1,26 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import FaqSection from '@/components/FaqSection';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Frequently Asked Questions (FAQ) — Memberships, Coaching & Hours',
+  description:
+    'Find answers to common questions about MuscleCraft: 24/7 facility access, 90-Day VIP coaching, manual bank transfer verification, and personalized nutrition plans.',
+  alternates: {
+    canonical: '/faq',
+  },
+  openGraph: {
+    title: 'MuscleCraft FAQ — Membership & Training Questions Answered',
+    description:
+      'Everything you need to know about joining MuscleCraft, training with Coach Adeesha, and bank transfer setup.',
+    url: 'https://musclecraft.lk/faq',
+  },
+};
 
 export default function FaqPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-
   // Structured Data Schema for SEO compliance
   const jsonLd = {
     '@context': 'https://schema.org',

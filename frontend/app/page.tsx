@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import ScrollFrameSequence from '@/components/motion/ScrollFrameSequence';
 import MarqueeStrip from '@/components/MarqueeStrip';
@@ -12,6 +13,15 @@ import ContactMapSlide from '@/components/ContactMapSlide';
 import Footer from '@/components/Footer';
 import CustomCursor from '@/components/CustomCursor';
 import SmoothScroll from '@/components/motion/SmoothScroll';
+
+export const metadata: Metadata = {
+  title: 'MuscleCraft — Build Discipline. Sculpt Strength. | Premier Gym Sri Lanka',
+  description:
+    'MuscleCraft premier strength facility, customized transformation workout protocols, personalized nutrition plans, and transformative 1-on-1 mentorship with Coach Adeesha Kumarasingha.',
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function HomePage() {
   return (
