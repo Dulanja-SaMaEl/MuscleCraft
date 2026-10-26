@@ -61,10 +61,8 @@ export default function AdminDashboard() {
     | 'analytics_submissions'
     | 'videos'
     | 'broadcast'
-    | 'coaching'
     | 'packages'
     | 'database_health'
-    | 'coaches_upgrade'
     | 'audit'
   >('analytics');
 
@@ -443,26 +441,29 @@ export default function AdminDashboard() {
   const pendingReviewsCount = allClientMeasurements.filter((m) => !m.coachFeedback).length;
 
   const navigationItems = [
-    { id: 'analytics', label: 'Dashboard & Charts', icon: TrendingUp },
+    { id: 'analytics', label: 'Dashboard Overview', icon: TrendingUp },
     {
       id: 'payments',
       label: 'Bank Approvals',
       icon: CreditCard,
-      badge: stats.pendingTransfers > 0 ? stats.pendingTransfers : null,
+      badge: stats.pendingTransfers > 0 ? `${stats.pendingTransfers}` : null,
     },
     { id: 'members', label: 'Members Directory', icon: Users },
     {
       id: 'analytics_submissions',
-      label: 'Body Analytics Hub',
+      label: 'Client Analytics & Care',
       icon: Activity,
       badge: pendingReviewsCount > 0 ? `${pendingReviewsCount} Due` : null,
     },
-    { id: 'videos', label: 'Session Videos Vault', icon: Video, badge: videos.length > 0 ? `${videos.length}` : null },
-    { id: 'broadcast', label: 'Message Broadcast', icon: Radio },
-    { id: 'coaching', label: 'Coaching & Diet Desk', icon: Dumbbell },
+    {
+      id: 'videos',
+      label: 'Session Videos Vault',
+      icon: Video,
+      badge: videos.length > 0 ? `${videos.length}` : null,
+    },
+    { id: 'broadcast', label: 'Broadcast Center', icon: Radio },
     { id: 'packages', label: 'Gym Packages Master', icon: DollarSign },
     { id: 'database_health', label: 'Database & Backend', icon: Server, statusDot: 'green' },
-    { id: 'coaches_upgrade', label: 'Coaches (Upgrade)', icon: UserPlus, highlight: true },
     { id: 'audit', label: 'Audit Trail', icon: History },
   ];
 
@@ -482,101 +483,86 @@ export default function AdminDashboard() {
           LEFT NAVIGATION SIDEBAR (Fixed Desktop, Slide Drawer Mobile)
           ═══════════════════════════════════════════════════════════════ */}
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-72 bg-[#0c0c11] border-r border-white/[0.08] flex flex-col justify-between z-50 transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed md:sticky top-0 left-0 h-screen w-64 lg:w-72 bg-[#09090d] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 md:translate-x-0 ${
           mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        <div>
-          {/* Brand Header */}
-          <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-crimson-950/80 border border-crimson-500/50 flex items-center justify-center p-1 shadow-[0_0_15px_rgba(186,26,26,0.4)]">
-                <Image
-                  src="/images/musclecraft-emblem.png"
-                  alt="MuscleCraft Emblem"
-                  width={30}
-                  height={30}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <span className="font-extrabold tracking-wider text-white text-base uppercase leading-tight block">
-                  Muscle<span className="text-crimson-500">Craft</span>
-                </span>
-                <span className="text-[9px] font-mono font-bold tracking-widest text-crimson-400 uppercase block">
-                  OWNER DESK · ADMIN
-                </span>
-              </div>
+        {/* Brand Header */}
+        <div className="p-4 sm:p-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-[#0c0c11]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-crimson-950/80 border border-crimson-500/50 flex items-center justify-center p-1 shadow-[0_0_15px_rgba(186,26,26,0.4)]">
+              <Image
+                src="/images/musclecraft-emblem.png"
+                alt="MuscleCraft Emblem"
+                width={26}
+                height={26}
+                className="object-contain"
+              />
             </div>
-
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="md:hidden text-gray-400 hover:text-white p-2.5 rounded-lg hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
-              aria-label="Close sidebar"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div>
+              <span className="font-extrabold tracking-wider text-white text-sm uppercase leading-tight block">
+                Muscle<span className="text-crimson-500">Craft</span>
+              </span>
+              <span className="text-[9px] font-mono font-bold tracking-widest text-crimson-400 uppercase block">
+                Owner Portal
+              </span>
+            </div>
           </div>
 
-          {/* Authority Tag */}
-          <div className="px-6 py-3 bg-[#111118] border-b border-white/[0.04] flex items-center justify-between text-[11px]">
-            <span className="text-gray-400 flex items-center gap-1.5 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live Operator
-            </span>
-            <span className="font-mono text-[10px] uppercase font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-700/40">
-              Root Authority
-            </span>
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="p-4 space-y-1.5" aria-label="Admin Navigation">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as any);
-                    setMobileSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-crimson-600 text-white shadow-crimson-glow font-bold'
-                      : item.highlight
-                      ? 'text-purple-300 hover:bg-purple-950/40 hover:text-white border border-purple-800/30'
-                      : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.highlight ? 'text-purple-400' : 'text-gray-400'}`} />
-                    <span>{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {item.statusDot === 'green' && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    )}
-                    {item.badge && (
-                      <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.2 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Sidebar Footer: Owner Identity & Quick Site Switcher */}
-        <div className="p-4 border-t border-white/[0.08] space-y-3 bg-[#0a0a0e]">
+        {/* Scrollable Navigation Items */}
+        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1" aria-label="Admin Navigation">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as any);
+                  setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[44px] cursor-pointer ${
+                  isActive
+                    ? 'bg-crimson-600 text-white shadow-crimson-glow font-bold'
+                    : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  <span className="truncate">{item.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {item.statusDot === 'green' && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                  {item.badge && (
+                    <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer: Owner Identity & Fast Public Link */}
+        <div className="p-3 border-t border-white/[0.06] bg-[#0c0c11] flex-shrink-0 space-y-2">
           {/* Owner Profile Card */}
-          <div className="p-3 rounded-2xl bg-[#14141c] border border-white/[0.06] flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
               alt="Adeesha Kumarasingha"
-              className="w-9 h-9 rounded-full object-cover border border-crimson-500/50"
+              className="w-8 h-8 rounded-full object-cover border border-crimson-500/50 flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
               <span className="text-xs font-bold text-white block truncate">
@@ -588,31 +574,17 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Quick Exit Links */}
-          <div className="flex flex-col gap-1.5">
-            <Link
-              href="/"
-              className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 flex items-center justify-between transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <Globe className="w-3.5 h-3.5 text-crimson-400" /> Public Website
-              </span>
-              <ChevronRight className="w-3 h-3 text-gray-500" />
-            </Link>
-
-            <button
-              onClick={async () => {
-                await switchPersona('usr_client_90');
-                router.push('/client');
-              }}
-              className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 flex items-center justify-between transition-colors cursor-pointer"
-            >
-              <span className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 text-blue-400" /> Switch to Client View
-              </span>
-              <ChevronRight className="w-3 h-3 text-gray-500" />
-            </button>
-          </div>
+          {/* Public Website Link */}
+          <Link
+            href="/"
+            target="_blank"
+            className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 flex items-center justify-between transition-colors min-h-[38px]"
+          >
+            <span className="flex items-center gap-2">
+              <Globe className="w-3.5 h-3.5 text-crimson-400" /> Public Website
+            </span>
+            <ExternalLink className="w-3 h-3 text-gray-500" />
+          </Link>
         </div>
       </aside>
 
@@ -1520,174 +1492,7 @@ export default function AdminDashboard() {
           )}
 
           {/* ───────────────────────────────────────────────────────────
-              TAB 4: COACHING & CLIENT CARE (OWNER DESK)
-              ─────────────────────────────────────────────────────────── */}
-          {activeTab === 'coaching' && (
-            <div className="space-y-6">
-              <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                    <Dumbbell className="w-5 h-5 text-crimson-500" />
-                    Owner Coaching & Client Care Desk
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Review weekly check-ins, assess physique progress measurements, and submit coach feedback notes directly to client dashboards.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">Viewing Client:</span>
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="px-3.5 py-2 bg-[#181822] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none"
-                  >
-                    <option value="usr_client_90">Marcus Vance (90-Day VIP)</option>
-                    <option value="usr_client_nuwan">Nuwan Silva (Sole 6M)</option>
-                    <option value="usr_client_couple_kanishka">Kanishka & Hiruni (Couple 1Y)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Check-ins Timeline & Feedback Composer */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                <div className="lg:col-span-7 bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl space-y-4">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>Weekly Body Recomposition Submissions</span>
-                    <span className="text-xs text-crimson-400 font-mono">Marcus Vance</span>
-                  </h3>
-
-                  <div className="space-y-4">
-                    {measurements.map((m) => (
-                      <div
-                        key={m.id}
-                        className="p-4 rounded-2xl bg-[#16161f] border border-white/[0.06] hover:border-crimson-600/40 transition-all space-y-2.5"
-                      >
-                        <div className="flex items-center justify-between border-b border-white/[0.04] pb-2">
-                          <span className="font-bold text-white text-xs">
-                            Week {m.weekNumber} Check-In · {new Date(m.date).toLocaleDateString()}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-crimson-400">{m.weightKg} kg</span>
-                            {m.bodyFatPercentage && (
-                              <span className="text-xs font-mono text-gray-400">({m.bodyFatPercentage}% BF)</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-2 text-[11px] text-gray-400 bg-black/40 p-2.5 rounded-xl font-mono text-center">
-                          <div>
-                            <span className="block text-gray-500 text-[10px]">WAIST</span>
-                            <span className="font-bold text-white">{m.waistCm || '--'} cm</span>
-                          </div>
-                          <div>
-                            <span className="block text-gray-500 text-[10px]">CHEST</span>
-                            <span className="font-bold text-white">{m.chestCm || '--'} cm</span>
-                          </div>
-                          <div>
-                            <span className="block text-gray-500 text-[10px]">ARMS</span>
-                            <span className="font-bold text-white">{m.armsCm || '--'} cm</span>
-                          </div>
-                          <div>
-                            <span className="block text-gray-500 text-[10px]">HIPS</span>
-                            <span className="font-bold text-white">{m.hipsCm || '--'} cm</span>
-                          </div>
-                        </div>
-
-                        {m.notes && (
-                          <p className="text-xs text-gray-300 italic bg-white/[0.02] p-2 rounded-lg">
-                            Client: "{m.notes}"
-                          </p>
-                        )}
-
-                        {m.coachFeedback ? (
-                          <div className="p-3 rounded-xl bg-crimson-950/30 border border-crimson-800/40 text-xs text-gray-200">
-                            <span className="text-crimson-400 font-bold block mb-0.5">Coach Adeesha Feedback:</span>
-                            {m.coachFeedback}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setFeedbackNote(`Solid progress on Week ${m.weekNumber}! Keep pushing your caloric adherence and hit 190g protein.`);
-                            }}
-                            className="text-xs text-crimson-400 hover:text-crimson-300 font-semibold flex items-center gap-1 cursor-pointer"
-                          >
-                            <Send className="w-3.5 h-3.5" /> Submit Coach Review for Week {m.weekNumber}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Feedback Composer & Macro Prescription */}
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl space-y-4">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <Send className="w-4 h-4 text-crimson-400" />
-                      Coach Feedback Dispatch
-                    </h3>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Submissions appear directly on the client's dashboard and trigger their weekly training adjustments.
-                    </p>
-
-                    <textarea
-                      rows={4}
-                      placeholder="Write personalized advice, squat/deadlift form critique, or macro adjustments..."
-                      value={feedbackNote}
-                      onChange={(e) => setFeedbackNote(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#181822] border border-white/10 rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none"
-                    />
-
-                    <button
-                      onClick={() => {
-                        if (!feedbackNote.trim()) return;
-                        setActionMessage({
-                          type: 'success',
-                          text: `Coach Adeesha's feedback published to Marcus Vance's dashboard!`,
-                        });
-                        setFeedbackNote('');
-                      }}
-                      className="w-full py-3 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-crimson-glow cursor-pointer"
-                    >
-                      Publish Feedback to Client
-                    </button>
-                  </div>
-
-                  <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl space-y-3">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                      <Utensils className="w-4 h-4 text-crimson-400" />
-                      Current Nutrition Prescription
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                        <span className="text-gray-500 text-[10px] block">DAILY TARGET</span>
-                        <span className="font-bold text-white text-base">2,650 kcal</span>
-                      </div>
-                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                        <span className="text-crimson-400 text-[10px] block">PROTEIN</span>
-                        <span className="font-bold text-white text-base">195g</span>
-                      </div>
-                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                        <span className="text-blue-400 text-[10px] block">CARBOHYDRATES</span>
-                        <span className="font-bold text-white text-base">280g</span>
-                      </div>
-                      <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                        <span className="text-amber-400 text-[10px] block">HEALTHY FATS</span>
-                        <span className="font-bold text-white text-base">65g</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-gray-400 block pt-1">
-                      Phase: <strong>Phase 2: Lean Mass Accretion & Glycogen Optimization</strong>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ───────────────────────────────────────────────────────────
-              TAB 5: GYM PACKAGES MASTER
+              TAB: GYM PACKAGES MASTER
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'packages' && (
             <div className="space-y-6">
@@ -1783,85 +1588,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ───────────────────────────────────────────────────────────
-              TAB 6: COACHES & STAFF (UPGRADE MODULE)
-              ─────────────────────────────────────────────────────────── */}
-          {activeTab === 'coaches_upgrade' && (
-            <div className="space-y-6">
-              <div className="bg-gradient-to-r from-purple-950/40 via-[#181828] to-purple-950/30 border border-purple-600/40 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                <div className="max-w-3xl">
-                  <span className="text-xs font-bold text-purple-400 uppercase tracking-widest bg-purple-950/80 px-3 py-1 rounded-full border border-purple-500/40">
-                    Expansion & Delegation Module
-                  </span>
-                  <h2
-                    style={{
-                      fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                      fontWeight: 700,
-                      letterSpacing: '-0.02em',
-                    }}
-                    className="text-2xl sm:text-3xl text-white tracking-tight mt-3 mb-2"
-                  >
-                    Appending Coaches & Multi-Trainer Upgrade
-                  </h2>
-                  <p className="text-sm text-gray-300 leading-relaxed font-normal">
-                    Currently, all coaching and business monitoring are handled directly by Owner <strong>Adeesha Kumarasingha</strong>.
-                    This module is engineered to seamlessly unlock secondary trainer accounts whenever MuscleCraft expands its coaching roster.
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                  <div className="bg-black/50 border border-purple-500/20 p-5 rounded-2xl space-y-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold">
-                      1
-                    </div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Coach Delegation</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Invite new trainers with distinct logins. Assign specific member cohorts (e.g. Morning BurnZone or Weight Loss) to each coach.
-                    </p>
-                  </div>
-
-                  <div className="bg-black/50 border border-purple-500/20 p-5 rounded-2xl space-y-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold">
-                      2
-                    </div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Role-Based Access</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Secondary trainers can only view and feedback their assigned clients. Sensitive financial ledgers and bank approvals remain strictly locked to the Owner.
-                    </p>
-                  </div>
-
-                  <div className="bg-black/50 border border-purple-500/20 p-5 rounded-2xl space-y-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold">
-                      3
-                    </div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Trainer Performance</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Monitor trainer check-in response times, client retention rates, and member satisfaction ratings from this master desk.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-8 p-6 rounded-2xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-center sm:text-left">
-                    <span className="text-xs font-bold text-white uppercase block">
-                      Ready to append secondary coaches to MuscleCraft?
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      The backend database models already support <code className="text-purple-300 font-mono">assignedInstructorId</code> mapping.
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      alert('Multi-Coach Upgrade: Database schema and delegation routing are prepared. When you hire new trainers, their accounts will populate here instantly.');
-                    }}
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-[0_0_15px_rgba(168,85,247,0.5)] cursor-pointer whitespace-nowrap"
-                  >
-                    <UserPlus className="w-4 h-4 inline mr-1.5" /> Append Coach (Preview)
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* ───────────────────────────────────────────────────────────
               TAB 7: AUDIT LOGS
