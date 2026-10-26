@@ -836,7 +836,7 @@ export default function ScrollFrameSequence({
 
             {/* Discipline Tag Badges */}
             <div className="flex flex-wrap gap-2 mb-5">
-              {['STRENGTH', 'HYPERTROPHY', 'POWERLIFTING', 'RECOVERY'].map((disc) => (
+              {['WEIGHT LOSS', 'FAT LOSS', 'FUNCTIONAL TRAINING', 'RECOVERY'].map((disc) => (
                 <span
                   key={disc}
                   className="px-3 py-1 rounded-lg bg-[#16161c]/90 border border-white/10 text-xs font-mono font-bold tracking-wider text-gray-200"
@@ -847,8 +847,8 @@ export default function ScrollFrameSequence({
             </div>
 
             <p className="text-sm sm:text-base md:text-lg text-gray-300 max-w-lg font-normal leading-relaxed">
-              Competition-grade Eleiko plates, calibrated steel bars, and heavy-duty custom racks.
-              No crowds, no waiting, and zero wasted motion.
+              Structured weight loss, metabolic fat loss conditioning, functional fitness, and recovery protocols.
+              Practical, science-backed solutions designed to build real discipline and lasting health.
             </p>
           </div>
 

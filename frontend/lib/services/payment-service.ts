@@ -1,23 +1,57 @@
 import { db } from '../db/mock-db';
-import { PaymentRecord, PaymentStatus, User } from '../types';
+import { PaymentRecord, PaymentStatus, User, GYM_PACKAGES } from '../types';
 
 export class PaymentService {
   // Generate distinct bank transfer reference code
   static generateReferenceCode(): string {
     const random = Math.floor(100000 + Math.random() * 900000);
-    return `TRF-IRON-${random}`;
+    return `TRF-MC-${random}`;
   }
 
   // Get pricing for tier
-  static getTierPrice(tier: 'monthly' | 'coaching_90'): number {
-    return tier === 'monthly' ? 50.0 : 450.0;
+  static getTierPrice(tier: string): { amount: number; packagePrice: number; admissionFee: number; name: string } {
+    const gymPkg = GYM_PACKAGES.find((p) => p.id === tier);
+    if (gymPkg) {
+      return {
+        amount: gymPkg.price + gymPkg.admissionFee,
+        packagePrice: gymPkg.price,
+        admissionFee: gymPkg.admissionFee,
+        name: gymPkg.name,
+      };
+    }
+
+    if (tier === 'coaching_90') {
+      return {
+        amount: 25000,
+        packagePrice: 25000,
+        admissionFee: 0,
+        name: '90-Day VIP Athletic Transformation',
+      };
+    }
+
+    if (tier === 'burnzone') {
+      return {
+        amount: 15000,
+        packagePrice: 15000,
+        admissionFee: 500,
+        name: 'MuscleCraft BurnZone Functional Conditioning',
+      };
+    }
+
+    // Default fallback
+    return {
+      amount: 5000,
+      packagePrice: 4500,
+      admissionFee: 500,
+      name: 'Sole - 1 Month Gym Access',
+    };
   }
 
   // Submit manual bank transfer
   static submitBankTransfer(data: {
     userId: string;
     referenceCode: string;
-    tier: 'monthly' | 'coaching_90';
+    tier: string;
     bankName: string;
     transferDate: string;
     senderAccountName: string;
@@ -28,7 +62,7 @@ export class PaymentService {
       throw new Error('User not found.');
     }
 
-    const amount = this.getTierPrice(data.tier);
+    const priceInfo = this.getTierPrice(data.tier);
 
     const payment: PaymentRecord = {
       id: `pay_${Date.now()}`,
@@ -37,8 +71,11 @@ export class PaymentService {
       userEmail: user.email,
       referenceCode: data.referenceCode,
       tier: data.tier,
-      amount,
-      currency: 'USD',
+      packageName: priceInfo.name,
+      packageAmount: priceInfo.packagePrice,
+      admissionFee: priceInfo.admissionFee,
+      amount: priceInfo.amount,
+      currency: 'LKR',
       bankName: data.bankName,
       transferDate: data.transferDate,
       senderAccountName: data.senderAccountName,
@@ -57,7 +94,7 @@ export class PaymentService {
       action: 'BANK_TRANSFER_SUBMITTED',
       targetType: 'payment',
       targetId: payment.id,
-      details: `Submitted manual bank transfer ${payment.referenceCode} for $${amount.toFixed(2)} (${data.tier}).`,
+      details: `Submitted manual bank transfer ${payment.referenceCode} for Rs. ${payment.amount.toLocaleString()} LKR (${priceInfo.name}).`,
       timestamp: new Date().toISOString(),
     });
 
@@ -66,7 +103,7 @@ export class PaymentService {
 
   // Get payments for a specific user (IDOR protected) or all payments if admin
   static getPayments(requestingUser: User, targetUserId?: string): PaymentRecord[] {
-    if (requestingUser.role === 'admin') {
+    if (requestingUser.role === 'admin' || requestingUser.role === 'instructor') {
       if (targetUserId) {
         return db.payments.filter((p) => p.userId === targetUserId);
       }
@@ -98,16 +135,26 @@ export class PaymentService {
     if (user) {
       user.status = 'active';
       user.tier = payment.tier;
+      user.packageName = payment.packageName;
 
-      const durationDays = payment.tier === 'coaching_90' ? 90 : 30;
+      // Determine duration
+      let durationDays = 30;
+      if (payment.tier === 'sole_1y' || payment.tier === 'couple_1y') {
+        durationDays = 365;
+      } else if (payment.tier === 'sole_6m' || payment.tier === 'couple_6m') {
+        durationDays = 180;
+      } else if (payment.tier === 'sole_3m' || payment.tier === 'couple_3m' || payment.tier === 'coaching_90') {
+        durationDays = 90;
+      }
+
       const expiry = new Date();
       expiry.setDate(expiry.getDate() + durationDays);
       user.membershipExpiresAt = expiry.toISOString();
 
-      // If 90-day coaching, automatically assign head coach Elena Rostova if not assigned
-      if (payment.tier === 'coaching_90' && !user.assignedInstructorId) {
-        user.assignedInstructorId = 'usr_inst_1';
-        user.assignedInstructorName = 'Elena Rostova';
+      // Owner Adeesha is the Head Coach for all active members (multi-coach appending will be a future upgrade)
+      if (!user.assignedInstructorId) {
+        user.assignedInstructorId = 'usr_admin_1';
+        user.assignedInstructorName = 'Adeesha Kumarasingha (Founder & Head Coach)';
       }
     }
 
@@ -119,7 +166,7 @@ export class PaymentService {
       action: 'PAYMENT_APPROVED',
       targetType: 'payment',
       targetId: payment.id,
-      details: `Admin ${adminUser.name} approved transfer ${payment.referenceCode} for ${payment.userName} ($${payment.amount}). Membership activated until ${user?.membershipExpiresAt}.`,
+      details: `Admin ${adminUser.name} approved transfer ${payment.referenceCode} for ${payment.userName} (Rs. ${payment.amount.toLocaleString()} LKR). Membership activated until ${user?.membershipExpiresAt ? new Date(user.membershipExpiresAt).toLocaleDateString() : 'N/A'}.`,
       timestamp: new Date().toISOString(),
     });
 
@@ -138,7 +185,7 @@ export class PaymentService {
     }
 
     payment.status = 'rejected';
-    payment.adminNotes = reason;
+    payment.adminNotes = reason || 'Payment slip verification failed.';
     payment.reviewedBy = adminUser.id;
     payment.reviewedAt = new Date().toISOString();
 
@@ -149,7 +196,7 @@ export class PaymentService {
       action: 'PAYMENT_REJECTED',
       targetType: 'payment',
       targetId: payment.id,
-      details: `Admin ${adminUser.name} rejected transfer ${payment.referenceCode}. Reason: ${reason}`,
+      details: `Admin ${adminUser.name} rejected transfer ${payment.referenceCode} for ${payment.userName}. Reason: ${payment.adminNotes}`,
       timestamp: new Date().toISOString(),
     });
 

@@ -143,37 +143,26 @@ export default function Navbar() {
                 Client
               </button>
               <button
-                onClick={() => switchPersona('usr_client_month')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
-                  currentUser?.id === 'usr_client_month'
+                onClick={() => switchPersona('usr_client_90')}
+                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors cursor-pointer ${
+                  currentUser?.id === 'usr_client_90' || currentUser?.role === 'client'
                     ? 'bg-crimson-600 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Member"
+                title="Member Dashboard (Marcus Vance)"
               >
-                Member
-              </button>
-              <button
-                onClick={() => switchPersona('usr_inst_adeesha')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
-                  currentUser?.id === 'usr_inst_adeesha' || currentUser?.id === 'usr_inst_1'
-                    ? 'bg-blue-600 text-white font-semibold'
-                    : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
-                }`}
-                title="Adeesha Kumarasingha (Founder & Head Coach)"
-              >
-                Coach Adeesha
+                Client
               </button>
               <button
                 onClick={() => switchPersona('usr_admin_1')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
-                  currentUser?.id === 'usr_admin_1'
-                    ? 'bg-crimson-800 text-white font-semibold'
+                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors cursor-pointer ${
+                  currentUser?.id === 'usr_admin_1' || currentUser?.role === 'admin'
+                    ? 'bg-crimson-800 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
                     : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
                 }`}
-                title="Platform Admin"
+                title="Owner / Head Coach Adeesha (Admin)"
               >
-                Admin
+                Owner Adeesha (Admin)
               </button>
             </div>
           </div>

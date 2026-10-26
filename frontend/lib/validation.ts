@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const SubmitBankTransferSchema = z.object({
-  tier: z.enum(['monthly', 'coaching_90']),
+  tier: z.string().min(2).max(50),
   referenceCode: z.string().min(5).max(30),
   bankName: z.string().min(2).max(100),
   transferDate: z.string().min(8).max(20),

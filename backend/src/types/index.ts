@@ -1,6 +1,183 @@
 export type UserRole = 'client' | 'instructor' | 'admin';
 
-export type MembershipTier = 'none' | 'monthly' | 'coaching_90';
+export type MembershipTier =
+  | 'none'
+  | 'monthly'
+  | 'coaching_90'
+  | 'sole_1m'
+  | 'sole_3m'
+  | 'sole_6m'
+  | 'sole_1y'
+  | 'couple_1m'
+  | 'couple_3m'
+  | 'couple_6m'
+  | 'couple_1y'
+  | 'burnzone';
+
+export type PackageType = 'sole' | 'couple' | 'coaching';
+export type PackageDuration = '1_month' | '3_months' | '6_months' | '1_year' | '90_days';
+
+export interface GymPackage {
+  id: string;
+  type: 'sole' | 'couple';
+  duration: '1_month' | '3_months' | '6_months' | '1_year';
+  name: string;
+  price: number; // LKR
+  admissionFee: number; // LKR
+  durationLabel: string;
+  savings?: string;
+  popular?: boolean;
+  features: string[];
+}
+
+export const GYM_PACKAGES: GymPackage[] = [
+  // Sole Packages (Admission: Rs. 500)
+  {
+    id: 'sole_1m',
+    type: 'sole',
+    duration: '1_month',
+    name: 'Sole - 1 Month',
+    price: 4500,
+    admissionFee: 500,
+    durationLabel: '1 Month',
+    features: [
+      'Full facility & gym equipment access',
+      'Locker room & shower access',
+      'Admission fee: Rs. 500 (one-time on sign up)',
+      'Free fitness orientation by Coach Adeesha',
+      'Flexible monthly access without contract',
+    ],
+  },
+  {
+    id: 'sole_3m',
+    type: 'sole',
+    duration: '3_months',
+    name: 'Sole - 3 Months',
+    price: 12000,
+    admissionFee: 500,
+    durationLabel: '3 Months',
+    savings: 'Save Rs. 1,500',
+    popular: true,
+    features: [
+      'Full facility & gym equipment access',
+      'Locker room & shower access',
+      'Admission fee: Rs. 500 (one-time on sign up)',
+      'Periodic progress & body assessment',
+      'Workout & training progression guidance',
+      'Save Rs. 1,500 compared to monthly',
+    ],
+  },
+  {
+    id: 'sole_6m',
+    type: 'sole',
+    duration: '6_months',
+    name: 'Sole - 6 Months',
+    price: 22000,
+    admissionFee: 500,
+    durationLabel: '6 Months',
+    savings: 'Save Rs. 5,000',
+    features: [
+      'Full facility & gym equipment access',
+      'Locker room & shower access',
+      'Admission fee: Rs. 500 (one-time on sign up)',
+      'Bi-weekly body measurement tracking',
+      'Nutritional baseline consultation',
+      'Save Rs. 5,000 compared to monthly',
+    ],
+  },
+  {
+    id: 'sole_1y',
+    type: 'sole',
+    duration: '1_year',
+    name: 'Sole - 1 Year',
+    price: 40000,
+    admissionFee: 500,
+    durationLabel: '1 Year (Best Value)',
+    savings: 'Save Rs. 14,000',
+    popular: true,
+    features: [
+      'Full 365-day VIP facility access',
+      'Locker room & shower access',
+      'Admission fee: Rs. 500 (one-time on sign up)',
+      'Comprehensive body recomp & goal reviews',
+      'Priority guidance from Coach Adeesha',
+      'Maximum savings: Save Rs. 14,000',
+    ],
+  },
+
+  // Couple Packages (Admission: Rs. 1,000)
+  {
+    id: 'couple_1m',
+    type: 'couple',
+    duration: '1_month',
+    name: 'Couple - 1 Month',
+    price: 8000,
+    admissionFee: 1000,
+    durationLabel: '1 Month',
+    features: [
+      'Access for 2 partners / companions',
+      'Admission fee: Rs. 1,000 (one-time on sign up)',
+      'Full facility & equipment access for both',
+      'Locker room & shower access',
+      'Shared fitness assessment',
+    ],
+  },
+  {
+    id: 'couple_3m',
+    type: 'couple',
+    duration: '3_months',
+    name: 'Couple - 3 Months',
+    price: 22500,
+    admissionFee: 1000,
+    durationLabel: '3 Months',
+    savings: 'Save Rs. 1,500',
+    popular: true,
+    features: [
+      'Access for 2 partners / companions',
+      'Admission fee: Rs. 1,000 (one-time on sign up)',
+      'Full facility access for both',
+      'Shared progress measurement checks',
+      'Workout & motivation accountability',
+      'Save Rs. 1,500 compared to monthly',
+    ],
+  },
+  {
+    id: 'couple_6m',
+    type: 'couple',
+    duration: '6_months',
+    name: 'Couple - 6 Months',
+    price: 42000,
+    admissionFee: 1000,
+    durationLabel: '6 Months',
+    savings: 'Save Rs. 6,000',
+    features: [
+      'Access for 2 partners / companions',
+      'Admission fee: Rs. 1,000 (one-time on sign up)',
+      'Full facility access for both',
+      'Partner workout routine optimization',
+      'Nutrition & diet baseline guidelines',
+      'Save Rs. 6,000 compared to monthly',
+    ],
+  },
+  {
+    id: 'couple_1y',
+    type: 'couple',
+    duration: '1_year',
+    name: 'Couple - 1 Year',
+    price: 78000,
+    admissionFee: 1000,
+    durationLabel: '1 Year (Best Value)',
+    savings: 'Save Rs. 18,000',
+    popular: true,
+    features: [
+      'Full 365-day couple access for 2',
+      'Admission fee: Rs. 1,000 (one-time on sign up)',
+      'Year-round accountability & training guidance',
+      'Direct guidance from Coach Adeesha',
+      'Highest couple value: Save Rs. 18,000',
+    ],
+  },
+];
 
 export type UserStatus = 'active' | 'pending' | 'suspended' | 'banned';
 
@@ -9,7 +186,9 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  tier: MembershipTier;
+  tier: string;
+  packageName?: string;
+  packageType?: 'sole' | 'couple' | 'coaching';
   status: UserStatus;
   avatarUrl?: string;
   phone?: string;
@@ -26,8 +205,13 @@ export interface PaymentRecord {
   userId: string;
   userName: string;
   userEmail: string;
-  referenceCode: string; // e.g. TRF-IRON-74921
-  tier: 'monthly' | 'coaching_90';
+  referenceCode: string; // e.g. TRF-MC-74921
+  tier: string;
+  packageName?: string;
+  packageType?: 'sole' | 'couple' | 'coaching';
+  duration?: string;
+  admissionFee?: number;
+  packageAmount?: number;
   amount: number;
   currency: string;
   bankName: string;

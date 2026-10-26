@@ -5,16 +5,19 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
-import { Check, Copy, ArrowRight, ShieldCheck, AlertCircle, Building, CheckCircle2 } from 'lucide-react';
+import { Check, Copy, ArrowRight, ShieldCheck, AlertCircle, Building, CheckCircle2, User, Users, Sparkles } from 'lucide-react';
+import { GYM_PACKAGES } from '@/lib/types';
+import { PaymentService } from '@/lib/services/payment-service';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { currentUser } = useAuth();
 
-  const [selectedTier, setSelectedTier] = useState<'monthly' | 'coaching_90'>('coaching_90');
+  const [selectedCategory, setSelectedCategory] = useState<'sole' | 'couple' | 'coaching'>('sole');
+  const [selectedTier, setSelectedTier] = useState<string>('sole_3m');
   const [referenceCode, setReferenceCode] = useState('');
-  const [bankName, setBankName] = useState('Chase Bank Wire / Direct ACH');
+  const [bankName, setBankName] = useState('Commercial Bank of Ceylon (Online Transfer / Deposit)');
   const [senderAccountName, setSenderAccountName] = useState(currentUser?.name || '');
   const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
   const [receiptNotes, setReceiptNotes] = useState('');
@@ -25,15 +28,23 @@ function CheckoutContent() {
 
   useEffect(() => {
     const tierParam = searchParams.get('tier');
-    if (tierParam === 'monthly') {
-      setSelectedTier('monthly');
+    if (tierParam) {
+      setSelectedTier(tierParam);
+      if (tierParam.startsWith('sole') || tierParam === 'monthly') {
+        setSelectedCategory('sole');
+      } else if (tierParam.startsWith('couple')) {
+        setSelectedCategory('couple');
+      } else {
+        setSelectedCategory('coaching');
+      }
     } else {
-      setSelectedTier('coaching_90');
+      setSelectedTier('sole_3m');
+      setSelectedCategory('sole');
     }
 
     // Generate unique reference code
     const random = Math.floor(100000 + Math.random() * 900000);
-    setReferenceCode(`TRF-IRON-${random}`);
+    setReferenceCode(`TRF-MC-${random}`);
   }, [searchParams]);
 
   const copyToClipboard = (text: string) => {
@@ -42,7 +53,7 @@ function CheckoutContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const amount = selectedTier === 'monthly' ? 50.0 : 450.0;
+  const priceDetails = PaymentService.getTierPrice(selectedTier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +108,7 @@ function CheckoutContent() {
             Manual Bank Transfer Checkout
           </h1>
           <p className="text-gray-400 text-sm max-w-xl mx-auto mt-2 font-normal">
-            Zero credit card processing fees. Each transfer receives a verified audit code verified by
-            our administrative team.
+            Zero credit card processing fees. Direct domestic Sri Lankan bank transfer with verified reference reconciliation by Coach Adeesha.
           </p>
         </div>
 
@@ -119,23 +129,33 @@ function CheckoutContent() {
               Transfer Submitted for Verification!
             </h2>
             <p className="text-gray-300 text-sm mb-6">
-              Your transfer reference <span className="font-mono font-bold text-crimson-400">{successSubmission.referenceCode}</span> has been logged into our administrative queue.
+              Your transfer reference <span className="font-mono font-bold text-crimson-400">{successSubmission.referenceCode}</span> has been logged into the MuscleCraft administrative queue.
             </p>
 
-            <div className="bg-[#18181d] border border-white/[0.08] rounded-xl p-4 text-left text-xs space-y-2 mb-8">
+            <div className="bg-[#18181d] border border-white/[0.08] rounded-xl p-5 text-left text-xs space-y-2.5 mb-8">
               <div className="flex justify-between">
-                <span className="text-gray-400">Membership Tier:</span>
-                <span className="text-white font-semibold uppercase">{successSubmission.tier.replace('_', ' ')}</span>
+                <span className="text-gray-400">Membership Package:</span>
+                <span className="text-white font-semibold">{successSubmission.packageName || successSubmission.tier}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Amount Due:</span>
-                <span className="text-crimson-400 font-bold">${successSubmission.amount.toFixed(2)} USD</span>
+                <span className="text-gray-400">Package Fee:</span>
+                <span className="text-gray-200">Rs. {(successSubmission.packageAmount || successSubmission.amount).toLocaleString()} LKR</span>
+              </div>
+              {successSubmission.admissionFee > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Admission Fee (One-Time):</span>
+                  <span className="text-gray-200">Rs. {successSubmission.admissionFee.toLocaleString()} LKR</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-white/10 pt-2 font-bold">
+                <span className="text-white">Total Amount Due:</span>
+                <span className="text-crimson-400 font-mono text-sm">Rs. {successSubmission.amount.toLocaleString()} LKR</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Bank & Reference:</span>
                 <span className="text-white">{successSubmission.bankName}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between pt-1">
                 <span className="text-gray-400">Status:</span>
                 <span className="text-amber-400 font-bold uppercase bg-amber-950/60 px-2 py-0.5 rounded border border-amber-600/40">
                   Pending Administrative Approval
@@ -146,7 +166,7 @@ function CheckoutContent() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => router.push('/admin')}
-                className="px-6 py-3 bg-red-950 text-red-200 border border-red-700 font-semibold text-[13px] sm:text-[14px] rounded-full hover:bg-red-900 transition-colors"
+                className="px-6 py-3 bg-crimson-950 text-crimson-200 border border-crimson-700 font-semibold text-[13px] sm:text-[14px] rounded-full hover:bg-crimson-900 transition-colors"
               >
                 Switch to Admin Desk (Approve Now)
               </button>
@@ -162,83 +182,194 @@ function CheckoutContent() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Plan Selection & Transfer Details */}
             <div className="lg:col-span-5 space-y-6">
-              {/* Tier Toggle */}
-              <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg">
+              {/* Category & Tier Selector */}
+              <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-2xl">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
-                  1. Select Membership Tier
+                  1. Select Membership Package
                 </h3>
 
-                <div className="space-y-3">
-                  <div
-                    onClick={() => setSelectedTier('coaching_90')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selectedTier === 'coaching_90'
-                        ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
-                        : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
+                {/* Subcategory Toggle */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#18181f] rounded-xl border border-white/10 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('sole');
+                      setSelectedTier('sole_3m');
+                    }}
+                    className={`py-2 text-[11px] font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${
+                      selectedCategory === 'sole'
+                        ? 'bg-crimson-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">
-                        90-Day VIP Coaching
-                      </span>
-                      <span className="text-crimson-400 font-bold font-mono text-base">
-                        $450.00
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      1-on-1 strategy call, weekly group masterminds, custom diet plan & private video access.
-                    </p>
-                  </div>
+                    <User className="w-3 h-3" /> Sole
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('couple');
+                      setSelectedTier('couple_3m');
+                    }}
+                    className={`py-2 text-[11px] font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${
+                      selectedCategory === 'couple'
+                        ? 'bg-crimson-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Users className="w-3 h-3" /> Couple
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('coaching');
+                      setSelectedTier('coaching_90');
+                    }}
+                    className={`py-2 text-[11px] font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-1 ${
+                      selectedCategory === 'coaching'
+                        ? 'bg-crimson-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="w-3 h-3" /> Online
+                  </button>
+                </div>
 
-                  <div
-                    onClick={() => setSelectedTier('monthly')}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selectedTier === 'monthly'
-                        ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
-                        : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">
-                        Standard Monthly Gym
-                      </span>
-                      <span className="text-crimson-400 font-bold font-mono text-base">
-                        $50.00
-                      </span>
+                {/* Sole Packages List */}
+                {selectedCategory === 'sole' && (
+                  <div className="space-y-2.5">
+                    {[
+                      { id: 'sole_1m', label: 'Sole 1 Month', price: 'Rs. 4,500', note: '+ Rs. 500 Admission' },
+                      { id: 'sole_3m', label: 'Sole 3 Months', price: 'Rs. 12,000', note: 'Save Rs. 1,500 + Rs. 500 Admission', popular: true },
+                      { id: 'sole_6m', label: 'Sole 6 Months', price: 'Rs. 22,000', note: 'Save Rs. 5,000 + Rs. 500 Admission' },
+                      { id: 'sole_1y', label: 'Sole 1 Year', price: 'Rs. 40,000', note: 'Best Value: Save Rs. 14,000 + Rs. 500 Admission', popular: true },
+                    ].map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedTier(pkg.id)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          selectedTier === pkg.id
+                            ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
+                            : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white text-xs sm:text-sm">{pkg.label}</span>
+                          <span className="text-crimson-400 font-bold font-mono text-sm">{pkg.price}</span>
+                        </div>
+                        <p className="text-[10.5px] text-gray-400 mt-0.5">{pkg.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Couple Packages List */}
+                {selectedCategory === 'couple' && (
+                  <div className="space-y-2.5">
+                    {[
+                      { id: 'couple_1m', label: 'Couple 1 Month', price: 'Rs. 8,000', note: '+ Rs. 1,000 Admission for 2' },
+                      { id: 'couple_3m', label: 'Couple 3 Months', price: 'Rs. 22,500', note: 'Save Rs. 1,500 + Rs. 1,000 Admission', popular: true },
+                      { id: 'couple_6m', label: 'Couple 6 Months', price: 'Rs. 42,000', note: 'Save Rs. 6,000 + Rs. 1,000 Admission' },
+                      { id: 'couple_1y', label: 'Couple 1 Year', price: 'Rs. 78,000', note: 'Best Value: Save Rs. 18,000 + Rs. 1,000 Admission', popular: true },
+                    ].map((pkg) => (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedTier(pkg.id)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          selectedTier === pkg.id
+                            ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
+                            : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white text-xs sm:text-sm">{pkg.label}</span>
+                          <span className="text-crimson-400 font-bold font-mono text-sm">{pkg.price}</span>
+                        </div>
+                        <p className="text-[10.5px] text-gray-400 mt-0.5">{pkg.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Coaching List */}
+                {selectedCategory === 'coaching' && (
+                  <div className="space-y-2.5">
+                    <div
+                      onClick={() => setSelectedTier('coaching_90')}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        selectedTier === 'coaching_90'
+                          ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
+                          : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-xs sm:text-sm">90 Days Better Me</span>
+                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 25,000</span>
+                      </div>
+                      <p className="text-[10.5px] text-gray-400 mt-0.5">Online fitness coaching, custom diet & weekly checks</p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Full 24/7 gym & recovery access, common exercise video library.
-                    </p>
+
+                    <div
+                      onClick={() => setSelectedTier('burnzone')}
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                        selectedTier === 'burnzone'
+                          ? 'border-crimson-600 bg-crimson-950/40 shadow-[0_0_15px_rgba(186,26,26,0.25)]'
+                          : 'border-white/[0.08] bg-[#18181d] hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-xs sm:text-sm">MuscleCraft BurnZone</span>
+                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 15,000</span>
+                      </div>
+                      <p className="text-[10.5px] text-gray-400 mt-0.5">CrossFit & functional conditioning circuits</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Breakdown Banner */}
+                <div className="mt-5 p-3.5 rounded-xl bg-crimson-950/30 border border-crimson-800/40 text-xs space-y-1.5">
+                  <div className="flex justify-between text-gray-300">
+                    <span>Package Price:</span>
+                    <span className="font-semibold text-white">Rs. {priceDetails.packagePrice.toLocaleString()} LKR</span>
+                  </div>
+                  {priceDetails.admissionFee > 0 && (
+                    <div className="flex justify-between text-gray-300">
+                      <span>Admission Fee:</span>
+                      <span className="font-semibold text-white">Rs. {priceDetails.admissionFee.toLocaleString()} LKR</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-crimson-700/40 pt-1.5 font-bold text-sm">
+                    <span className="text-white">Total Payable:</span>
+                    <span className="text-crimson-400 font-mono">Rs. {priceDetails.amount.toLocaleString()} LKR</span>
                   </div>
                 </div>
               </div>
 
-              {/* MuscleCraft Official Wire Instructions */}
+              {/* MuscleCraft Official Bank Instructions */}
               <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <Building className="w-4 h-4 text-crimson-400" />
-                    Official Bank Instructions
+                    Official Bank Accounts
                   </h3>
-                  <span className="text-[11px] text-gray-400">Domestic Wire & ACH</span>
+                  <span className="text-[11px] text-gray-400">Sri Lanka Domestic Transfer</span>
                 </div>
 
                 <div className="bg-[#0a0a0c] border border-white/[0.06] rounded-xl p-4 space-y-2 text-xs">
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
-                    <span className="text-gray-400">Bank Name:</span>
-                    <span className="text-white font-medium">JPMorgan Chase Bank, N.A.</span>
+                    <span className="text-gray-400">Primary Bank:</span>
+                    <span className="text-white font-medium">Commercial Bank of Ceylon PLC</span>
                   </div>
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
                     <span className="text-gray-400">Account Name:</span>
-                    <span className="text-white font-medium">MuscleCraft Athletic Facility LLC</span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
-                    <span className="text-gray-400">Routing (ABA):</span>
-                    <span className="text-white font-mono font-medium">122000496</span>
+                    <span className="text-white font-medium">MuscleCraft Fitness (Pvt) Ltd</span>
                   </div>
                   <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
                     <span className="text-gray-400">Account Number:</span>
-                    <span className="text-white font-mono font-medium">98421098412</span>
+                    <span className="text-white font-mono font-medium">1000 8492 0192</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/[0.04] pb-1.5">
+                    <span className="text-gray-400">Branch:</span>
+                    <span className="text-white font-medium">Nugegoda / Main Branch</span>
                   </div>
                   <div className="flex justify-between pt-1">
                     <span className="text-crimson-400 font-semibold">Mandatory Reference:</span>
@@ -264,45 +395,71 @@ function CheckoutContent() {
             </div>
 
             {/* Right Column: Submission Form */}
-            <div className="lg:col-span-7">
-              <form
-                onSubmit={handleSubmit}
-                className="bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-lg space-y-6 shadow-card-dark"
-              >
-                <div className="border-b border-white/[0.08] pb-4">
-                  <h3 className="text-base font-bold text-white uppercase tracking-wider">
-                    2. Submit Bank Transfer Details
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Please execute the transfer with your bank using the reference code above, then
-                    fill out this verification form.
-                  </p>
-                </div>
+            <div className="lg:col-span-7 bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-2xl">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
+                2. Confirm Bank Transfer Details
+              </h3>
+              <p className="text-xs text-gray-400 mb-6 leading-relaxed">
+                Execute the transfer in your banking app (Commercial Bank, Sampath Vishwa, HNB, BOC, etc.) inserting the unique reference code in the remarks field, then submit this confirmation.
+              </p>
 
-                {errorMsg && (
-                  <div className="p-3 bg-red-950/70 border border-red-800 text-red-200 text-xs rounded flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
+              {errorMsg && (
+                <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {errorMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Selected Package
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`${priceDetails.name} — Rs. ${priceDetails.amount.toLocaleString()} LKR`}
+                    className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white font-medium text-xs opacity-80"
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1.5">
-                      Sender Account Name *
+                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Bank Used *
+                    </label>
+                    <select
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none"
+                    >
+                      <option value="Commercial Bank of Ceylon (Online Transfer / Deposit)">Commercial Bank of Ceylon</option>
+                      <option value="Sampath Bank Vishwa / Slip Deposit">Sampath Bank (Vishwa)</option>
+                      <option value="Hatton National Bank (HNB)">Hatton National Bank (HNB)</option>
+                      <option value="Bank of Ceylon (BOC SmartPay / Slip)">Bank of Ceylon (BOC)</option>
+                      <option value="Nations Trust Bank (NTB) / FriMi">Nations Trust Bank / FriMi</option>
+                      <option value="Other Bank Direct Deposit">Other Bank Deposit</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Sender Account / Depositor Name *
                     </label>
                     <input
                       type="text"
                       required
+                      placeholder="e.g. Dulanja Abeysinghe"
                       value={senderAccountName}
                       onChange={(e) => setSenderAccountName(e.target.value)}
-                      placeholder="e.g. Marcus Vance or Vance Holdings"
-                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
+                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
                       Transfer Date *
                     </label>
                     <input
@@ -310,64 +467,53 @@ function CheckoutContent() {
                       required
                       value={transferDate}
                       onChange={(e) => setTransferDate(e.target.value)}
-                      className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white outline-none"
+                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Audit Reference Code
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      value={referenceCode}
+                      className="w-full px-4 py-2.5 bg-[#18181d] border border-crimson-700/50 rounded-xl text-crimson-400 font-mono font-bold text-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1.5">
-                    Your Sending Bank / Method *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    placeholder="e.g. Wells Fargo Wire, Chase QuickPay, Citi Wire"
-                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1.5">
-                    Receipt Notes / Bank Confirmation Number
+                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Receipt / Transaction Notes (Optional)
                   </label>
                   <textarea
                     rows={3}
+                    placeholder="Enter transaction sequence number, branch details, or paste mobile slip reference details..."
                     value={receiptNotes}
                     onChange={(e) => setReceiptNotes(e.target.value)}
-                    placeholder="Enter any wire tracking reference, confirmation number, or notes for our accounting desk."
-                    className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 p-3.5 rounded text-sm text-white placeholder-gray-500 outline-none resize-none"
+                    className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
                   />
                 </div>
 
-                <div className="bg-[#18181d] p-4 rounded-xl border border-white/[0.06] flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-gray-400 block">Total Due:</span>
-                    <span className="text-2xl font-extrabold text-white font-mono">
-                      ${amount.toFixed(2)} USD
-                    </span>
+                <div className="p-4 rounded-xl bg-crimson-950/20 border border-crimson-900/40 text-gray-300 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 text-crimson-400 font-semibold">
+                    <ShieldCheck className="w-4 h-4" />
+                    Instant Reconciliation by Owner
                   </div>
-                  <div className="text-right">
-                    <span className="text-[11px] text-gray-400 block">Unique Code:</span>
-                    <span className="text-xs font-mono font-bold text-crimson-400">{referenceCode}</span>
-                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    Once submitted, Coach Adeesha receives real-time notification to verify your slip and activate your biometric membership credentials immediately.
+                  </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wider rounded-full transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                  className="w-full py-4 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-crimson-glow hover:shadow-[0_0_25px_rgba(186,26,26,0.6)] cursor-pointer disabled:opacity-50 mt-4"
                 >
-                  {submitting ? 'Submitting Transfer...' : 'Submit Transfer for Verification'}
-                  <ArrowRight className="w-4 h-4" />
+                  {submitting ? 'Submitting Transfer Record...' : `Submit Transfer for Rs. ${priceDetails.amount.toLocaleString()} LKR`}
                 </button>
-
-                <p className="text-[11px] text-center text-gray-400 flex items-center justify-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-crimson-400" />
-                  Your enrollment will activate immediately upon administrative review.
-                </p>
               </form>
             </div>
           </div>
@@ -381,13 +527,7 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#080809] flex items-center justify-center text-gold font-bold">
-          Loading Checkout...
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="min-h-screen bg-[#080809] text-white flex items-center justify-center">Loading Checkout...</div>}>
       <CheckoutContent />
     </Suspense>
   );
