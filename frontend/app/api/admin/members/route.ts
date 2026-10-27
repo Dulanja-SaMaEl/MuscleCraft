@@ -30,10 +30,12 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { memberId, status, instructorId, reason } = body;
+    const { memberId, status, instructorId, extendDays, reason } = body;
 
     let updatedMember = null;
-    if (status) {
+    if (extendDays) {
+      updatedMember = AdminService.extendMembership(adminUser, memberId, Number(extendDays));
+    } else if (status) {
       updatedMember = AdminService.updateMemberStatus(adminUser, memberId, status, reason);
     } else if (instructorId) {
       updatedMember = AdminService.assignInstructor(adminUser, memberId, instructorId);

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
@@ -140,6 +141,46 @@ export default function ClientDashboard() {
   };
 
   const isCoachingVip = currentUser?.tier === 'coaching_90';
+  const is90DayClient =
+    currentUser?.tier === 'coaching_90' ||
+    currentUser?.packageType === 'coaching' ||
+    currentUser?.packageName?.toLowerCase().includes('90') ||
+    currentUser?.packageName?.toLowerCase().includes('better me');
+
+  const expiryDate = currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt) : null;
+  const now = Date.now();
+  const daysLeft = expiryDate ? Math.ceil((expiryDate.getTime() - now) / (1000 * 60 * 60 * 24)) : null;
+  const isExpired = (expiryDate ? expiryDate.getTime() < now : false) || currentUser?.status === 'expired';
+  const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+
+  // Auto-logout state for expired 90-day coaching clients
+  const [show90DayExitModal, setShow90DayExitModal] = useState(false);
+  const [autoLogoutSeconds, setAutoLogoutSeconds] = useState(5);
+
+  useEffect(() => {
+    if (!currentUser || authLoading) return;
+
+    if (is90DayClient && isExpired) {
+      setShow90DayExitModal(true);
+      const interval = setInterval(() => {
+        setAutoLogoutSeconds((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            logout();
+            router.push('/login?reason=expired_90day');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser, authLoading, is90DayClient, isExpired, logout, router]);
+
+  const handleManual90DayExit = () => {
+    logout();
+    router.push('/login?reason=expired_90day');
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
@@ -217,6 +258,89 @@ export default function ClientDashboard() {
             </button>
           </div>
         </div>
+
+        {/* ── REGULAR MEMBERSHIP NOTIFICATION BANNERS (SOLE & COUPLE) ── */}
+        {!is90DayClient && isExpired && (
+          <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-crimson-950/70 border-2 border-crimson-600 shadow-[0_0_25px_rgba(186,26,26,0.35)] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-in fade-in duration-300">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-crimson-600 flex items-center justify-center text-white flex-shrink-0 mt-0.5 shadow-lg">
+                <AlertCircle className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-crimson-600 text-white shadow">
+                    Renewal Overdue
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-white">
+                    Membership Expired ({Math.abs(daysLeft || 0)} Days Ago)
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                  Your <strong className="text-white">{currentUser?.packageName || 'Gym'}</strong> membership concluded on{' '}
+                  <strong className="text-crimson-300">
+                    {currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt).toLocaleDateString() : 'N/A'}
+                  </strong>
+                  . Access to the gym floor, cardio zone, and locker facilities is paused until your renewal slip is submitted.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <Link
+                href={`/checkout?tier=${currentUser?.tier || 'sole_1m'}`}
+                className="flex-1 md:flex-initial px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer"
+              >
+                Renew Membership
+              </Link>
+              <a
+                href={`https://wa.me/94771234567?text=${encodeURIComponent(
+                  `Hi Coach Adeesha, I would like to renew my ${currentUser?.packageName || 'Gym'} membership at MuscleCraft.`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all text-center cursor-pointer"
+              >
+                WhatsApp Desk
+              </a>
+            </div>
+          </div>
+        )}
+
+        {!is90DayClient && !isExpired && isExpiringSoon && (
+          <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-amber-950/40 border-2 border-amber-500/50 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-5 animate-in fade-in duration-300">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 flex-shrink-0 mt-0.5">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Expiring Soon
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-white">
+                    Membership Renewal Due in {daysLeft} Day{daysLeft === 1 ? '' : 's'}
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-300 mt-1 leading-relaxed">
+                  Your <strong className="text-white">{currentUser?.packageName || 'Gym'}</strong> membership will expire on{' '}
+                  <strong className="text-amber-300">
+                    {currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt).toLocaleDateString() : 'N/A'}
+                  </strong>
+                  . Renew early to maintain seamless workout routine access without front desk pause.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <Link
+                href={`/checkout?tier=${currentUser?.tier || 'sole_1m'}`}
+                className="flex-1 md:flex-initial px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer"
+              >
+                Renew Early
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-white/[0.08] mb-8 overflow-x-auto">
@@ -836,6 +960,63 @@ export default function ClientDashboard() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── 90-DAY COACHING EXPIRED AUTO-LOGOUT MODAL ── */}
+        {show90DayExitModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
+          >
+            <div className="bg-[#111116] border-2 border-amber-500/70 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center space-y-5">
+              <div className="w-16 h-16 rounded-3xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 mx-auto shadow-[0_0_25px_rgba(245,158,11,0.3)]">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block mb-2">
+                  Cohort Concluded
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  90-Day VIP Coaching Access Ended
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-300 mt-2 leading-relaxed">
+                  Your structured 12-week <strong className="text-white">90 Days Better Me</strong> transformation cycle concluded on{' '}
+                  <strong className="text-amber-300">
+                    {currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt).toLocaleDateString() : 'N/A'}
+                  </strong>
+                  . As per cohort guidelines, coaching dashboard access has concluded.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-200">
+                <span>Automatically ending session and redirecting in </span>
+                <strong className="text-amber-400 font-mono text-sm">{autoLogoutSeconds}s</strong>
+                <span>...</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleManual90DayExit}
+                  className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
+                >
+                  Exit to Login Now
+                </button>
+                <a
+                  href={`https://wa.me/94771234567?text=${encodeURIComponent(
+                    `Hi Coach Adeesha, my 90-Day coaching cycle has ended. I would like to review my transformation report and discuss renewal options.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  WhatsApp Coach
+                </a>
+              </div>
             </div>
           </div>
         )}

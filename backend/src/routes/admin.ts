@@ -36,6 +36,30 @@ router.get('/members', (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/admin/members
+router.patch('/members', (req: Request, res: Response) => {
+  const adminId = (req.headers['x-user-id'] as string) || (req.query.adminId as string);
+  const adminUser = AuthService.getCurrentUser(adminId);
+  if (!adminUser || adminUser.role !== 'admin') {
+    return res.status(401).json({ error: 'Unauthorized: Admin authentication required' });
+  }
+
+  const { memberId, status, instructorId, extendDays, reason } = req.body;
+  try {
+    let updatedMember = null;
+    if (extendDays) {
+      updatedMember = AdminService.extendMembership(adminUser, memberId, Number(extendDays));
+    } else if (status) {
+      updatedMember = AdminService.updateMemberStatus(adminUser, memberId, status, reason);
+    } else if (instructorId) {
+      updatedMember = AdminService.assignInstructor(adminUser, memberId, instructorId);
+    }
+    return res.json({ success: true, member: updatedMember });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+});
+
 // GET /api/admin/audit-logs
 router.get('/audit-logs', (req: Request, res: Response) => {
   const adminId = (req.headers['x-user-id'] as string) || (req.query.adminId as string);
@@ -62,6 +86,8 @@ let packagesStore = [
   { id: 'couple_3m', type: 'couple', duration: '3_months', name: 'Couple - 3 Months', price: 22500, admissionFee: 1000, durationLabel: '3 Months', savings: 'Save Rs. 1,500', popular: true, features: ['Access for 2 partners', 'Shared progress tracking', 'Save Rs. 1,500'] },
   { id: 'couple_6m', type: 'couple', duration: '6_months', name: 'Couple - 6 Months', price: 42000, admissionFee: 1000, durationLabel: '6 Months', savings: 'Save Rs. 6,000', features: ['Access for 2 partners', 'Nutritional consultation', 'Save Rs. 6,000'] },
   { id: 'couple_1y', type: 'couple', duration: '1_year', name: 'Couple - 1 Year', price: 78000, admissionFee: 1000, durationLabel: '1 Year', savings: 'Save Rs. 18,000', popular: true, features: ['Access for 2 partners', 'Priority coach reviews', 'Save Rs. 18,000'] },
+  { id: 'burnzone', type: 'coaching', duration: '1_month', name: 'MuscleCraft BurnZone', price: 3000, admissionFee: 500, durationLabel: '1 Month', popular: true, features: ['Functional fitness & CrossFit conditioning', 'Fat loss & body toning', 'Supervised by Coach Adeesha', 'Admission fee: Rs. 500'] },
+  { id: 'coaching_90', type: 'coaching', duration: '90_days', name: '90 Days Better Me (Online Coaching)', price: 8000, admissionFee: 0, durationLabel: '12-Week Transformation Cohort', popular: true, savings: 'Zero Admission Fee', features: ['Personalized nutrition & workout programming', 'Weekly body metric & photo progress analysis', 'Direct 1-on-1 coach WhatsApp support', 'Strict 90-day cohort access'] },
 ];
 
 let admissionStore = { sole: 500, couple: 1000 };

@@ -100,6 +100,40 @@ export class AdminService {
     return user;
   }
 
+  static extendMembership(
+    caller: User,
+    targetUserId: string,
+    additionalDays: number = 30
+  ): User {
+    this.checkAdmin(caller);
+
+    const user = db.users.find((u) => u.id === targetUserId);
+    if (!user) {
+      throw new Error('Member not found.');
+    }
+
+    const currentExpiry = user.membershipExpiresAt
+      ? new Date(user.membershipExpiresAt).getTime()
+      : Date.now();
+    const baseTime = currentExpiry > Date.now() ? currentExpiry : Date.now();
+    const newExpiry = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000);
+    user.membershipExpiresAt = newExpiry.toISOString();
+    user.status = 'active';
+
+    db.auditLogs.unshift({
+      id: `log_${Date.now()}`,
+      actorId: caller.id,
+      actorEmail: caller.email,
+      action: 'MEMBERSHIP_EXTENDED',
+      targetType: 'user',
+      targetId: user.id,
+      details: `Extended membership for ${user.name} by ${additionalDays} days until ${newExpiry.toLocaleDateString()}.`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return user;
+  }
+
   static assignInstructor(
     caller: User,
     targetClientId: string,

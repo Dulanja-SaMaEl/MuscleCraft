@@ -303,7 +303,7 @@ function CheckoutContent() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white text-xs sm:text-sm">90 Days Better Me</span>
-                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 25,000</span>
+                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 8,000</span>
                       </div>
                       <p className="text-[10.5px] text-gray-400 mt-0.5">Online fitness coaching, custom diet & weekly checks</p>
                     </div>
@@ -318,7 +318,7 @@ function CheckoutContent() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white text-xs sm:text-sm">MuscleCraft BurnZone</span>
-                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 15,000</span>
+                        <span className="text-crimson-400 font-bold font-mono text-sm">Rs. 3,000</span>
                       </div>
                       <p className="text-[10.5px] text-gray-400 mt-0.5">CrossFit & functional conditioning circuits</p>
                     </div>

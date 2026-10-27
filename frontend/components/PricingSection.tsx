@@ -228,7 +228,7 @@ export default function PricingSection() {
     {
       id: 'coaching_90',
       name: '90 Days Better Me',
-      price: 'Rs. 25,000',
+      price: 'Rs. 8,000',
       period: '/ 12-week online cohort',
       admission: 'Zero Admission Fee',
       totalFirstMonth: 'Complete Online Coaching Cohort',
@@ -249,7 +249,7 @@ export default function PricingSection() {
     {
       id: 'burnzone',
       name: 'MuscleCraft BurnZone',
-      price: 'Rs. 15,000',
+      price: 'Rs. 3,000',
       period: '/ month',
       admission: 'Rs. 500 Admission Fee',
       totalFirstMonth: 'Functional Group Conditioning',

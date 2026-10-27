@@ -19,8 +19,8 @@ export type PackageDuration = '1_month' | '3_months' | '6_months' | '1_year' | '
 
 export interface GymPackage {
   id: string;
-  type: 'sole' | 'couple';
-  duration: '1_month' | '3_months' | '6_months' | '1_year';
+  type: 'sole' | 'couple' | 'coaching';
+  duration: '1_month' | '3_months' | '6_months' | '1_year' | '90_days';
   name: string;
   price: number; // LKR
   admissionFee: number; // LKR
@@ -177,9 +177,49 @@ export const GYM_PACKAGES: GymPackage[] = [
       'Highest couple value: Save Rs. 18,000',
     ],
   },
+
+  // Signature Coaching & Specialty Programs
+  {
+    id: 'burnzone',
+    type: 'coaching',
+    duration: '1_month',
+    name: 'MuscleCraft BurnZone',
+    price: 3000,
+    admissionFee: 500,
+    durationLabel: 'Per Month',
+    popular: true,
+    features: [
+      'Functional fitness & high-intensity circuit training',
+      'CrossFit-style metabolic conditioning & fat burn',
+      'Strength and conditioning modules',
+      'Body toning and weight management',
+      'Supervised sessions with Coach Adeesha',
+      'Admission fee: Rs. 500 (one-time on sign up)',
+    ],
+  },
+  {
+    id: 'coaching_90',
+    type: 'coaching',
+    duration: '90_days',
+    name: '90 Days Better Me (Online Coaching)',
+    price: 8000,
+    admissionFee: 0,
+    durationLabel: '12-Week Transformation Cohort',
+    savings: 'Zero Admission Fee',
+    popular: true,
+    features: [
+      'Personalized nutrition & macro calibration plan',
+      'Custom progressive workout programming & form checks',
+      'Weekly body metric & private photo progress analysis',
+      'Direct 1-on-1 coach WhatsApp feedback & support',
+      'Mindset & habit accountability coaching',
+      'Private video exercise vault access',
+      'Strict 90-day cohort access with milestone tracking',
+    ],
+  },
 ];
 
-export type UserStatus = 'active' | 'pending' | 'suspended' | 'banned';
+export type UserStatus = 'active' | 'pending' | 'suspended' | 'banned' | 'expired';
 
 export interface User {
   id: string;

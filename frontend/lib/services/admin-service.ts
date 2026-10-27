@@ -69,8 +69,8 @@ export class AdminService {
       { name: 'Couple 3 Months', key: 'couple_3m', count: 8, price: 22500, type: 'couple' },
       { name: 'Couple 6 Months', key: 'couple_6m', count: 5, price: 42000, type: 'couple' },
       { name: 'Couple 1 Year', key: 'couple_1y', count: 4, price: 78000, type: 'couple' },
-      { name: '90-Day VIP Coaching', key: 'coaching_90', count: 12, price: 25000, type: 'coaching' },
-      { name: 'BurnZone Conditioning', key: 'burnzone', count: 7, price: 15000, type: 'coaching' },
+      { name: '90-Day VIP Coaching', key: 'coaching_90', count: 12, price: 8000, type: 'coaching' },
+      { name: 'BurnZone Conditioning', key: 'burnzone', count: 7, price: 3000, type: 'coaching' },
     ];
 
     // Client Check-in Queue (Awaiting Coach Adeesha's review)
@@ -126,6 +126,40 @@ export class AdminService {
       targetType: 'user',
       targetId: user.id,
       details: `Admin changed status of ${user.name} (${user.email}) to ${newStatus}.${reason ? ` Reason: ${reason}` : ''}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return user;
+  }
+
+  static extendMembership(
+    caller: User,
+    targetUserId: string,
+    additionalDays: number = 30
+  ): User {
+    this.checkAdmin(caller);
+
+    const user = db.users.find((u) => u.id === targetUserId);
+    if (!user) {
+      throw new Error('Member not found.');
+    }
+
+    const currentExpiry = user.membershipExpiresAt
+      ? new Date(user.membershipExpiresAt).getTime()
+      : Date.now();
+    const baseTime = currentExpiry > Date.now() ? currentExpiry : Date.now();
+    const newExpiry = new Date(baseTime + additionalDays * 24 * 60 * 60 * 1000);
+    user.membershipExpiresAt = newExpiry.toISOString();
+    user.status = 'active';
+
+    db.auditLogs.unshift({
+      id: `log_${Date.now()}`,
+      actorId: caller.id,
+      actorEmail: caller.email,
+      action: 'MEMBERSHIP_EXTENDED',
+      targetType: 'user',
+      targetId: user.id,
+      details: `Extended membership for ${user.name} by ${additionalDays} days until ${newExpiry.toLocaleDateString()}.`,
       timestamp: new Date().toISOString(),
     });
 

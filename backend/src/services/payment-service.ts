@@ -22,17 +22,17 @@ export class PaymentService {
 
     if (tier === 'coaching_90') {
       return {
-        amount: 25000,
-        packagePrice: 25000,
+        amount: 8000,
+        packagePrice: 8000,
         admissionFee: 0,
-        name: '90-Day VIP Athletic Transformation',
+        name: '90 Days Better Me (Online Coaching)',
       };
     }
 
     if (tier === 'burnzone') {
       return {
-        amount: 15000,
-        packagePrice: 15000,
+        amount: 3500,
+        packagePrice: 3000,
         admissionFee: 500,
         name: 'MuscleCraft BurnZone Functional Conditioning',
       };

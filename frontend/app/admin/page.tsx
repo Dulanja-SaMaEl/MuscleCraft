@@ -118,8 +118,8 @@ export default function AdminDashboard() {
       { name: 'Couple 3 Months', count: 8, price: 22500, type: 'couple' },
       { name: 'Couple 6 Months', count: 5, price: 42000, type: 'couple' },
       { name: 'Couple 1 Year', count: 4, price: 78000, type: 'couple' },
-      { name: '90-Day VIP Coaching', count: 12, price: 25000, type: 'coaching' },
-      { name: 'BurnZone Conditioning', count: 7, price: 15000, type: 'coaching' },
+      { name: '90-Day VIP Coaching', count: 12, price: 8000, type: 'coaching' },
+      { name: 'BurnZone Conditioning', count: 7, price: 3000, type: 'coaching' },
     ],
   });
 
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
   // Filters & Search
   const [memberSearch, setMemberSearch] = useState('');
   const [memberFilterType, setMemberFilterType] = useState<'all' | 'sole' | 'couple' | 'coaching'>('all');
-  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'pending' | 'suspended'>('all');
+  const [memberStatusFilter, setMemberStatusFilter] = useState<'all' | 'active' | 'pending' | 'suspended' | 'expired' | 'expiring_soon'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [paymentSearch, setPaymentSearch] = useState('');
 
@@ -303,6 +303,34 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleExtendMembership = async (memberId: string, days: number = 30) => {
+    try {
+      const adminId = currentUser?.id || 'usr_admin_1';
+      const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId,
+          extendDays: days,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setActionMessage({
+          type: 'success',
+          text: `Membership for ${data.member?.name || 'member'} successfully extended by +${days} days!`,
+        });
+        await loadAdminData();
+      } else {
+        const err = await res.json();
+        setActionMessage({ type: 'error', text: err.error || 'Failed to extend membership' });
+      }
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message });
+    }
+  };
+
   // Video Management Handlers
   const handleAddVideo = async (videoData: any) => {
     try {
@@ -414,13 +442,56 @@ export default function AdminDashboard() {
     }
   };
 
+  // Membership Expiration & Renewal Intelligence
+  const now = new Date();
+  const expiringOrExpiredMembers = members
+    .filter((m) => m.role === 'client' && m.membershipExpiresAt)
+    .map((m) => {
+      const expiry = new Date(m.membershipExpiresAt!);
+      const diffMs = expiry.getTime() - now.getTime();
+      const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      const isExpired = daysLeft <= 0 || m.status === 'expired';
+      const isExpiringSoon = daysLeft > 0 && daysLeft <= 7;
+      const is90Day =
+        m.tier === 'coaching_90' ||
+        m.packageType === 'coaching' ||
+        m.packageName?.toLowerCase().includes('90');
+      return {
+        ...m,
+        daysLeft,
+        isExpired,
+        isExpiringSoon,
+        is90Day,
+        expiryDate: expiry,
+      };
+    })
+    .filter((m) => m.isExpired || m.isExpiringSoon)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+
+  const expiredMembersCount = expiringOrExpiredMembers.filter((m) => m.isExpired).length;
+  const expiringMembersCount = expiringOrExpiredMembers.filter((m) => m.isExpiringSoon).length;
+
   const filteredMembers = members.filter((m) => {
     const matchesSearch =
       m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
       m.email.toLowerCase().includes(memberSearch.toLowerCase()) ||
       (m.phone && m.phone.includes(memberSearch));
 
-    const matchesStatus = memberStatusFilter === 'all' || m.status === memberStatusFilter;
+    let matchesStatus = true;
+    if (memberStatusFilter === 'active') {
+      matchesStatus = m.status === 'active';
+    } else if (memberStatusFilter === 'pending') {
+      matchesStatus = m.status === 'pending';
+    } else if (memberStatusFilter === 'suspended') {
+      matchesStatus = m.status === 'suspended';
+    } else if (memberStatusFilter === 'expired') {
+      const expiry = m.membershipExpiresAt ? new Date(m.membershipExpiresAt).getTime() : 0;
+      matchesStatus = (expiry > 0 && expiry <= Date.now()) || m.status === 'expired';
+    } else if (memberStatusFilter === 'expiring_soon') {
+      const expiry = m.membershipExpiresAt ? new Date(m.membershipExpiresAt).getTime() : 0;
+      const days = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+      matchesStatus = days > 0 && days <= 7;
+    }
 
     let matchesType = true;
     if (memberFilterType === 'sole') {
@@ -454,7 +525,15 @@ export default function AdminDashboard() {
       icon: CreditCard,
       badge: stats.pendingTransfers > 0 ? `${stats.pendingTransfers}` : null,
     },
-    { id: 'members', label: 'Members Directory', icon: Users },
+    {
+      id: 'members',
+      label: 'Members Directory',
+      icon: Users,
+      badge:
+        expiredMembersCount + expiringMembersCount > 0
+          ? `${expiredMembersCount + expiringMembersCount} Due`
+          : null,
+    },
     {
       id: 'analytics_submissions',
       label: 'Client Analytics & Care',
@@ -655,6 +734,21 @@ export default function AdminDashboard() {
               <span>Rs. {stats.totalRevenue.toLocaleString()} LKR MTD</span>
             </div>
 
+            {expiredMembersCount + expiringMembersCount > 0 && (
+              <button
+                onClick={() => {
+                  setActiveTab('analytics');
+                  const el = document.getElementById('renewals-desk');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-950/80 border border-crimson-600/70 text-crimson-300 hover:text-white hover:bg-crimson-900/80 text-xs font-bold animate-pulse cursor-pointer shadow-[0_0_15px_rgba(186,26,26,0.3)] transition-colors"
+                title={`${expiredMembersCount} Expired, ${expiringMembersCount} Expiring Soon`}
+              >
+                <AlertCircle className="w-3.5 h-3.5 text-crimson-400" />
+                <span>{expiredMembersCount + expiringMembersCount} Renewals Due</span>
+              </button>
+            )}
+
             {stats.pendingTransfers > 0 && (
               <button
                 onClick={() => setActiveTab('payments')}
@@ -780,6 +874,160 @@ export default function AdminDashboard() {
                     Rs. 500 Sole / Rs. 1,000 Couple
                   </div>
                 </div>
+              </div>
+
+              {/* ── EXPIRATIONS & RENEWALS CRM DESK (ACTION REQUIRED) ── */}
+              <div
+                id="renewals-desk"
+                className="bg-[#111116] border border-amber-500/30 rounded-3xl p-6 sm:p-7 shadow-xl space-y-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-950/70 border border-amber-600/50 flex items-center justify-center text-amber-400">
+                      <AlertCircle className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        Membership Expirations & Renewals Desk
+                      </h2>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Track upcoming and overdue renewals, auto-logout 90-day cohorts, and dispatch 1-click WhatsApp reminders
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-950/80 border border-rose-600/50 text-rose-300">
+                      {expiredMembersCount} Overdue / Expired
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-950/80 border border-amber-600/50 text-amber-300">
+                      {expiringMembersCount} Expiring Soon (≤ 7d)
+                    </span>
+                  </div>
+                </div>
+
+                {expiringOrExpiredMembers.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-gray-400 bg-white/[0.01] rounded-2xl border border-white/[0.04]">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2 opacity-80" />
+                    <span className="text-gray-300 font-semibold block">All Member Subscriptions Current</span>
+                    <span>No members have expired or are due for renewal within the next 7 days.</span>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#161622] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
+                        <tr>
+                          <th className="py-3 px-4 font-bold">Client / Member</th>
+                          <th className="py-3 px-4 font-bold">Package / Plan</th>
+                          <th className="py-3 px-4 font-bold">Expiry Date</th>
+                          <th className="py-3 px-4 font-bold">Renewal Status</th>
+                          <th className="py-3 px-4 font-bold">Access Policy</th>
+                          <th className="py-3 px-4 font-bold text-right">Quick CRM Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.04]">
+                        {expiringOrExpiredMembers.map((m) => {
+                          const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
+                          const waText = m.isExpired
+                            ? `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! A quick note that your ${m.packageName || 'Gym'} membership has expired. Reply here to confirm your renewal or share your transfer slip so you can keep training without interruption!`
+                            : `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! Quick reminder that your ${m.packageName || 'Gym'} membership expires on ${m.expiryDate.toLocaleDateString()} (in ${m.daysLeft} days). Renew early to keep your workouts uninterrupted!`;
+
+                          return (
+                            <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={m.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100'}
+                                    alt={m.name}
+                                    className="w-8 h-8 rounded-full object-cover border border-white/10"
+                                  />
+                                  <div>
+                                    <span className="font-semibold text-white block">{m.name}</span>
+                                    <span className="text-[11px] text-gray-400 block">
+                                      {m.email} {m.phone ? `· ${m.phone}` : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="font-semibold text-gray-200 block">{m.packageName || m.tier}</span>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {m.packageType?.toUpperCase() || 'MEMBERSHIP'}
+                                </span>
+                              </td>
+
+                              <td className="py-3.5 px-4 whitespace-nowrap font-mono text-gray-300">
+                                {m.expiryDate.toLocaleDateString()}
+                              </td>
+
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {m.isExpired ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/60 shadow-sm">
+                                    <AlertCircle className="w-3 h-3 text-rose-400" />
+                                    Expired ({Math.abs(m.daysLeft)}d ago)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-600/50">
+                                    <Clock className="w-3 h-3 text-amber-400" />
+                                    Due in {m.daysLeft}d
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {m.is90Day ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded border border-amber-600/40">
+                                    90-Day (Auto-Logout)
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-950/50 px-2 py-0.5 rounded border border-blue-600/40">
+                                    Gym Floor (Portal Notice)
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-2">
+                                  {cleanPhone && (
+                                    <a
+                                      href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="px-2.5 py-1.5 bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                                      title="Open WhatsApp with prefilled renewal reminder"
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleExtendMembership(m.id, 30)}
+                                    className="px-2.5 py-1.5 bg-[#181822] hover:bg-crimson-600 text-gray-200 hover:text-white border border-white/10 hover:border-crimson-600 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                                    title="Extend membership by +30 days"
+                                  >
+                                    +30 Days
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleExtendMembership(m.id, 90)}
+                                    className="px-2.5 py-1.5 bg-[#181822] hover:bg-amber-600 text-gray-200 hover:text-black border border-white/10 hover:border-amber-600 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                                    title="Extend membership by +90 days (1 Quarter)"
+                                  >
+                                    +90 Days
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* Main Charts: Sales Trend & Registration Pipeline */}
@@ -1275,6 +1523,8 @@ export default function AdminDashboard() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active Members</option>
+                  <option value="expiring_soon">⚡ Expiring Soon (≤ 7 Days)</option>
+                  <option value="expired">🚨 Expired Memberships</option>
                   <option value="pending">Pending Approval</option>
                   <option value="suspended">Suspended</option>
                 </select>
@@ -1296,10 +1546,14 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
                       {filteredMembers.map((m) => {
-                        const isExpiringSoon =
-                          m.membershipExpiresAt &&
-                          new Date(m.membershipExpiresAt).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000 &&
-                          m.status === 'active';
+                        const expiry = m.membershipExpiresAt ? new Date(m.membershipExpiresAt).getTime() : null;
+                        const daysLeft = expiry ? Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                        const isExpired = (daysLeft !== null && daysLeft <= 0) || m.status === 'expired';
+                        const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+                        const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
+                        const waText = isExpired
+                          ? `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! A quick note that your ${m.packageName || 'Gym'} membership has expired. Reply here to confirm your renewal or share your transfer slip so you can keep training without interruption!`
+                          : `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! Quick reminder that your ${m.packageName || 'Gym'} membership expires on ${m.membershipExpiresAt ? new Date(m.membershipExpiresAt).toLocaleDateString() : ''} (in ${daysLeft} days). Renew early to keep your workouts uninterrupted!`;
 
                         return (
                           <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
@@ -1323,17 +1577,23 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="py-4 px-4 whitespace-nowrap">
-                              {m.status === 'active' && (
+                              {isExpired ? (
+                                <span className="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/60 shadow-sm">
+                                  Expired
+                                </span>
+                              ) : isExpiringSoon ? (
+                                <span className="text-[11px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-600/50">
+                                  Due Soon
+                                </span>
+                              ) : m.status === 'active' ? (
                                 <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
                                   Active
                                 </span>
-                              )}
-                              {m.status === 'pending' && (
+                              ) : m.status === 'pending' ? (
                                 <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50">
                                   Pending Slip
                                 </span>
-                              )}
-                              {m.status === 'suspended' && (
+                              ) : (
                                 <span className="text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/50">
                                   Suspended
                                 </span>
@@ -1342,12 +1602,25 @@ export default function AdminDashboard() {
                             <td className="py-4 px-4 whitespace-nowrap">
                               {m.membershipExpiresAt ? (
                                 <div>
-                                  <span className={`font-mono text-xs block ${isExpiringSoon ? 'text-amber-400 font-bold' : 'text-gray-300'}`}>
+                                  <span
+                                    className={`font-mono text-xs block ${
+                                      isExpired
+                                        ? 'text-rose-400 font-bold'
+                                        : isExpiringSoon
+                                        ? 'text-amber-400 font-bold'
+                                        : 'text-gray-300'
+                                    }`}
+                                  >
                                     {new Date(m.membershipExpiresAt).toLocaleDateString()}
                                   </span>
-                                  {isExpiringSoon && (
-                                    <span className="text-[10px] text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded font-semibold inline-block mt-0.5">
-                                      Expiring in &lt; 7 days!
+                                  {isExpired && (
+                                    <span className="text-[10px] text-rose-300 bg-rose-950/70 border border-rose-700/50 px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 mt-0.5">
+                                      <AlertCircle className="w-2.5 h-2.5" /> Expired ({Math.abs(daysLeft || 0)}d ago)
+                                    </span>
+                                  )}
+                                  {!isExpired && isExpiringSoon && (
+                                    <span className="text-[10px] text-amber-300 bg-amber-950/70 border border-amber-600/50 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1 mt-0.5">
+                                      <Clock className="w-2.5 h-2.5" /> Due in {daysLeft}d
                                     </span>
                                   )}
                                 </div>
@@ -1363,18 +1636,25 @@ export default function AdminDashboard() {
                             </td>
                             <td className="py-4 px-4 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-2">
-                                {isExpiringSoon && (
+                                {cleanPhone && (isExpiringSoon || isExpired) && (
                                   <a
-                                    href={`https://wa.me/${m.phone?.replace(/[^0-9]/g, '') || ''}?text=Hi%20${encodeURIComponent(
-                                      m.name
-                                    )},%20your%20MuscleCraft%20gym%20membership%20is%20due%20for%20renewal%20soon!%20Please%20let%20Coach%20Adeesha%20know%20if%20you%20need%20the%20transfer%20details.`}
+                                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="px-2.5 py-1.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-                                    title="Send WhatsApp Renewal Notice"
+                                    className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Send WhatsApp Renewal Reminder"
                                   >
-                                    <MessageSquare className="w-3.5 h-3.5" /> Renewal Notice
+                                    <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
                                   </a>
+                                )}
+                                {(isExpiringSoon || isExpired) && (
+                                  <button
+                                    onClick={() => handleExtendMembership(m.id, 30)}
+                                    className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                                    title="Extend membership by +30 days"
+                                  >
+                                    +30d
+                                  </button>
                                 )}
                                 <button
                                   onClick={() => handleToggleMemberStatus(m)}

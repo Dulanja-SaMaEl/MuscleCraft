@@ -170,7 +170,7 @@ export default function MembershipsPage() {
                       90 Days Better Me
                     </div>
                     <div className="text-white font-bold text-xl sm:text-2xl mt-1 font-mono">
-                      Rs. 25,000 <span className="text-xs font-normal text-gray-400">/ 12 wks</span>
+                      Rs. 8,000 <span className="text-xs font-normal text-gray-400">/ 12 wks</span>
                     </div>
                     <div className="text-[10px] text-emerald-400 font-semibold">Zero Admission Fee</div>
                   </th>

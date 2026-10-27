@@ -22,7 +22,7 @@ dist/
 /*.jpg
 /*.jpeg
 /*.webm
-/*.tsbuildinfo
+*.tsbuildinfo
 !frontend/public/**
 
 # Environment Variables

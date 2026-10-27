@@ -40,7 +40,7 @@ export default function PackagesManagerTab({
   const [editingPackage, setEditingPackage] = useState<GymPackage | null>(null);
   const [editFormData, setEditFormData] = useState<{
     id: string;
-    type: 'sole' | 'couple';
+    type: 'sole' | 'couple' | 'coaching';
     name: string;
     price: number;
     admissionFee: number;
@@ -88,7 +88,14 @@ export default function PackagesManagerTab({
       type: pkg.type,
       name: pkg.name,
       price: pkg.price,
-      admissionFee: pkg.admissionFee ?? (pkg.type === 'couple' ? admissionFees.couple : admissionFees.sole),
+      admissionFee:
+        pkg.admissionFee !== undefined
+          ? pkg.admissionFee
+          : pkg.type === 'couple'
+          ? admissionFees.couple
+          : pkg.type === 'coaching'
+          ? 0
+          : admissionFees.sole,
       durationLabel: pkg.durationLabel,
       savings: pkg.savings || '',
       popular: !!pkg.popular,
@@ -236,6 +243,9 @@ export default function PackagesManagerTab({
 
   const soleList = packages.filter((p) => p.type === 'sole');
   const coupleList = packages.filter((p) => p.type === 'couple');
+  const coachingList = packages.filter(
+    (p) => p.type === 'coaching' || p.id === 'burnzone' || p.id === 'coaching_90'
+  );
 
   return (
     <div className="space-y-6">
@@ -468,6 +478,103 @@ export default function PackagesManagerTab({
                     type="button"
                     onClick={() => handleOpenEdit(pkg)}
                     className="w-full py-2 px-3 bg-white/[0.04] hover:bg-purple-600 hover:text-white text-gray-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Package</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── SECTION 3: SIGNATURE COACHING & SPECIALTY PROGRAMS ── */}
+      <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+              Signature Coaching & Specialty Programs (Coach Adeesha)
+            </h3>
+            <span className="text-[11px] text-gray-400 font-mono">
+              ({coachingList.length} Active Programs)
+            </span>
+          </div>
+          <span className="text-xs text-amber-400/90 font-medium hidden sm:inline">
+            Directly supervised by NVQ & ISO Certified Coach Adeesha
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {coachingList.map((pkg) => {
+            const admission = pkg.admissionFee ?? (pkg.id === 'burnzone' ? 500 : 0);
+            const totalStart = pkg.price + admission;
+            const is90Day = pkg.id === 'coaching_90' || pkg.duration === '90_days';
+
+            return (
+              <div
+                key={pkg.id}
+                className="p-5 rounded-2xl bg-[#16161f] border border-amber-500/20 hover:border-amber-500/50 transition-all relative flex flex-col justify-between group shadow-lg"
+              >
+                {pkg.popular && (
+                  <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-amber-500 text-black px-2 py-0.5 rounded-full shadow">
+                    {is90Day ? 'VIP Flagship' : 'High Intensity'}
+                  </span>
+                )}
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-amber-400 font-bold block">{pkg.name}</span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="text-2xl font-extrabold text-white font-mono">
+                      Rs. {pkg.price.toLocaleString()}
+                    </span>
+                    <span className="text-[11px] text-gray-400">/ {pkg.durationLabel}</span>
+                  </div>
+
+                  {pkg.savings && (
+                    <span className="text-[11px] text-emerald-400 font-semibold block mt-0.5">
+                      {pkg.savings}
+                    </span>
+                  )}
+
+                  <div className="mt-3 pt-3 border-t border-white/[0.06] text-[11px] text-gray-400 space-y-1 font-sans">
+                    <div className="flex justify-between">
+                      <span>Admission Fee:</span>
+                      <strong className="text-gray-200">
+                        {admission === 0 ? 'Rs. 0 (Waived)' : `Rs. ${admission.toLocaleString()}`}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Starting Total:</span>
+                      <strong className="text-white">Rs. {totalStart.toLocaleString()}</strong>
+                    </div>
+                  </div>
+
+                  {pkg.features && pkg.features.length > 0 && (
+                    <div className="mt-3 pt-2.5 border-t border-white/[0.04] space-y-1">
+                      {pkg.features.slice(0, 4).map((feat, idx) => (
+                        <div key={idx} className="text-[10.5px] text-gray-400 flex items-start gap-1.5 line-clamp-1">
+                          <Check className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <span>{feat}</span>
+                        </div>
+                      ))}
+                      {pkg.features.length > 4 && (
+                        <span className="text-[10px] text-gray-500 font-mono block pl-4.5">
+                          +{pkg.features.length - 4} more coaching perks
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(pkg)}
+                    className="w-full py-2 px-3 bg-white/[0.04] hover:bg-amber-500 hover:text-black text-gray-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Package</span>
