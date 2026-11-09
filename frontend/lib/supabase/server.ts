@@ -8,14 +8,38 @@ function cleanEnv(val: string | undefined): string {
   return val.trim().replace(/^["']|["']$/g, '');
 }
 
-const rawUrl =
+function extractSupabaseUrl(urlOrConnStr: string): string {
+  if (!urlOrConnStr) return '';
+  const clean = cleanEnv(urlOrConnStr);
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean.replace(/\/+$/, '');
+  }
+  // Try extracting project ref from postgres connection string:
+  // e.g. postgresql://postgres:password@db.abcdefghijklmnop.supabase.co:5432/postgres
+  const matchDb = clean.match(/db\.([a-z0-9_-]+)\.supabase\.co/i);
+  if (matchDb && matchDb[1]) {
+    return `https://${matchDb[1]}.supabase.co`;
+  }
+  // e.g. postgresql://postgres.abcdefghijklmnop:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+  const matchPooler = clean.match(/postgres\.([a-z0-9_-]+):/i);
+  if (matchPooler && matchPooler[1]) {
+    return `https://${matchPooler[1]}.supabase.co`;
+  }
+  return '';
+}
+
+const rawCandidateUrl =
   cleanEnv(process.env.SUPABASE_URL) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
   cleanEnv(process.env.SUPABASE_PROJECT_URL) ||
   cleanEnv(process.env.SUPABASE_REST_URL) ||
+  cleanEnv(process.env.POSTGRES_URL) ||
+  cleanEnv(process.env.DATABASE_URL) ||
+  cleanEnv(process.env.POSTGRES_PRISMA_URL) ||
+  cleanEnv(process.env.SUPABASE_DATABASE_URL) ||
   '';
 
-export const supabaseUrl = rawUrl.replace(/\/+$/, '');
+export const supabaseUrl = extractSupabaseUrl(rawCandidateUrl);
 
 // Accept Service Role / Secret Key for administrative server routes, or fallback to anon/publishable
 export const supabaseKey =
@@ -28,6 +52,8 @@ export const supabaseKey =
   cleanEnv(process.env.SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.SUPABASE_PUBLISHABLE_KEY) ||
   cleanEnv(process.env.SUPABASE_KEY) ||
+  cleanEnv(process.env.SUPABASE_API_KEY) ||
+  cleanEnv(process.env.SUPABASE_TOKEN) ||
   '';
 
 export const isServerSupabaseConfigured = Boolean(
@@ -46,24 +72,84 @@ export const supabaseServer = isServerSupabaseConfigured
     })
   : null;
 
-export async function pingSupabase(): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+export async function pingSupabase(): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  error?: string;
+  tableChecked?: string;
+  tableCounts?: { profiles?: number; packages?: number; payments?: number; sales?: number };
+}> {
   if (!supabaseServer) {
-    return { ok: false, latencyMs: 0, error: 'Supabase credentials not configured' };
+    return { ok: false, latencyMs: 0, error: 'Supabase credentials not configured in environment variables' };
   }
   const start = Date.now();
   try {
-    const { error } = await supabaseServer.from('gym_packages').select('id', { count: 'exact', head: true }).limit(1);
+    // Probe primary packages table
+    const { count: pkgCount, error: pkgError } = await supabaseServer
+      .from('gym_packages')
+      .select('id', { count: 'exact', head: true })
+      .limit(1);
+
     const latencyMs = Date.now() - start;
-    if (error) {
-      // Fallback try profiles if gym_packages isn't yet migrated
-      const { error: profError } = await supabaseServer.from('profiles').select('id', { count: 'exact', head: true }).limit(1);
-      if (profError) {
-        return { ok: false, latencyMs: Date.now() - start, error: error.message };
+
+    if (!pkgError) {
+      // Fetch other counts for comprehensive telemetry
+      let pCount = 0;
+      let payCount = 0;
+      let sCount = 0;
+      try {
+        const [profRes, payRes, sRes] = await Promise.all([
+          supabaseServer.from('profiles').select('id', { count: 'exact', head: true }),
+          supabaseServer.from('payments').select('id', { count: 'exact', head: true }),
+          supabaseServer.from('daily_sales_reviews').select('id', { count: 'exact', head: true }),
+        ]);
+        pCount = profRes.count || 0;
+        payCount = payRes.count || 0;
+        sCount = sRes.count || 0;
+      } catch (e) {
+        // secondary count failures don't invalidate connection
       }
+
+      return {
+        ok: true,
+        latencyMs,
+        tableChecked: 'gym_packages',
+        tableCounts: {
+          packages: pkgCount || 0,
+          profiles: pCount,
+          payments: payCount,
+          sales: sCount,
+        },
+      };
     }
-    return { ok: true, latencyMs };
+
+    // Fallback try profiles if gym_packages not found
+    const { count: profCount, error: profError } = await supabaseServer
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .limit(1);
+
+    if (!profError) {
+      return {
+        ok: true,
+        latencyMs: Date.now() - start,
+        tableChecked: 'profiles',
+        tableCounts: { profiles: profCount || 0 },
+      };
+    }
+
+    // If both failed, return specific error
+    return {
+      ok: false,
+      latencyMs: Date.now() - start,
+      error: `Supabase reached, but table access failed: ${pkgError?.message || profError?.message}. Please execute supabase/schema.sql in the Supabase SQL Editor.`,
+    };
   } catch (err: any) {
-    return { ok: false, latencyMs: Date.now() - start, error: err.message };
+    return {
+      ok: false,
+      latencyMs: Date.now() - start,
+      error: err.message || 'Network exception connecting to Supabase host',
+    };
   }
 }
 
@@ -79,7 +165,6 @@ export async function getSessionUser(userIdOrEmail?: string | null): Promise<Use
 
   if (isServerSupabaseConfigured && supabaseServer) {
     try {
-      // Check by ID or email
       let query = supabaseServer.from('profiles').select('*');
       if (clean.includes('@')) {
         query = query.ilike('email', clean);

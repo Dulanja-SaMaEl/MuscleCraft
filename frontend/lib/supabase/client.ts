@@ -5,8 +5,32 @@ function cleanEnv(val: string | undefined): string {
   return val.trim().replace(/^["']|["']$/g, '');
 }
 
-const rawUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
-export const supabaseUrl = rawUrl.replace(/\/+$/, '');
+export function extractSupabaseUrl(urlOrConnStr: string): string {
+  if (!urlOrConnStr) return '';
+  const clean = cleanEnv(urlOrConnStr);
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean.replace(/\/+$/, '');
+  }
+  // Try extracting project ref from postgres connection string:
+  // e.g. postgresql://postgres:password@db.abcdefghijklmnop.supabase.co:5432/postgres
+  const matchDb = clean.match(/db\.([a-z0-9_-]+)\.supabase\.co/i);
+  if (matchDb && matchDb[1]) {
+    return `https://${matchDb[1]}.supabase.co`;
+  }
+  // e.g. postgresql://postgres.abcdefghijklmnop:password@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+  const matchPooler = clean.match(/postgres\.([a-z0-9_-]+):/i);
+  if (matchPooler && matchPooler[1]) {
+    return `https://${matchPooler[1]}.supabase.co`;
+  }
+  return '';
+}
+
+const rawUrl =
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL) ||
+  '';
+
+export const supabaseUrl = extractSupabaseUrl(rawUrl);
 
 // Supports both new Supabase "Publishable key" and legacy "Anon key"
 export const supabaseKey =

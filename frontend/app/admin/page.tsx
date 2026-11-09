@@ -725,15 +725,43 @@ export default function AdminDashboard() {
             {/* Live Database & Backend Status Button */}
             <button
               onClick={() => setActiveTab('database_health')}
-              className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-800/40 text-emerald-300 text-xs font-mono font-medium transition-colors cursor-pointer"
+              className={`hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition-colors cursor-pointer border ${
+                healthData?.supabaseConfigured && healthData?.database?.connected
+                  ? 'bg-emerald-950/40 hover:bg-emerald-900/40 border-emerald-800/40 text-emerald-300'
+                  : healthData?.supabaseConfigured
+                  ? 'bg-rose-950/60 hover:bg-rose-900/60 border-rose-600/50 text-rose-300'
+                  : 'bg-amber-950/60 hover:bg-amber-900/60 border-amber-600/50 text-amber-300'
+              }`}
               title="Click to view Database & Backend Telemetry"
               aria-label="View Database and Backend Telemetry"
             >
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span
+                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    healthData?.supabaseConfigured && healthData?.database?.connected
+                      ? 'bg-emerald-400'
+                      : healthData?.supabaseConfigured
+                      ? 'bg-rose-400'
+                      : 'bg-amber-400'
+                  }`}
+                ></span>
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    healthData?.supabaseConfigured && healthData?.database?.connected
+                      ? 'bg-emerald-500'
+                      : healthData?.supabaseConfigured
+                      ? 'bg-rose-500'
+                      : 'bg-amber-500'
+                  }`}
+                ></span>
               </span>
-              <span>DB: {healthData?.supabaseConfigured ? 'Supabase Postgres' : (healthData?.database?.type?.includes('Supabase') ? 'Supabase Postgres' : 'PostgreSQL Database')} ({healthData?.database?.latencyMs || 21}ms)</span>
+              <span>
+                {healthData?.supabaseConfigured && healthData?.database?.connected
+                  ? `DB: Supabase (${healthData?.database?.latencyMs || 21}ms)`
+                  : healthData?.supabaseConfigured
+                  ? `DB: Supabase Error`
+                  : `DB: Local Cache (Supabase Offline)`}
+              </span>
               <span className="text-gray-500">·</span>
               <span>Backend: Operational</span>
             </button>

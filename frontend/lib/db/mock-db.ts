@@ -780,7 +780,7 @@ export class MuscleCraftDatabase {
       target: 0.0,
       actual: 0.0,
       diff: 0.0,
-      spend: 699.28,
+      spend: 699.26,
       messageCount: 23,
       orderCount: 0,
       roas: 0.0,
