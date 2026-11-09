@@ -29,6 +29,7 @@ const rawUrl =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_REST_URL) ||
+  cleanEnv(process.env['NEXT_PUBLIC_supabase_url']) ||
   '';
 
 export const supabaseUrl = extractSupabaseUrl(rawUrl);
@@ -37,6 +38,8 @@ export const supabaseUrl = extractSupabaseUrl(rawUrl);
 export const supabaseKey =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env['NEXT_PUBLIC_publishable key']) ||
+  cleanEnv(process.env['NEXT_PUBLIC_publishable_key']) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_SB_PUBLISHABLE_KEY);

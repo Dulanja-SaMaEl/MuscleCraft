@@ -376,13 +376,13 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
             </div>
 
             {/* Metrics Matrix: CRM | Daily | Cumulative */}
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0c0c11]">
+            <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#0c0c11]">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#161424] text-purple-300 font-bold border-b border-white/[0.08] text-[11px]">
+                  <tr className="bg-[#161424] text-purple-300 font-bold border-b border-white/[0.08] text-[10.5px]">
                     <th className="py-2.5 px-3 text-left whitespace-nowrap">CRM Metric</th>
-                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Daily</th>
-                    <th className="py-2.5 px-3 text-right whitespace-nowrap bg-white/[0.02] min-w-[90px]">Cumulative</th>
+                    <th className="py-2.5 px-2 text-right whitespace-nowrap">Daily</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap bg-white/[0.02]">Total MTD</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] text-gray-300 font-mono text-[11.5px]">

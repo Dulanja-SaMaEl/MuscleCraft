@@ -721,21 +721,21 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Live Database & Backend Status Button */}
+          <div className="flex items-center gap-2.5 flex-nowrap shrink-0">
+            {/* Live Database Status Pill (Clean Single-Line, Never Wraps) */}
             <button
               onClick={() => setActiveTab('database_health')}
-              className={`hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-medium transition-colors cursor-pointer border ${
+              className={`hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
                 healthData?.supabaseConfigured && healthData?.database?.connected
-                  ? 'bg-emerald-950/40 hover:bg-emerald-900/40 border-emerald-800/40 text-emerald-300'
+                  ? 'bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
                   : healthData?.supabaseConfigured
-                  ? 'bg-rose-950/60 hover:bg-rose-900/60 border-rose-600/50 text-rose-300'
-                  : 'bg-amber-950/60 hover:bg-amber-900/60 border-amber-600/50 text-amber-300'
+                  ? 'bg-rose-950/60 hover:bg-rose-900/60 border-rose-500/40 text-rose-300'
+                  : 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-500/40 text-amber-300'
               }`}
               title="Click to view Database & Backend Telemetry"
               aria-label="View Database and Backend Telemetry"
             >
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span
                   className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                     healthData?.supabaseConfigured && healthData?.database?.connected
@@ -755,20 +755,18 @@ export default function AdminDashboard() {
                   }`}
                 ></span>
               </span>
-              <span>
+              <span className="font-semibold tracking-tight">
                 {healthData?.supabaseConfigured && healthData?.database?.connected
-                  ? `DB: Supabase (${healthData?.database?.latencyMs || 21}ms)`
+                  ? `Supabase Live (${healthData?.database?.latencyMs || 21}ms)`
                   : healthData?.supabaseConfigured
-                  ? `DB: Supabase Error`
-                  : `DB: Local Cache (Supabase Offline)`}
+                  ? 'Supabase Error'
+                  : 'Local Cache Fallback'}
               </span>
-              <span className="text-gray-500">·</span>
-              <span>Backend: Operational</span>
             </button>
 
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-mono font-semibold">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Rs. {stats.totalRevenue.toLocaleString()} LKR MTD</span>
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-mono font-semibold whitespace-nowrap shrink-0">
+              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>Rs. {stats.totalRevenue.toLocaleString()} MTD</span>
             </div>
 
             {expiredMembersCount + expiringMembersCount > 0 && (
@@ -778,10 +776,10 @@ export default function AdminDashboard() {
                   const el = document.getElementById('renewals-desk');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-950/80 border border-crimson-600/70 text-crimson-300 hover:text-white hover:bg-crimson-900/80 text-xs font-bold animate-pulse cursor-pointer shadow-[0_0_15px_rgba(186,26,26,0.3)] transition-colors"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-950/80 border border-crimson-600/70 text-crimson-300 hover:text-white hover:bg-crimson-900/80 text-xs font-bold animate-pulse cursor-pointer shadow-[0_0_15px_rgba(186,26,26,0.3)] transition-colors whitespace-nowrap shrink-0"
                 title={`${expiredMembersCount} Expired, ${expiringMembersCount} Expiring Soon`}
               >
-                <AlertCircle className="w-3.5 h-3.5 text-crimson-400" />
+                <AlertCircle className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
                 <span>{expiredMembersCount + expiringMembersCount} Renewals Due</span>
               </button>
             )}
@@ -789,30 +787,30 @@ export default function AdminDashboard() {
             {stats.pendingTransfers > 0 && (
               <button
                 onClick={() => setActiveTab('payments')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-600/50 text-amber-300 text-xs font-bold animate-pulse cursor-pointer"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-600/50 text-amber-300 text-xs font-bold animate-pulse cursor-pointer whitespace-nowrap shrink-0"
               >
-                <Clock className="w-3.5 h-3.5" />
+                <Clock className="w-3.5 h-3.5 shrink-0" />
                 <span>{stats.pendingTransfers} Slips Waiting</span>
               </button>
             )}
 
             <button
               onClick={() => loadAdminData()}
-              className="p-2.5 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl border border-white/10 transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl border border-white/10 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
               title="Refresh Data"
               aria-label="Refresh telemetry data"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
 
             {/* Direct Logout CTA */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-600/30 text-rose-300 hover:text-rose-100 text-xs font-semibold transition-colors cursor-pointer min-h-[44px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-600/30 text-rose-300 hover:text-rose-100 text-xs font-semibold transition-colors cursor-pointer min-h-[36px] whitespace-nowrap shrink-0"
               title="Sign Out of Admin Portal"
               aria-label="Sign Out of Admin Portal"
             >
-              <LogOut className="w-4 h-4 text-rose-400" />
+              <LogOut className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span className="hidden sm:inline">Logout</span>
             </button>
           </div>

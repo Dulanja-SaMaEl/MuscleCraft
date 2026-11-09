@@ -244,40 +244,51 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
-          <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.04] flex items-center justify-between">
-            <span className="text-gray-300">NEXT_PUBLIC_SUPABASE_URL</span>
-            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_URL || diag.checkedEnvVars?.SUPABASE_URL ? (
-              <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
+          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+            <div>
+              <span className="text-gray-300 font-semibold block">NEXT_PUBLIC_SUPABASE_URL</span>
+              <span className="text-[10px] text-gray-500 font-mono">
+                {diag.urlMasked || 'Project URL'}
+              </span>
+            </div>
+            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_URL || diag.checkedEnvVars?.SUPABASE_URL || isSupabaseConfigured ? (
+              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
                 DETECTED
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
+              <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
                 MISSING
               </span>
             )}
           </div>
 
-          <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.04] flex items-center justify-between">
-            <span className="text-gray-300">PUBLISHABLE KEY</span>
-            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY ? (
-              <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
+          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+            <div>
+              <span className="text-gray-300 font-semibold block">PUBLISHABLE KEY</span>
+              <span className="text-[10px] text-gray-500 font-mono">sb_publishable_... (Modern)</span>
+            </div>
+            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY || isSupabaseConfigured ? (
+              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
                 DETECTED
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
+              <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
                 MISSING
               </span>
             )}
           </div>
 
-          <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.04] flex items-center justify-between">
-            <span className="text-gray-300">SECRET / SERVICE KEY</span>
+          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+            <div>
+              <span className="text-gray-300 font-semibold block">SECRET KEY (ADMIN)</span>
+              <span className="text-[10px] text-gray-500 font-mono">sb_secret_... (Server)</span>
+            </div>
             {diag.checkedEnvVars?.SUPABASE_SECRET_KEY || diag.checkedEnvVars?.SUPABASE_SERVICE_ROLE_KEY ? (
-              <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
+              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
                 DETECTED
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 text-[10px] font-bold">
+              <span className="px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-300 border border-amber-800/60 text-[10px] font-bold">
                 OPTIONAL
               </span>
             )}
@@ -286,29 +297,35 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
 
         {/* Actionable Deployment Instructions */}
         {!isSupabaseConfigured && (
-          <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-600/30 text-xs text-gray-300 space-y-3 font-sans">
-            <p className="font-bold text-amber-300 flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              How to obtain Supabase keys and complete connection on Vercel / Railway:
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-950/30 via-[#181313] to-amber-950/20 border border-amber-600/30 text-xs text-gray-300 space-y-3 font-sans">
+            <p className="font-bold text-amber-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>How to connect your live Supabase cloud database on Vercel / Railway:</span>
             </p>
-            <ol className="list-decimal list-inside space-y-2 text-gray-300">
+            <ol className="list-decimal list-inside space-y-2 text-gray-300 leading-relaxed">
               <li>
-                <strong className="text-white">Finding keys in Supabase:</strong> Open your Supabase Dashboard &rarr; <strong>Project Settings &rarr; API</strong>.
+                <strong className="text-white">Copy Keys from Supabase:</strong> Open your Supabase Dashboard &rarr; <strong>Project Settings &rarr; API</strong>.
                 Copy your <strong>Project URL</strong>, your <strong>Publishable key</strong> (<code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">sb_publishable_...</code>), and your <strong>Secret key</strong> (<code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">sb_secret_...</code>).
               </li>
               <li>
-                <strong className="text-white">Setting in Hosting Dashboard:</strong> In your hosting dashboard (e.g. <strong>Vercel &rarr; Project Settings &rarr; Environment Variables</strong>), add:
-                <ul className="list-disc list-inside pl-4 mt-1 space-y-0.5 font-mono text-[11px] text-gray-200">
-                  <li><span className="text-emerald-300">NEXT_PUBLIC_SUPABASE_URL</span> = <span className="text-gray-400">https://your-project.supabase.co</span></li>
-                  <li><span className="text-emerald-300">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</span> = <span className="text-gray-400">sb_publishable_...</span></li>
-                  <li><span className="text-emerald-300">SUPABASE_SECRET_KEY</span> = <span className="text-gray-400">sb_secret_...</span></li>
-                </ul>
+                <strong className="text-white">Configure in Vercel:</strong> Go to <strong>Vercel &rarr; Project Settings &rarr; Environment Variables</strong>, and add:
+                <div className="p-3 my-2 rounded-xl bg-black/60 border border-white/10 font-mono text-[11px] text-gray-200 space-y-1">
+                  <div><span className="text-emerald-400">NEXT_PUBLIC_SUPABASE_URL</span> = <span className="text-gray-400">https://your-project.supabase.co</span></div>
+                  <div><span className="text-emerald-400">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</span> = <span className="text-gray-400">sb_publishable_...</span></div>
+                  <div><span className="text-emerald-400">SUPABASE_SECRET_KEY</span> = <span className="text-gray-400">sb_secret_...</span></div>
+                </div>
+                <p className="text-[11px] text-gray-400">
+                  <em>Tip: Our backend auto-discovery also supports lowercase <code className="text-gray-300">publishable key</code> or <code className="text-gray-300">secret_key</code>.</em>
+                </p>
               </li>
               <li>
-                <strong className="text-white">Select Environment:</strong> Ensure the <strong>Production</strong>, <strong>Preview</strong>, and <strong>Development</strong> checkboxes are checked.
+                <strong className="text-white">Environment Scope:</strong> Ensure <strong>Production</strong>, <strong>Preview</strong>, and <strong>Development</strong> checkboxes are checked.
               </li>
-              <li>
-                <strong className="text-amber-200 font-bold">CRITICAL DEPLOYMENT STEP:</strong> In Vercel, go to <strong>Deployments &rarr; [Latest Deployment (3 dots)] &rarr; Redeploy</strong>. Next.js App Router inlines <code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">NEXT_PUBLIC_*</code> keys during the build step. A running deployment will NOT reflect newly added variables until a Redeploy is triggered!
+              <li className="pt-1">
+                <span className="inline-block px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 mr-1.5">
+                  CRITICAL STEP
+                </span>
+                <strong className="text-amber-200">Trigger a Redeploy:</strong> In Vercel, go to <strong>Deployments &rarr; [Latest Deployment (•••)] &rarr; Redeploy</strong>. Next.js inlines variables at build time, so an already-running deployment will not receive newly saved environment variables until you trigger a Redeploy!
               </li>
             </ol>
           </div>

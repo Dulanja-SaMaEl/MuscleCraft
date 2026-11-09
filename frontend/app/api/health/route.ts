@@ -83,7 +83,8 @@ export async function GET() {
   const checkedEnvVars = {
     NEXT_PUBLIC_SUPABASE_URL: Boolean(
       process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-      process.env.SUPABASE_URL?.trim()
+      process.env.SUPABASE_URL?.trim() ||
+      Boolean(supabaseUrl)
     ),
     SUPABASE_URL: Boolean(process.env.SUPABASE_URL?.trim()),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()),
@@ -91,7 +92,10 @@ export async function GET() {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
       process.env.NEXT_PUBLIC_PUBLISHABLE_KEY?.trim() ||
       process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ||
-      process.env.PUBLISHABLE_KEY?.trim()
+      process.env.PUBLISHABLE_KEY?.trim() ||
+      process.env['publishable key']?.trim() ||
+      process.env['publishable_key']?.trim() ||
+      supabaseKey.startsWith('sb_publishable_')
     ),
     SUPABASE_SERVICE_ROLE_KEY: Boolean(
       process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
@@ -101,7 +105,9 @@ export async function GET() {
     SUPABASE_SECRET_KEY: Boolean(
       process.env.SUPABASE_SECRET_KEY?.trim() ||
       process.env.SECRET_KEY?.trim() ||
-      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+      process.env['secret_key']?.trim() ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+      supabaseKey.startsWith('sb_secret_')
     ),
     SUPABASE_ANON_KEY: Boolean(process.env.SUPABASE_ANON_KEY?.trim()),
     DATABASE_URL: Boolean(process.env.DATABASE_URL?.trim()),

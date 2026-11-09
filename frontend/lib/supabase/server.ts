@@ -28,36 +28,112 @@ function extractSupabaseUrl(urlOrConnStr: string): string {
   return '';
 }
 
-const rawCandidateUrl =
-  cleanEnv(process.env.SUPABASE_URL) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
-  cleanEnv(process.env.SUPABASE_PROJECT_URL) ||
-  cleanEnv(process.env.SUPABASE_REST_URL) ||
-  cleanEnv(process.env.POSTGRES_URL) ||
-  cleanEnv(process.env.DATABASE_URL) ||
-  cleanEnv(process.env.POSTGRES_PRISMA_URL) ||
-  cleanEnv(process.env.SUPABASE_DATABASE_URL) ||
-  '';
+export function discoverSupabaseCredentials() {
+  let foundUrl = '';
+  let foundSecretKey = '';
+  let foundPubKey = '';
 
-export const supabaseUrl = extractSupabaseUrl(rawCandidateUrl);
+  // 1. Direct explicit URL checks
+  const explicitUrls = [
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_PROJECT_URL,
+    process.env.SUPABASE_REST_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+    process.env.POSTGRES_PRISMA_URL,
+    process.env.SUPABASE_DATABASE_URL,
+  ];
+  for (const u of explicitUrls) {
+    const ext = extractSupabaseUrl(u || '');
+    if (ext) {
+      foundUrl = ext;
+      break;
+    }
+  }
 
-// Accept Secret / Service Role Key for administrative server routes, or fallback to publishable / anon
-export const supabaseKey =
-  cleanEnv(process.env.SUPABASE_SECRET_KEY) ||
-  cleanEnv(process.env.SECRET_KEY) ||
-  cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
-  cleanEnv(process.env.SUPABASE_SERVICE_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_PUBLISHABLE_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY) ||
-  cleanEnv(process.env.SUPABASE_PUBLISHABLE_KEY) ||
-  cleanEnv(process.env.PUBLISHABLE_KEY) ||
-  cleanEnv(process.env.SUPABASE_ANON_KEY) ||
-  cleanEnv(process.env.SUPABASE_KEY) ||
-  cleanEnv(process.env.SUPABASE_API_KEY) ||
-  cleanEnv(process.env.SUPABASE_TOKEN) ||
-  '';
+  // 2. Scan all process.env keys dynamically for URL if still not found
+  if (!foundUrl && typeof process !== 'undefined' && process.env) {
+    for (const [key, val] of Object.entries(process.env)) {
+      if (!val) continue;
+      const clean = cleanEnv(val);
+      if (clean.includes('.supabase.co') || clean.includes('supabase.com')) {
+        const ext = extractSupabaseUrl(clean);
+        if (ext) {
+          foundUrl = ext;
+          break;
+        }
+      }
+    }
+  }
+
+  // 3. Scan all process.env keys for secret / service role key
+  if (typeof process !== 'undefined' && process.env) {
+    for (const [key, val] of Object.entries(process.env)) {
+      if (!val) continue;
+      const clean = cleanEnv(val);
+      const lowerKey = key.toLowerCase();
+
+      if (clean.startsWith('sb_secret_')) {
+        foundSecretKey = clean;
+        break;
+      }
+      if (
+        (lowerKey.includes('secret') || lowerKey.includes('service_role') || lowerKey.includes('service')) &&
+        (clean.startsWith('sb_') || clean.startsWith('eyJ'))
+      ) {
+        foundSecretKey = clean;
+        break;
+      }
+    }
+  }
+
+  // 4. Scan all process.env keys for publishable / anon key
+  if (typeof process !== 'undefined' && process.env) {
+    for (const [key, val] of Object.entries(process.env)) {
+      if (!val) continue;
+      const clean = cleanEnv(val);
+      const lowerKey = key.toLowerCase();
+
+      if (clean.startsWith('sb_publishable_')) {
+        foundPubKey = clean;
+        break;
+      }
+      if (
+        (lowerKey.includes('publishable') || lowerKey.includes('anon') || lowerKey.includes('public')) &&
+        (clean.startsWith('sb_') || clean.startsWith('eyJ'))
+      ) {
+        foundPubKey = clean;
+        break;
+      }
+    }
+  }
+
+  const chosenKey =
+    foundSecretKey ||
+    foundPubKey ||
+    cleanEnv(process.env.SUPABASE_SECRET_KEY) ||
+    cleanEnv(process.env.SECRET_KEY) ||
+    cleanEnv(process.env['secret_key']) ||
+    cleanEnv(process.env['publishable key']) ||
+    cleanEnv(process.env['publishable_key']) ||
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+    cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
+    '';
+
+  return {
+    url: foundUrl,
+    key: chosenKey,
+    secretKey: foundSecretKey,
+    pubKey: foundPubKey,
+  };
+}
+
+const discovered = discoverSupabaseCredentials();
+
+export const supabaseUrl = discovered.url;
+export const supabaseKey = discovered.key;
 
 export const isServerSupabaseConfigured = Boolean(
   supabaseUrl &&
