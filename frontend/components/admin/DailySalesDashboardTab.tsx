@@ -305,34 +305,44 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
 
   return (
     <div className="space-y-6">
-      {/* ── CLIENT SPREADSHEET EXACT HEADER (RED BANNER) ── */}
-      <div className="bg-[#BA1A1A] text-white px-6 py-4 rounded-3xl shadow-[0_0_30px_rgba(186,26,26,0.3)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
+      {/* ── CLIENT SPREADSHEET EXACT HEADER (EYES-FRIENDLY LUXURY MINIMAL BANNER) ── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#171115] via-[#121218] to-[#0f0f14] border border-crimson-600/30 text-white px-6 py-5 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="absolute top-0 right-0 w-96 h-full bg-gradient-to-l from-crimson-900/10 to-transparent pointer-events-none" />
+        <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full bg-white animate-pulse" />
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight uppercase">
-              Musclecraft Daily Dashboard
-            </h1>
+            <div className="w-8 h-8 rounded-xl bg-crimson-950/80 border border-crimson-500/40 flex items-center justify-center text-crimson-400 shadow-[0_0_15px_rgba(225,29,72,0.25)]">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-extrabold tracking-tight uppercase text-white">
+                  Musclecraft Daily Dashboard
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-crimson-950/80 border border-crimson-500/30 text-[10px] font-mono font-bold text-crimson-300">
+                  META CRM LIVE
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 font-medium mt-0.5">
+                Meta Ads Spend · WhatsApp & Lead Messages · Daily Sales Targets · CPR & ROAS Review
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-white/90 font-medium mt-1">
-            Meta Ads Spend · WhatsApp & Lead Messages · Daily Sales Targets · CPR & ROAS Review
-          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative z-10 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setQuickLogOpen(true)}
-            className="px-3.5 py-2 bg-white text-[#BA1A1A] hover:bg-gray-100 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            className="px-4 py-2 bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 hover:to-rose-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_20px_rgba(225,29,72,0.35)] transition-all cursor-pointer min-h-[40px]"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Quick Log Today</span>
           </button>
 
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-3 py-2 bg-black/30 hover:bg-black/50 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20 transition-all cursor-pointer"
+            className="px-3.5 py-2 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-all cursor-pointer min-h-[40px]"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
@@ -341,7 +351,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
           <button
             type="button"
             onClick={() => setSettingsModalOpen(true)}
-            className="px-3 py-2 bg-black/30 hover:bg-black/50 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/20 transition-all cursor-pointer"
+            className="px-3.5 py-2 bg-white/[0.05] hover:bg-white/[0.1] text-gray-200 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-all cursor-pointer min-h-[40px]"
             title="Configure Ad Account Total Lifetime Spend"
           >
             <span>Ad Account Spend</span>
@@ -355,34 +365,34 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
         <div className="xl:col-span-3 space-y-4">
           <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-4">
             {/* Header: Date + Brand Name */}
-            <div className="bg-gradient-to-r from-crimson-900 to-purple-950 p-3 rounded-2xl border border-white/10 flex items-center justify-between text-white">
+            <div className="bg-gradient-to-r from-[#1e1528] to-[#151222] p-3.5 rounded-2xl border border-purple-500/20 flex items-center justify-between text-white shadow-sm">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-crimson-300 block">CRM Review</span>
-                <span className="text-sm font-extrabold font-mono">{summary.dailyDate}</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-400 block">CRM Review</span>
+                <span className="text-sm font-extrabold font-mono text-white">{summary.dailyDate}</span>
               </div>
-              <span className="text-xs font-black tracking-widest uppercase bg-black/40 px-2 py-1 rounded-lg border border-white/10">
+              <span className="text-xs font-black tracking-widest uppercase bg-purple-950/80 px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-200">
                 Musclecraft
               </span>
             </div>
 
             {/* Metrics Matrix: CRM | Daily | Cumulative */}
-            <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
+            <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0c0c11]">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#1b1728] text-purple-300 font-bold border-b border-white/[0.08] text-[11px]">
-                    <th className="py-2.5 px-3 text-left">CRM Metric</th>
-                    <th className="py-2.5 px-3 text-right">Daily</th>
-                    <th className="py-2.5 px-3 text-right bg-white/[0.02]">Cumulative</th>
+                  <tr className="bg-[#161424] text-purple-300 font-bold border-b border-white/[0.08] text-[11px]">
+                    <th className="py-2.5 px-3 text-left whitespace-nowrap">CRM Metric</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Daily</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap bg-white/[0.02] min-w-[90px]">Cumulative</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] text-gray-300 font-mono text-[11.5px]">
                   {/* Total Spend */}
                   <tr className="hover:bg-white/[0.02]">
                     <td className="py-2.5 px-3 font-sans font-semibold text-gray-200">Total Spend</td>
-                    <td className="py-2.5 px-3 text-right text-amber-300 font-bold">
-                      {summary.accountLifetimeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    <td className="py-2.5 px-3 text-right text-amber-300 font-bold whitespace-nowrap">
+                      {summary.dailySpend > 0 ? summary.dailySpend.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-amber-300 font-bold bg-white/[0.02]">
+                    <td className="py-2.5 px-3 text-right text-amber-300 font-bold bg-white/[0.02] whitespace-nowrap">
                       {summary.cumulativeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
@@ -390,10 +400,10 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   {/* Total Sales */}
                   <tr className="hover:bg-white/[0.02]">
                     <td className="py-2.5 px-3 font-sans font-semibold text-gray-200">Total Sales</td>
-                    <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
+                    <td className="py-2.5 px-3 text-right text-emerald-400 font-bold whitespace-nowrap">
                       {summary.dailySales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-emerald-400 font-bold bg-white/[0.02]">
+                    <td className="py-2.5 px-3 text-right text-emerald-400 font-bold bg-white/[0.02] whitespace-nowrap">
                       {summary.cumulativeSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
@@ -408,11 +418,11 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   {/* AOV */}
                   <tr className="hover:bg-white/[0.02]">
                     <td className="py-2.5 px-3 font-sans font-semibold text-gray-200">AOV</td>
-                    <td className="py-2.5 px-3 text-right text-gray-400">
-                      {summary.dailyAov > 0 ? `Rs. ${summary.dailyAov.toLocaleString()}` : '#DIV/0!'}
+                    <td className="py-2.5 px-3 text-right text-gray-500">
+                      {summary.dailyAov > 0 ? `Rs. ${summary.dailyAov.toLocaleString()}` : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-gray-400 bg-white/[0.02]">
-                      {summary.cumulativeAov > 0 ? `Rs. ${summary.cumulativeAov.toLocaleString()}` : '#DIV/0!'}
+                    <td className="py-2.5 px-3 text-right text-gray-500 bg-white/[0.02]">
+                      {summary.cumulativeAov > 0 ? `Rs. ${summary.cumulativeAov.toLocaleString()}` : '—'}
                     </td>
                   </tr>
 
@@ -421,10 +431,10 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                     <td className="py-2.5 px-3 font-sans font-bold text-crimson-300 flex items-center gap-1">
                       CPR (Cost/Msg)
                     </td>
-                    <td className="py-2.5 px-3 text-right text-crimson-300 font-bold font-mono">
-                      {summary.dailyCpr > 0 ? summary.dailyCpr.toFixed(2) : (summary.accountLifetimeSpend / (summary.dailyMsgCount || 45)).toFixed(2)}
+                    <td className="py-2.5 px-3 text-right text-crimson-300 font-bold font-mono whitespace-nowrap">
+                      {summary.dailyCpr > 0 ? summary.dailyCpr.toFixed(2) : '0.00'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-crimson-300 font-bold font-mono bg-white/[0.02]">
+                    <td className="py-2.5 px-3 text-right text-crimson-300 font-bold font-mono bg-white/[0.02] whitespace-nowrap">
                       {summary.cumulativeCpr.toFixed(2)}
                     </td>
                   </tr>
@@ -453,11 +463,11 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   {/* CAC */}
                   <tr className="hover:bg-white/[0.02]">
                     <td className="py-2.5 px-3 font-sans font-semibold text-gray-200">CAC</td>
-                    <td className="py-2.5 px-3 text-right text-gray-400">
-                      {summary.dailyCac > 0 ? `Rs. ${summary.dailyCac.toLocaleString()}` : '#DIV/0!'}
+                    <td className="py-2.5 px-3 text-right text-gray-500">
+                      {summary.dailyCac > 0 ? `Rs. ${summary.dailyCac.toLocaleString()}` : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-gray-400 bg-white/[0.02]">
-                      {summary.cumulativeCac > 0 ? `Rs. ${summary.cumulativeCac.toLocaleString()}` : '#DIV/0!'}
+                    <td className="py-2.5 px-3 text-right text-gray-500 bg-white/[0.02]">
+                      {summary.cumulativeCac > 0 ? `Rs. ${summary.cumulativeCac.toLocaleString()}` : '—'}
                     </td>
                   </tr>
                 </tbody>
@@ -467,20 +477,20 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
             <div className="p-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[11px] text-gray-400 flex items-start gap-2">
               <Info className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
               <span>
-                Lifetime Ad Account Spend calibrated to <strong>Rs. {summary.accountLifetimeSpend.toLocaleString()}</strong> LKR.
+                Lifetime Ad Account Spend calibrated to <strong>Rs. {summary.accountLifetimeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> LKR.
               </span>
             </div>
           </div>
 
           {/* Quick Metrics Cards */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08]">
+            <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08] shadow-sm">
               <span className="text-[10px] text-gray-400 uppercase font-bold block">Nov Total Spend</span>
               <span className="text-lg font-mono font-extrabold text-amber-300 mt-1 block">
-                Rs. {summary.cumulativeSpend.toLocaleString()}
+                Rs. {summary.cumulativeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
-            <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08]">
+            <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08] shadow-sm">
               <span className="text-[10px] text-gray-400 uppercase font-bold block">Total Leads</span>
               <span className="text-lg font-mono font-extrabold text-cyan-300 mt-1 block">
                 {summary.cumulativeMsgCount} Inquiries
@@ -492,12 +502,17 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
         {/* ── 2. DAILY SALES REVIEW TABLE (6 COLS) ── */}
         <div className="xl:col-span-6 space-y-4">
           <div className="bg-[#111116] border border-white/[0.08] rounded-3xl shadow-xl overflow-hidden flex flex-col h-full">
-            {/* Table Header Banner */}
-            <div className="bg-[#BA1A1A] px-5 py-3 border-b border-crimson-800 flex items-center justify-between">
-              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
-                <Target className="w-4 h-4" /> Daily Sales Review ({selectedMonth})
-              </h2>
-              <span className="text-[10px] font-mono bg-black/40 px-2 py-0.5 rounded text-white font-bold">
+            {/* Table Header Banner (Eyes-Friendly Dark Elevation) */}
+            <div className="bg-gradient-to-r from-[#1c1218] via-[#14121a] to-[#111116] px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-crimson-950/80 border border-crimson-500/40 flex items-center justify-center text-crimson-400">
+                  <Target className="w-3.5 h-3.5" />
+                </div>
+                <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">
+                  Daily Sales Review ({selectedMonth})
+                </h2>
+              </div>
+              <span className="text-[10px] font-mono bg-white/[0.06] border border-white/10 px-2.5 py-1 rounded-lg text-gray-300 font-semibold">
                 {records.length} Days Monitored
               </span>
             </div>
