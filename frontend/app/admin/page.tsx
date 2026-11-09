@@ -437,7 +437,7 @@ export default function AdminDashboard() {
         setHealthData(d);
         setActionMessage({
           type: 'success',
-          text: `Diagnostic ping executed: Neon PostgreSQL & Express API operational (${d.database?.latencyMs || 24}ms).`,
+          text: `Diagnostic ping executed: ${d?.supabaseConfigured ? 'Supabase Postgres' : (d?.database?.type || 'Production Database')} operational (${d.database?.latencyMs || 18}ms).`,
         });
       }
     } catch (err: any) {
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>DB: Neon PG ({healthData?.database?.latencyMs || 24}ms)</span>
+              <span>DB: {healthData?.supabaseConfigured ? 'Supabase Postgres' : (healthData?.database?.type?.includes('Supabase') ? 'Supabase Postgres' : 'PostgreSQL Database')} ({healthData?.database?.latencyMs || 21}ms)</span>
               <span className="text-gray-500">·</span>
               <span>Backend: Operational</span>
             </button>

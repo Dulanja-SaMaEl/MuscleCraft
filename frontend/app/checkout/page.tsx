@@ -25,6 +25,24 @@ function CheckoutContent() {
   const [submitting, setSubmitting] = useState(false);
   const [successSubmission, setSuccessSubmission] = useState<any | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [dbPackages, setDbPackages] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadPackages = async () => {
+      try {
+        const res = await fetch('/api/admin/packages');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.packages && Array.isArray(d.packages)) {
+            setDbPackages(d.packages);
+          }
+        }
+      } catch (err) {
+        // Fallback to static pricing
+      }
+    };
+    loadPackages();
+  }, []);
 
   useEffect(() => {
     const tierParam = searchParams.get('tier');
@@ -53,7 +71,16 @@ function CheckoutContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const priceDetails = PaymentService.getTierPrice(selectedTier);
+  // Compute live price from database if available, else fallback to standard pricing
+  const matchedDbPkg = dbPackages.find((p) => p.id === selectedTier);
+  const priceDetails = matchedDbPkg
+    ? {
+        amount: matchedDbPkg.price + (matchedDbPkg.admissionFee || 0),
+        packagePrice: matchedDbPkg.price,
+        admissionFee: matchedDbPkg.admissionFee || 0,
+        name: matchedDbPkg.name,
+      }
+    : PaymentService.getTierPrice(selectedTier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -128,7 +128,7 @@ async function runSuite() {
   if (await forgotBtn.isVisible()) {
     await forgotBtn.click();
     await page.waitForTimeout(300);
-    const modalVisible = await page.locator('text=Adeesha Kumarasingha').isVisible();
+    const modalVisible = await page.locator('text=Adeesha Kumarasingha').first().isVisible();
     const waLink = await page.isVisible('a[href*="wa.me"]');
     recordResult('Auth Flow', 'Forgot Password modal displays Coach Adeesha WhatsApp', modalVisible && waLink);
     await page.locator('button:has-text("Close")').click();
@@ -243,19 +243,25 @@ async function runSuite() {
   recordResult('Admin Panel', 'Broadcast Center announcements console loaded', broadcastLoaded);
 
   // 4.8 Gym Packages Master Tab (Editable Packages)
-  await page.locator('aside button:has-text("Gym Packages Master")').click();
+  const pkgBtn = page.locator('aside button:has-text("Gym Packages Master")').first();
+  await pkgBtn.scrollIntoViewIfNeeded();
+  await pkgBtn.click();
   await page.waitForTimeout(500);
   const packagesLoaded = await page.locator('h2:has-text("Membership Packages & Pricing Master Desk")').isVisible();
   recordResult('Admin Panel', 'Gym Packages Master loaded with editable Sole & Couple packages', packagesLoaded);
 
   // 4.9 Database & Backend Telemetry Tab
-  await page.locator('aside button:has-text("Database & Backend")').click();
+  const dbBtn = page.locator('aside button:has-text("Database & Backend")').first();
+  await dbBtn.scrollIntoViewIfNeeded();
+  await dbBtn.click();
   await page.waitForTimeout(500);
-  const dbHealthLoaded = await page.locator('h2:has-text("System Infrastructure & Telemetry")').isVisible() || await page.locator('text=Database').first().isVisible();
+  const dbHealthLoaded = await page.locator('h2:has-text("Database & Backend Infrastructure Telemetry")').isVisible();
   recordResult('Admin Panel', 'Database & Backend Telemetry monitor loaded', dbHealthLoaded);
 
   // 4.10 Audit Trail Tab
-  await page.locator('aside button:has-text("Audit Trail")').click();
+  const auditBtn = page.locator('aside button:has-text("Audit Trail")').first();
+  await auditBtn.scrollIntoViewIfNeeded();
+  await auditBtn.click();
   await page.waitForTimeout(500);
   const auditLoaded = await page.locator('h2:has-text("Administrative Audit Trail")').isVisible();
   recordResult('Admin Panel', 'Audit Trail log viewer loaded', auditLoaded);

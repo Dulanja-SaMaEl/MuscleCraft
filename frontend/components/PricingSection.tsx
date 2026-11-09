@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Check, Star, Flame, Users, User, Sparkles, ShieldCheck } from 'lucide-react';
 import Card3DTilt from './3d/Card3DTilt';
@@ -51,7 +51,7 @@ export default function PricingSection() {
     href: string;
   }
 
-  const solePackages: PricingTierItem[] = [
+  const initialSolePackages: PricingTierItem[] = [
     {
       id: 'sole_1m',
       name: 'Sole 1 Month',
@@ -138,7 +138,7 @@ export default function PricingSection() {
     },
   ];
 
-  const couplePackages: PricingTierItem[] = [
+  const initialCouplePackages: PricingTierItem[] = [
     {
       id: 'couple_1m',
       name: 'Couple 1 Month',
@@ -224,7 +224,7 @@ export default function PricingSection() {
     },
   ];
 
-  const signaturePackages: PricingTierItem[] = [
+  const initialSignaturePackages: PricingTierItem[] = [
     {
       id: 'coaching_90',
       name: '90 Days Better Me',
@@ -266,6 +266,75 @@ export default function PricingSection() {
       href: '/checkout?tier=burnzone',
     },
   ];
+
+  const [solePackages, setSolePackages] = useState<PricingTierItem[]>(initialSolePackages);
+  const [couplePackages, setCouplePackages] = useState<PricingTierItem[]>(initialCouplePackages);
+  const [signaturePackages, setSignaturePackages] = useState<PricingTierItem[]>(initialSignaturePackages);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadDynamicPackages = async () => {
+      try {
+        const res = await fetch('/api/admin/packages');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.packages && Array.isArray(data.packages) && data.packages.length > 0 && isMounted) {
+            const pkgs = data.packages;
+
+            setSolePackages((prev) =>
+              prev.map((item) => {
+                const matched = pkgs.find((p: any) => p.id === item.id);
+                if (!matched) return item;
+                return {
+                  ...item,
+                  name: matched.name || item.name,
+                  price: `Rs. ${matched.price.toLocaleString()}`,
+                  admission: matched.admissionFee > 0 ? `Rs. ${matched.admissionFee.toLocaleString()} Admission Fee` : 'Zero Admission Fee',
+                  totalFirstMonth: matched.admissionFee > 0 ? `Rs. ${(matched.price + matched.admissionFee).toLocaleString()} Total to Start` : item.totalFirstMonth,
+                  features: matched.features && matched.features.length > 0 ? matched.features : item.features,
+                };
+              })
+            );
+
+            setCouplePackages((prev) =>
+              prev.map((item) => {
+                const matched = pkgs.find((p: any) => p.id === item.id);
+                if (!matched) return item;
+                return {
+                  ...item,
+                  name: matched.name || item.name,
+                  price: `Rs. ${matched.price.toLocaleString()}`,
+                  admission: matched.admissionFee > 0 ? `Rs. ${matched.admissionFee.toLocaleString()} Admission Fee` : 'Zero Admission Fee',
+                  totalFirstMonth: matched.admissionFee > 0 ? `Rs. ${(matched.price + matched.admissionFee).toLocaleString()} Total to Start for 2` : item.totalFirstMonth,
+                  features: matched.features && matched.features.length > 0 ? matched.features : item.features,
+                };
+              })
+            );
+
+            setSignaturePackages((prev) =>
+              prev.map((item) => {
+                const matched = pkgs.find((p: any) => p.id === item.id || (item.id === 'coaching_90' && p.id === 'coaching_90') || (item.id === 'burnzone' && p.id === 'burnzone'));
+                if (!matched) return item;
+                return {
+                  ...item,
+                  name: matched.name || item.name,
+                  price: `Rs. ${matched.price.toLocaleString()}`,
+                  admission: matched.admissionFee > 0 ? `Rs. ${matched.admissionFee.toLocaleString()} Admission Fee` : 'Zero Admission Fee',
+                  features: matched.features && matched.features.length > 0 ? matched.features : item.features,
+                };
+              })
+            );
+          }
+        }
+      } catch (err) {
+        // Fallback to static packages
+      }
+    };
+    loadDynamicPackages();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const currentCards =
     activeCategory === 'sole'

@@ -227,6 +227,7 @@ export interface User {
   name: string;
   role: UserRole;
   tier: string;
+  packageId?: string;
   packageName?: string;
   packageType?: 'sole' | 'couple' | 'coaching';
   status: UserStatus;
@@ -373,8 +374,9 @@ export interface AuditLog {
   action: string;
   targetType: string;
   targetId: string;
-  details: string;
+  details: string | any;
   timestamp: string;
+  createdAt?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

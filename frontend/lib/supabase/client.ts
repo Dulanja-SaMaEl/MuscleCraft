@@ -1,13 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+function cleanEnv(val: string | undefined): string {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '');
+}
+
+const rawUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+export const supabaseUrl = rawUrl.replace(/\/+$/, '');
 
 // Supports both new Supabase "Publishable key" and legacy "Anon key"
-const supabaseKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_KEY ||
-  '';
+export const supabaseKey =
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY);
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
