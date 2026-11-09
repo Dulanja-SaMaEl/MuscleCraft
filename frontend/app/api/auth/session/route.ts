@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get('userId');
 
-  let user = await getSessionUser(userId);
+  let user = userId ? await getSessionUser(userId) : null;
 
   // Available personas: load real profiles from Supabase if configured
   let availablePersonas: any[] = [];
@@ -75,12 +75,37 @@ export async function POST(req: NextRequest) {
         cleanEmail === 'owner@musclecraft.lk' ||
         cleanEmail.startsWith('admin@')
       ) {
+        // If password is provided, check if it's the known admin password
+        if (password && password !== 'passthrough' && !AuthService.verifyPassword('adeesha@musclecraft.lk', password)) {
+          return NextResponse.json(
+            { error: 'Incorrect password for Admin / Head Coach desk.' },
+            { status: 401 }
+          );
+        }
         user = db.users.find((u) => u.role === 'admin') || null;
       }
 
-      // 1. Check Supabase profiles table
+      // 1. Check Supabase Auth & profiles table
       if (!user && isServerSupabaseConfigured && supabaseServer) {
         try {
+          // If a password was provided, attempt verification with Supabase Auth
+          if (password && password !== 'passthrough') {
+            const { data: authData, error: authErr } = await supabaseServer.auth.signInWithPassword({
+              email: cleanEmail,
+              password: password,
+            });
+
+            // If Supabase specifically tells us Invalid login credentials, and user has an auth account
+            if (authErr && authErr.message?.toLowerCase().includes('invalid login credentials')) {
+              // Check if AuthService has a local override or if this was a registered user
+              const localAuth = AuthService.authenticate(cleanEmail, password);
+              if (localAuth.error) {
+                return NextResponse.json({ error: localAuth.error }, { status: 401 });
+              }
+            }
+          }
+
+          // Fetch user profile from Supabase profiles
           const { data, error } = await supabaseServer
             .from('profiles')
             .select('*')
@@ -89,6 +114,14 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
 
           if (!error && data) {
+            // Check local password verification if user registered a password
+            if (password && password !== 'passthrough') {
+              const authCheck = AuthService.authenticate(cleanEmail, password);
+              if (authCheck.error) {
+                return NextResponse.json({ error: authCheck.error }, { status: 401 });
+              }
+            }
+
             user = {
               id: String(data.id),
               email: data.email,
@@ -114,10 +147,16 @@ export async function POST(req: NextRequest) {
 
       // 2. Fallback to AuthService (for demo / seeded accounts)
       if (!user) {
-        user = AuthService.authenticate(cleanEmail, password);
+        const authRes = AuthService.authenticate(cleanEmail, password);
+        if (authRes.error) {
+          return NextResponse.json({ error: authRes.error }, { status: 401 });
+        }
+        if (authRes.user) {
+          user = authRes.user;
+        }
       }
 
-      // 3. Universal Pass-Through: admit any email or username with any password
+      // 3. Universal Pass-Through: admit new or unconstrained accounts
       if (!user) {
         const isStaff =
           cleanEmail.includes('admin') ||

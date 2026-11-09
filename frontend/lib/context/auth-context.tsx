@@ -8,6 +8,13 @@ interface AuthContextType {
   loading: boolean;
   switchPersona: (personaId: string) => Promise<void>;
   login: (email: string, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    tier?: string;
+  }) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   availablePersonas: { id: string; name: string; role: string; email: string; tier: string }[];
   refreshUser: () => Promise<void>;
@@ -91,6 +98,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const register = async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    tier?: string;
+  }): Promise<{ success: boolean; user?: User; error?: string }> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const resData = await res.json();
+      if (res.ok && resData.user) {
+        setCurrentUser(resData.user);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('musclecraft_user_id', resData.user.id);
+        }
+        return { success: true, user: resData.user };
+      }
+      return { success: false, error: resData.error || 'Registration failed' };
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      return { success: false, error: err.message || 'Connection error during registration' };
+    }
+  };
+
   const logout = () => {
     setCurrentUser(null);
     if (typeof window !== 'undefined') {
@@ -112,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         switchPersona,
         login,
+        register,
         logout,
         availablePersonas,
         refreshUser,

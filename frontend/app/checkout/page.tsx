@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
-import { Check, Copy, ArrowRight, ShieldCheck, AlertCircle, Building, CheckCircle2, User, Users, Sparkles } from 'lucide-react';
+import { Check, Copy, ArrowRight, ShieldCheck, AlertCircle, Building, CheckCircle2, User, Users, Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { GYM_PACKAGES } from '@/lib/types';
 import { PaymentService } from '@/lib/services/payment-service';
 
@@ -19,6 +19,10 @@ function CheckoutContent() {
   const [referenceCode, setReferenceCode] = useState('');
   const [bankName, setBankName] = useState('Commercial Bank of Ceylon (Online Transfer / Deposit)');
   const [senderAccountName, setSenderAccountName] = useState(currentUser?.name || '');
+  const [userEmail, setUserEmail] = useState(currentUser?.email || '');
+  const [userPassword, setUserPassword] = useState('');
+  const [showUserPassword, setShowUserPassword] = useState(false);
+  const [userPhone, setUserPhone] = useState(currentUser?.phone || '');
   const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
   const [receiptNotes, setReceiptNotes] = useState('');
   const [copied, setCopied] = useState(false);
@@ -88,8 +92,43 @@ function CheckoutContent() {
     setErrorMsg('');
 
     try {
-      const activeUserId = currentUser ? currentUser.id : 'usr_client_pending';
-      const res = await fetch(`/api/payments?userId=${activeUserId}`, {
+      let activeUserId = currentUser ? currentUser.id : null;
+
+      // If guest user, create athlete account with their chosen password
+      if (!currentUser) {
+        if (!userEmail.trim() || !userEmail.includes('@')) {
+          throw new Error('Please enter a valid email address for your athlete account.');
+        }
+        if (!userPassword || userPassword.length < 6) {
+          throw new Error('Please create a password of at least 6 characters for your account.');
+        }
+
+        const regRes = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: senderAccountName.trim(),
+            email: userEmail.trim(),
+            password: userPassword,
+            phone: userPhone.trim() || undefined,
+            tier: selectedTier,
+            packageName: priceDetails.name,
+            packageType: selectedCategory,
+          }),
+        });
+
+        const regData = await regRes.json();
+        if (!regRes.ok || !regData.user) {
+          throw new Error(regData.error || 'Failed to create your athlete account.');
+        }
+
+        activeUserId = regData.user.id;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('musclecraft_user_id', regData.user.id);
+        }
+      }
+
+      const res = await fetch(`/api/payments?userId=${activeUserId || 'usr_client_pending'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,7 +137,11 @@ function CheckoutContent() {
           bankName,
           transferDate,
           senderAccountName,
-          receiptNotes,
+          receiptNotes: receiptNotes
+            ? `${receiptNotes}${userEmail ? ` | Email: ${userEmail}` : ''}`
+            : userEmail
+            ? `Email: ${userEmail}`
+            : '',
         }),
       });
 
@@ -449,6 +492,82 @@ function CheckoutContent() {
                     className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white font-medium text-xs opacity-80"
                   />
                 </div>
+
+                {/* Athlete Account / Login Credentials Section */}
+                {!currentUser ? (
+                  <div className="p-4 rounded-2xl bg-[#14141c] border border-white/[0.08] space-y-3">
+                    <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-crimson-400" />
+                        Create Your Athlete Login Password
+                      </span>
+                      <span className="text-[10px] text-gray-400">For portal & video workouts</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                          Account Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="athlete@example.com"
+                          value={userEmail}
+                          onChange={(e) => setUserEmail(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                          Phone / WhatsApp (Optional)
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="+94 77 123 4567"
+                          value={userPhone}
+                          onChange={(e) => setUserPhone(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
+                        Create Your Password * <span className="text-[10px] text-gray-400 lowercase">(min. 6 characters)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showUserPassword ? 'text' : 'password'}
+                          required
+                          placeholder="Create a password for your account"
+                          value={userPassword}
+                          onChange={(e) => setUserPassword(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowUserPassword(!showUserPassword)}
+                          aria-label={showUserPassword ? 'Hide password' : 'Show password'}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
+                        >
+                          {showUserPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 text-gray-300">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      Enrolling as: <strong className="text-white">{currentUser.name}</strong> ({currentUser.email})
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      Signed In
+                    </span>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

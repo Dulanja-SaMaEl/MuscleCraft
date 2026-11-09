@@ -237,7 +237,7 @@ export async function pingSupabase(): Promise<{
  */
 export async function getSessionUser(userIdOrEmail?: string | null): Promise<User | null> {
   if (!userIdOrEmail) {
-    return db.users.find((u) => u.role === 'admin') || db.users[0] || null;
+    return null;
   }
 
   const clean = userIdOrEmail.trim();
