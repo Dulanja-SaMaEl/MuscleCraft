@@ -28,15 +28,18 @@ export function extractSupabaseUrl(urlOrConnStr: string): string {
 const rawUrl =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_REST_URL) ||
   '';
 
 export const supabaseUrl = extractSupabaseUrl(rawUrl);
 
-// Supports both new Supabase "Publishable key" and legacy "Anon key"
+// Supports new Supabase Publishable key (sb_publishable_...) and legacy Anon key (eyJhbGci...)
 export const supabaseKey =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_PUBLISHABLE_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY);
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SB_PUBLISHABLE_KEY);
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&

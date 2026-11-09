@@ -68,9 +68,9 @@ export default function DatabaseHealthTab({
 
   const copyEnvSnippet = () => {
     const snippet = `# MuscleCraft Supabase Production Credentials
-NEXT_PUBLIC_SUPABASE_URL="https://your-project-id.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="sb_publishable_..."
+SUPABASE_SECRET_KEY="sb_secret_..."
 NEXT_PUBLIC_APP_URL="https://your-domain.com"
 `;
     navigator.clipboard.writeText(snippet);
@@ -258,8 +258,8 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
           </div>
 
           <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.04] flex items-center justify-between">
-            <span className="text-gray-300">SUPABASE_ANON_KEY / PUB</span>
-            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY ? (
+            <span className="text-gray-300">PUBLISHABLE KEY</span>
+            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY ? (
               <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
                 DETECTED
               </span>
@@ -271,8 +271,8 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
           </div>
 
           <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.04] flex items-center justify-between">
-            <span className="text-gray-300">SUPABASE_SERVICE_ROLE_KEY</span>
-            {diag.checkedEnvVars?.SUPABASE_SERVICE_ROLE_KEY || diag.checkedEnvVars?.SUPABASE_SECRET_KEY ? (
+            <span className="text-gray-300">SECRET / SERVICE KEY</span>
+            {diag.checkedEnvVars?.SUPABASE_SECRET_KEY || diag.checkedEnvVars?.SUPABASE_SERVICE_ROLE_KEY ? (
               <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
                 DETECTED
               </span>
@@ -294,14 +294,14 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
             <ol className="list-decimal list-inside space-y-2 text-gray-300">
               <li>
                 <strong className="text-white">Finding keys in Supabase:</strong> Open your Supabase Dashboard &rarr; <strong>Project Settings &rarr; API</strong>.
-                If you see the black banner <em>&quot;Legacy API keys will be retired in early 2027&quot;</em>, click the button <strong className="text-emerald-400 underline decoration-emerald-500/50">&quot;View legacy API keys&quot;</strong>. This displays your <code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">anon public</code> and <code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">service_role secret</code> JWT keys. (Or copy the new Publishable Key).
+                Copy your <strong>Project URL</strong>, your <strong>Publishable key</strong> (<code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">sb_publishable_...</code>), and your <strong>Secret key</strong> (<code className="text-white font-mono bg-white/10 px-1 py-0.5 rounded">sb_secret_...</code>).
               </li>
               <li>
                 <strong className="text-white">Setting in Hosting Dashboard:</strong> In your hosting dashboard (e.g. <strong>Vercel &rarr; Project Settings &rarr; Environment Variables</strong>), add:
                 <ul className="list-disc list-inside pl-4 mt-1 space-y-0.5 font-mono text-[11px] text-gray-200">
                   <li><span className="text-emerald-300">NEXT_PUBLIC_SUPABASE_URL</span> = <span className="text-gray-400">https://your-project.supabase.co</span></li>
-                  <li><span className="text-emerald-300">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> = <span className="text-gray-400">eyJhbGci... (from &quot;View legacy API keys&quot;)</span></li>
-                  <li><span className="text-emerald-300">SUPABASE_SERVICE_ROLE_KEY</span> = <span className="text-gray-400">eyJhbGci... (optional, for admin bypass)</span></li>
+                  <li><span className="text-emerald-300">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</span> = <span className="text-gray-400">sb_publishable_...</span></li>
+                  <li><span className="text-emerald-300">SUPABASE_SECRET_KEY</span> = <span className="text-gray-400">sb_secret_...</span></li>
                 </ul>
               </li>
               <li>

@@ -41,16 +41,19 @@ const rawCandidateUrl =
 
 export const supabaseUrl = extractSupabaseUrl(rawCandidateUrl);
 
-// Accept Service Role / Secret Key for administrative server routes, or fallback to anon/publishable
+// Accept Secret / Service Role Key for administrative server routes, or fallback to publishable / anon
 export const supabaseKey =
-  cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
   cleanEnv(process.env.SUPABASE_SECRET_KEY) ||
+  cleanEnv(process.env.SECRET_KEY) ||
+  cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
   cleanEnv(process.env.SUPABASE_SERVICE_KEY) ||
-  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY) ||
-  cleanEnv(process.env.SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.SUPABASE_ANON_KEY) ||
   cleanEnv(process.env.SUPABASE_KEY) ||
   cleanEnv(process.env.SUPABASE_API_KEY) ||
   cleanEnv(process.env.SUPABASE_TOKEN) ||

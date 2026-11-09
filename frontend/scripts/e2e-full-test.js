@@ -162,7 +162,13 @@ async function runSuite() {
 
   // 4.2 Switch to "Daily Sales & Ad CRM" tab
   await page.locator('aside button:has-text("Daily Sales & Ad CRM")').click();
-  await page.waitForTimeout(600);
+  // Allow live Supabase cloud fetch to resolve
+  try {
+    await page.waitForResponse((r) => r.url().includes('/api/admin/daily-sales'), { timeout: 4000 });
+  } catch (e) {
+    // fallback wait if already cached
+  }
+  await page.waitForTimeout(1000);
 
   // Crimson Header
   const bannerHeader = await page.locator('text=Musclecraft Daily Dashboard').isVisible();

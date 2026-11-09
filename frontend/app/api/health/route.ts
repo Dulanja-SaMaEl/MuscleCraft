@@ -57,20 +57,52 @@ export async function GET() {
     : null;
 
   // Determine key tier
-  const keyType = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)
-    ? 'service_role (Admin Access)'
-    : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
-    ? 'publishable / anon (Standard Access)'
-    : (supabaseKey ? 'custom API key' : 'none');
+  const isSecretKey = Boolean(
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    supabaseKey.startsWith('sb_secret_')
+  );
+  const isPubKey = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    supabaseKey.startsWith('sb_publishable_')
+  );
+
+  const keyType = isSecretKey
+    ? 'Secret Key / Admin (Full Access)'
+    : isPubKey
+    ? 'Publishable / Client (Standard Access)'
+    : (supabaseKey ? 'Custom Supabase Key' : 'none');
 
   // Check which exact env vars are set
   const checkedEnvVars = {
-    NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()),
+    NEXT_PUBLIC_SUPABASE_URL: Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
+      process.env.SUPABASE_URL?.trim()
+    ),
     SUPABASE_URL: Boolean(process.env.SUPABASE_URL?.trim()),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()),
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()),
-    SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()),
-    SUPABASE_SECRET_KEY: Boolean(process.env.SUPABASE_SECRET_KEY?.trim()),
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+      process.env.NEXT_PUBLIC_PUBLISHABLE_KEY?.trim() ||
+      process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ||
+      process.env.PUBLISHABLE_KEY?.trim()
+    ),
+    SUPABASE_SERVICE_ROLE_KEY: Boolean(
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+      process.env.SUPABASE_SECRET_KEY?.trim() ||
+      process.env.SECRET_KEY?.trim()
+    ),
+    SUPABASE_SECRET_KEY: Boolean(
+      process.env.SUPABASE_SECRET_KEY?.trim() ||
+      process.env.SECRET_KEY?.trim() ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+    ),
     SUPABASE_ANON_KEY: Boolean(process.env.SUPABASE_ANON_KEY?.trim()),
     DATABASE_URL: Boolean(process.env.DATABASE_URL?.trim()),
     POSTGRES_URL: Boolean(process.env.POSTGRES_URL?.trim()),
