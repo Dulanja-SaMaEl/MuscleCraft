@@ -16,6 +16,7 @@ import {
   Search,
   History,
   TrendingUp,
+  Target,
   Dumbbell,
   DollarSign,
   Utensils,
@@ -49,6 +50,7 @@ import VideosVaultTab from '@/components/admin/VideosVaultTab';
 import BroadcastTab from '@/components/admin/BroadcastTab';
 import DatabaseHealthTab from '@/components/admin/DatabaseHealthTab';
 import PackagesManagerTab from '@/components/admin/PackagesManagerTab';
+import DailySalesDashboardTab from '@/components/admin/DailySalesDashboardTab';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -62,6 +64,7 @@ export default function AdminDashboard() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<
     | 'analytics'
+    | 'daily_dashboard'
     | 'payments'
     | 'members'
     | 'analytics_submissions'
@@ -519,6 +522,12 @@ export default function AdminDashboard() {
 
   const navigationItems = [
     { id: 'analytics', label: 'Dashboard Overview', icon: TrendingUp },
+    {
+      id: 'daily_dashboard',
+      label: 'Daily Sales & Ad CRM',
+      icon: Target,
+      badge: 'Client Sheet',
+    },
     {
       id: 'payments',
       label: 'Bank Approvals',
@@ -1315,8 +1324,59 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-
+              {/* Quick Link Card to Musclecraft Daily Dashboard */}
+              <div className="bg-gradient-to-r from-crimson-950/60 via-[#161622] to-amber-950/40 border border-crimson-700/50 p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-crimson-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(186,26,26,0.5)]">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-crimson-600 text-white">
+                        Client Sheet Integrated
+                      </span>
+                      <h3 className="text-base font-bold text-white">
+                        Musclecraft Daily Dashboard (Ad Spend, Inquiries & Sales)
+                      </h3>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-1">
+                      Monitor daily Meta Ads spend, WhatsApp lead counts, CPR, ROAS, and Target vs Actual sales directly.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('daily_dashboard')}
+                  className="px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer whitespace-nowrap"
+                >
+                  Open Daily Dashboard →
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────
+              TAB: DAILY SALES & AD CRM DASHBOARD (CLIENT SPREADSHEET)
+              ─────────────────────────────────────────────────────────── */}
+          {activeTab === 'daily_dashboard' && (
+            <DailySalesDashboardTab
+              onNotify={(type, text) => setActionMessage({ type, text })}
+              onAuditLog={(action) => {
+                setAuditLogs((prev) => [
+                  {
+                    id: `log_${Date.now()}`,
+                    actorId: currentUser?.id || 'usr_admin_1',
+                    actorEmail: currentUser?.email || 'adeesha@musclecraft.lk',
+                    action: 'DAILY_SALES_UPDATE',
+                    targetType: 'daily_sales',
+                    targetId: 'crm_sheet',
+                    details: action,
+                    timestamp: new Date().toISOString(),
+                  },
+                  ...prev,
+                ]);
+              }}
+            />
           )}
 
           {/* ───────────────────────────────────────────────────────────

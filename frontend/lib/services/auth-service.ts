@@ -24,7 +24,7 @@ export class AuthService {
     );
   }
 
-  static authenticate(email: string): User | null {
+  static authenticate(email: string, password?: string): User | null {
     const user = this.getUserByEmail(email);
     return user || null;
   }

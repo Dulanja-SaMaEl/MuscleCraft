@@ -6,6 +6,7 @@ import {
   Appointment,
   ExerciseVideo,
   AuditLog,
+  DailySalesRecord,
 } from '../types';
 
 export class MuscleCraftDatabase {
@@ -188,6 +189,104 @@ export class MuscleCraftDatabase {
   public videos: ExerciseVideo[] = [];
   public broadcastMessages: any[] = [];
   public auditLogs: AuditLog[] = [];
+
+  public crmAccountLifetimeSpend: number = 635555.20;
+
+  public dailySalesRecords: DailySalesRecord[] = [
+    {
+      id: 'dsr_11_01',
+      date: '11/1/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 1986.11,
+      messageCount: 45,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 44.14,
+      notes: 'Meta Ads launch campaign - high WhatsApp inquiry inflow',
+    },
+    {
+      id: 'dsr_11_02',
+      date: '11/2/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 1277.03,
+      messageCount: 30,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 42.57,
+      notes: 'Day 2 ad retargeting',
+    },
+    {
+      id: 'dsr_11_03',
+      date: '11/3/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 781.12,
+      messageCount: 17,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 45.95,
+      notes: 'Mid-week pacing',
+    },
+    {
+      id: 'dsr_11_04',
+      date: '11/4/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 700.11,
+      messageCount: 24,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 29.17,
+      notes: 'Strong CPR performance at Rs. 29.17',
+    },
+    {
+      id: 'dsr_11_05',
+      date: '11/5/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 777.44,
+      messageCount: 19,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 40.92,
+      notes: 'Consistent lead volume',
+    },
+    {
+      id: 'dsr_11_06',
+      date: '11/6/2026',
+      target: 0.0,
+      actual: 0.0,
+      diff: 0.0,
+      spend: 699.28,
+      messageCount: 23,
+      orderCount: 0,
+      roas: 0.0,
+      cpr: 30.4,
+      notes: 'Weekend warmup campaign',
+    },
+    ...Array.from({ length: 24 }, (_, i) => {
+      const day = i + 7;
+      return {
+        id: `dsr_11_${day < 10 ? '0' + day : day}`,
+        date: `11/${day}/2026`,
+        target: 0.0,
+        actual: 0.0,
+        diff: 0.0,
+        spend: 0.0,
+        messageCount: 0,
+        orderCount: 0,
+        roas: 0.0,
+        cpr: 0.0,
+      };
+    }),
+  ];
 
   public static getInstance(): MuscleCraftDatabase {
     if (!MuscleCraftDatabase.instance) {

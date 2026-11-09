@@ -7,145 +7,123 @@ import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/context/auth-context';
-import { UserCheck, Shield, Dumbbell, ArrowRight, AlertCircle, Clock } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  AlertCircle,
+  HelpCircle,
+  MessageCircle,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get('reason');
-  const { switchPersona, login } = useAuth();
+  const { login } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
-  const personas = [
-    {
-      id: 'usr_inst_adeesha',
-      name: 'Coach Adeesha',
-      role: 'Founder & Head Coach',
-      email: 'adeesha@musclecraft.lk',
-      badgeColor: 'bg-crimson-900/50 text-crimson-300 border-crimson-600/60',
-      icon: Dumbbell,
-      dest: '/instructor',
-    },
-    {
-      id: 'usr_client_90',
-      name: 'Marcus Vance',
-      role: '90-Day VIP Member (Active)',
-      email: 'client_90@musclecraft.lk',
-      badgeColor: 'bg-crimson-950/60 text-crimson-300 border-crimson-600/40',
-      icon: UserCheck,
-      dest: '/client',
-    },
-    {
-      id: 'usr_client_chamari',
-      name: 'Chamari Atapattu',
-      role: 'Sole 1M (Expiring in 3d - Notice)',
-      email: 'chamari.a@outlook.com',
-      badgeColor: 'bg-yellow-950/60 text-yellow-300 border-yellow-600/40',
-      icon: Clock,
-      dest: '/client',
-    },
-    {
-      id: 'usr_client_expired_sole',
-      name: 'Suresh Fernando',
-      role: 'Sole 1M (Expired 4d ago - Alert)',
-      email: 'suresh.f@gmail.com',
-      badgeColor: 'bg-rose-950/60 text-rose-300 border-rose-600/40',
-      icon: AlertCircle,
-      dest: '/client',
-    },
-    {
-      id: 'usr_client_expired_90',
-      name: 'Kamal Gunaratne',
-      role: '90-Day (Expired - Auto Logout)',
-      email: 'kamal.expired@musclecraft.lk',
-      badgeColor: 'bg-amber-950/60 text-amber-300 border-amber-600/40',
-      icon: UserCheck,
-      dest: '/client',
-    },
-    {
-      id: 'usr_admin_1',
-      name: 'Victor Thorne',
-      role: 'Platform Administrator',
-      email: 'admin@musclecraft.lk',
-      badgeColor: 'bg-red-900/40 text-red-300 border-red-700/50',
-      icon: Shield,
-      dest: '/admin',
-    },
-  ];
-
-  const handleSelectPersona = async (p: (typeof personas)[0]) => {
-    await switchPersona(p.id);
-    router.push(p.dest);
-  };
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      setErrorMsg('Please enter both your email address and password.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
 
-    const success = await login(email);
-    if (success) {
-      if (email.includes('admin')) router.push('/admin');
-      else if (email.includes('instructor')) router.push('/instructor');
-      else router.push('/client');
-    } else {
-      setErrorMsg('No user account found with that email. Try clicking one of the demo accounts.');
+    try {
+      const res = await login(email, password);
+      if (res.success && res.user) {
+        if (rememberMe && typeof window !== 'undefined') {
+          localStorage.setItem('musclecraft_remember_email', email);
+        }
+
+        // Role-based destination routing
+        if (res.user.role === 'admin') {
+          router.push('/admin');
+        } else if (res.user.role === 'instructor') {
+          router.push('/instructor');
+        } else {
+          router.push('/client');
+        }
+      } else {
+        setErrorMsg(
+          res.error ||
+            'Invalid email or password. Please verify your credentials or contact Coach Adeesha on WhatsApp.'
+        );
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred during sign in.');
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md w-full space-y-8">
+    <div className="max-w-md w-full space-y-7">
+      {/* Brand Header */}
       <div className="text-center">
-        <div className="w-14 h-14 border border-crimson-600/40 rounded-full flex items-center justify-center bg-black/60 mx-auto mb-4 p-2 shadow-crimson-glow">
+        <div className="w-16 h-16 border border-crimson-600/40 rounded-2xl flex items-center justify-center bg-black/70 mx-auto mb-4 p-2 shadow-crimson-glow backdrop-blur-md">
           <Image
             src="/images/musclecraft-emblem.png"
             alt="MuscleCraft Emblem"
-            width={36}
-            height={36}
-            className="object-contain filter drop-shadow-[0_0_6px_rgba(220,38,38,0.6)]"
+            width={42}
+            height={42}
+            className="object-contain filter drop-shadow-[0_0_8px_rgba(220,38,38,0.7)]"
+            priority
           />
         </div>
         <h1
           style={{
             fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-            fontWeight: 700,
+            fontWeight: 800,
             letterSpacing: '-0.02em',
           }}
-          className="text-[28px] sm:text-[32px] text-white tracking-tight mt-2 leading-tight uppercase"
+          className="text-2xl sm:text-3xl text-white tracking-tight leading-tight uppercase"
         >
           Sign In to Muscle<span className="text-crimson-500">Craft</span>
         </h1>
-        <p className="text-xs text-gray-400 mt-2 font-normal">
-          Access your personalized coaching portal, workout videos, and membership records.
+        <p className="text-xs text-gray-400 mt-2 font-normal leading-relaxed">
+          Access your personalized coaching desk, body analytics, workouts, and membership records.
         </p>
       </div>
 
       {/* Notice Banner: 90-Day Coaching Auto-Logout */}
       {reason === 'expired_90day' && (
-        <div className="p-4 rounded-2xl bg-amber-950/50 border-2 border-amber-500/60 text-xs text-amber-200 space-y-2.5 shadow-lg animate-in fade-in duration-300">
+        <div className="p-4 rounded-xl bg-amber-950/50 border border-amber-500/60 text-xs text-amber-200 space-y-2.5 shadow-lg animate-in fade-in duration-300">
           <div className="flex items-center gap-2 font-bold text-amber-300 text-sm">
             <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span>90-Day Coaching Access Concluded</span>
           </div>
           <p className="text-gray-300 text-[11.5px] leading-relaxed">
-            Your 90-Day Better Me online coaching cycle has ended and your session was closed in accordance with cohort access policy. To re-enroll for a new transformation cycle or discuss continuation options, contact Coach Adeesha.
+            Your 90-Day Better Me transformation coaching cycle has concluded and your session has ended in accordance with cohort access policy. To re-enroll or discuss renewal options, contact Coach Adeesha directly.
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <a
               href="https://wa.me/94771234567?text=Hi%20Coach%20Adeesha%2C%20my%2090-Day%20coaching%20period%20has%20concluded.%20I%20would%20like%20to%20discuss%20my%20renewal%20options."
               target="_blank"
               rel="noreferrer"
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
             >
+              <MessageCircle className="w-3.5 h-3.5" />
               WhatsApp Coach Adeesha
             </a>
             <Link
               href="/checkout?tier=coaching_90"
-              className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg text-xs transition-colors cursor-pointer"
             >
               Re-enroll Online (Rs. 8,000)
             </Link>
@@ -153,94 +131,181 @@ function LoginContent() {
         </div>
       )}
 
-      {/* Quick Demo Access Bar */}
-      <div className="bg-[#121215] border border-crimson-900/40 rounded-lg p-5 space-y-3">
-        <span className="text-[11px] font-bold text-crimson-400 uppercase tracking-wider block">
-          ⚡ Instant Reviewer Fast-Pass:
-        </span>
-        <div className="grid grid-cols-1 gap-2">
-          {personas.map((p) => {
-            const Icon = p.icon;
-            return (
-              <button
-                key={p.id}
-                onClick={() => handleSelectPersona(p)}
-                className="w-full flex items-center justify-between p-2.5 rounded bg-[#18181d] hover:bg-[#202028] border border-white/[0.06] hover:border-crimson/50 text-left transition-colors group cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded bg-black/60 flex items-center justify-center text-gray-300 group-hover:text-crimson-400">
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white group-hover:text-crimson-400 transition-colors">
-                      {p.name}
-                    </div>
-                    <div className="text-[10px] text-gray-400">{p.email}</div>
-                  </div>
-                </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${p.badgeColor}`}>
-                  {p.role}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Standard Login Form */}
+      {/* Standard Production Login Form */}
       <form
         onSubmit={handleManualLogin}
-        className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg space-y-4"
+        className="bg-[#101014] border border-white/[0.08] p-6 sm:p-7 rounded-2xl shadow-2xl space-y-5 backdrop-blur-xl"
       >
         {errorMsg && (
-          <div className="p-3 bg-red-950/70 border border-red-800 text-red-200 text-xs rounded">
-            {errorMsg}
+          <div className="p-3.5 bg-red-950/70 border border-red-800/80 text-red-200 text-xs rounded-xl flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="leading-relaxed">{errorMsg}</div>
           </div>
         )}
 
+        {/* Email Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1">
+          <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
             Email Address
           </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="athlete@example.com"
-            className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none transition-colors"
-          />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <Mail className="w-4 h-4" />
+            </div>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="athlete@musclecraft.lk"
+              className="w-full bg-[#16161b] border border-white/[0.1] focus:border-crimson-500 pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-500 outline-none transition-colors"
+            />
+          </div>
         </div>
 
+        {/* Password Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1">
-            Password
-          </label>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••"
-            className="w-full bg-[#18181d] border border-white/[0.1] focus:border-crimson-500 px-3.5 py-2.5 rounded text-sm text-white placeholder-gray-500 outline-none transition-colors"
-          />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              Password
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowHelpModal(true)}
+              className="text-[11px] text-crimson-400 hover:text-crimson-300 font-medium transition-colors cursor-pointer"
+            >
+              Forgot Password?
+            </button>
+          </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••••"
+              className="w-full bg-[#16161b] border border-white/[0.1] focus:border-crimson-500 pl-10 pr-11 py-2.5 rounded-xl text-sm text-white placeholder-gray-500 outline-none transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-white transition-colors cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
+        {/* Remember Me Checkbox */}
+        <div className="flex items-center justify-between pt-0.5">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-700 bg-[#16161b] text-crimson-600 focus:ring-crimson-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-xs text-gray-300 font-medium">Keep me signed in</span>
+          </label>
+          <span className="text-[11px] text-gray-500 flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            Encrypted Session
+          </span>
+        </div>
+
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-[#BA1A1A] hover:bg-[#DC2626] text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded transition-all duration-200 shadow-md hover:shadow-crimson-glow flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3.5 bg-[#BA1A1A] hover:bg-[#DC2626] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-lg hover:shadow-crimson-glow flex items-center justify-center gap-2 cursor-pointer"
         >
-          {loading ? 'Authenticating...' : 'Sign In'}
-          <ArrowRight className="w-4 h-4" />
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>Verifying Credentials...</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In to Portal</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
 
-        <div className="text-center pt-2">
-          <Link href="/checkout" className="text-xs text-crimson-400 hover:text-crimson-300 hover:underline">
-            Need to enroll? Submit bank transfer here →
+        {/* Footer Navigation Links */}
+        <div className="pt-2 border-t border-white/[0.06] text-center space-y-2">
+          <div className="text-xs text-gray-400">
+            Need to activate a membership or submit bank transfer?
+          </div>
+          <Link
+            href="/checkout"
+            className="inline-block text-xs font-semibold text-crimson-400 hover:text-crimson-300 transition-colors cursor-pointer"
+          >
+            Submit Bank Slip & Enroll Now →
           </Link>
         </div>
       </form>
+
+      {/* Forgot Password / Account Assistance Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#121217] border border-white/10 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-crimson-950/60 border border-crimson-800/50 flex items-center justify-center text-crimson-400">
+                <HelpCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Password & Account Recovery</h3>
+                <p className="text-[11px] text-gray-400">Direct Head Coach Verification</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-300 leading-relaxed">
+              For security and athlete privacy, password resets and account re-activations are verified directly by Head Coach Adeesha. Send a quick WhatsApp message with your registered email:
+            </p>
+
+            <div className="p-3 bg-black/40 rounded-xl border border-white/[0.06] space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-gray-400">
+                <span>Head Coach:</span>
+                <strong className="text-white">Adeesha Kumarasingha</strong>
+              </div>
+              <div className="flex items-center justify-between text-gray-400">
+                <span>WhatsApp:</span>
+                <strong className="text-white">+94 77 123 4567</strong>
+              </div>
+              <div className="flex items-center justify-between text-gray-400">
+                <span>Response Time:</span>
+                <span className="text-emerald-400 font-medium">Within 1 hour</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <a
+                href="https://wa.me/94771234567?text=Hi%20Coach%20Adeesha%2C%20I%20need%20assistance%20resetting%20my%20MuscleCraft%20account%20password."
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Message WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowHelpModal(false)}
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

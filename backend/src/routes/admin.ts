@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { AdminService } from '../services/admin-service';
 import { AuthService } from '../services/auth-service';
+import { db } from '../db/mock-db';
+import { DailySalesRecord } from '../types';
 
 const router = Router();
 
@@ -125,6 +127,83 @@ router.post('/packages', (req: Request, res: Response) => {
   }
 
   return res.json({ success: true, packages: packagesStore, admissionFees: admissionStore });
+});
+
+// GET /api/admin/daily-sales
+router.get('/daily-sales', (req: Request, res: Response) => {
+  const records = db.dailySalesRecords;
+  const lifetimeSpend = db.crmAccountLifetimeSpend;
+  const cumulativeSpend = records.reduce((sum, r) => sum + (Number(r.spend) || 0), 0);
+  const cumulativeSales = records.reduce((sum, r) => sum + (Number(r.actual) || 0), 0);
+  const cumulativeOrders = records.reduce((sum, r) => sum + (Number(r.orderCount) || 0), 0);
+  const cumulativeMsgs = records.reduce((sum, r) => sum + (Number(r.messageCount) || 0), 0);
+
+  const activeRecords = records.filter((r) => r.spend > 0 || r.messageCount > 0);
+  const latest = activeRecords[activeRecords.length - 1] || records[0];
+
+  const summary = {
+    accountLifetimeSpend: lifetimeSpend,
+    dailyDate: latest?.date || '11/1/2026',
+    dailySpend: latest?.spend || 0,
+    dailySales: latest?.actual || 0,
+    dailyOrdersCount: latest?.orderCount || 0,
+    dailyAov: latest?.orderCount ? Number((latest.actual / latest.orderCount).toFixed(2)) : 0,
+    dailyCpr: latest?.messageCount ? Number((latest.spend / latest.messageCount).toFixed(2)) : 0,
+    dailyRoas: latest?.spend ? Number((latest.actual / latest.spend).toFixed(2)) : 0,
+    dailyMsgCount: latest?.messageCount || 0,
+    dailyConversionRate: latest?.messageCount ? Number(((latest.orderCount / latest.messageCount) * 100).toFixed(2)) : 0,
+    dailyCac: latest?.orderCount ? Number((latest.spend / latest.orderCount).toFixed(2)) : 0,
+
+    cumulativeSpend,
+    cumulativeSales,
+    cumulativeOrdersCount: cumulativeOrders,
+    cumulativeAov: cumulativeOrders > 0 ? Number((cumulativeSales / cumulativeOrders).toFixed(2)) : 0,
+    cumulativeCpr: cumulativeMsgs > 0 ? Number((cumulativeSpend / cumulativeMsgs).toFixed(2)) : 0,
+    cumulativeRoas: cumulativeSpend > 0 ? Number((cumulativeSales / cumulativeSpend).toFixed(2)) : 0,
+    cumulativeMsgCount: cumulativeMsgs,
+    cumulativeConversionRate: cumulativeMsgs > 0 ? Number(((cumulativeOrders / cumulativeMsgs) * 100).toFixed(2)) : 0,
+    cumulativeCac: cumulativeOrders > 0 ? Number((cumulativeSpend / cumulativeOrders).toFixed(2)) : 0,
+  };
+
+  return res.json({ success: true, records, lifetimeSpend, summary });
+});
+
+// POST /api/admin/daily-sales
+router.post('/daily-sales', (req: Request, res: Response) => {
+  const { record, records, lifetimeSpend, action } = req.body;
+  if (action === 'update_settings' && typeof lifetimeSpend === 'number') {
+    db.crmAccountLifetimeSpend = lifetimeSpend;
+    return res.json({ success: true, lifetimeSpend: db.crmAccountLifetimeSpend });
+  }
+
+  if (action === 'batch_update' && Array.isArray(records)) {
+    db.dailySalesRecords = records;
+    return res.json({ success: true, records: db.dailySalesRecords });
+  }
+
+  if (record && record.date) {
+    const idx = db.dailySalesRecords.findIndex((r) => r.date === record.date || r.id === record.id);
+    const computedRecord: DailySalesRecord = {
+      id: idx >= 0 ? db.dailySalesRecords[idx].id : `dsr_${Date.now()}`,
+      date: record.date,
+      target: Number(record.target) || 0,
+      actual: Number(record.actual) || 0,
+      diff: Number(((Number(record.actual) || 0) - (Number(record.target) || 0)).toFixed(2)),
+      spend: Number(record.spend) || 0,
+      messageCount: Number(record.messageCount) || 0,
+      orderCount: Number(record.orderCount) || 0,
+      roas: Number(record.spend) > 0 ? Number(((Number(record.actual) || 0) / Number(record.spend)).toFixed(2)) : 0,
+      cpr: Number(record.messageCount) > 0 ? Number(((Number(record.spend) || 0) / Number(record.messageCount)).toFixed(2)) : 0,
+      notes: record.notes || '',
+    };
+
+    if (idx >= 0) db.dailySalesRecords[idx] = computedRecord;
+    else db.dailySalesRecords.push(computedRecord);
+
+    return res.json({ success: true, record: computedRecord, records: db.dailySalesRecords });
+  }
+
+  return res.json({ success: true, records: db.dailySalesRecords });
 });
 
 export default router;

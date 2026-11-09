@@ -23,17 +23,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, personaId } = body;
+    const { email, password, personaId } = body;
 
     let user = null;
     if (personaId) {
       user = db.users.find((u) => u.id === personaId) || null;
     } else if (email) {
-      user = AuthService.authenticate(email);
+      user = AuthService.authenticate(email, password);
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'No account found matching this email. Please check your credentials or contact Coach Adeesha.' },
+        { status: 401 }
+      );
     }
 
     return NextResponse.json({ success: true, user });

@@ -376,3 +376,45 @@ export interface AuditLog {
   details: string;
   timestamp: string;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Client Marketing & Daily Sales Review (Musclecraft Daily Dashboard)
+// ─────────────────────────────────────────────────────────────
+export interface DailySalesRecord {
+  id: string;
+  date: string; // e.g. '11/1/2026' or '2026-11-01'
+  target: number; // Daily sales revenue target in LKR
+  actual: number; // Actual sales achieved in LKR
+  diff: number; // Actual - Target (or Target - Actual)
+  spend: number; // Daily marketing/ad spend in LKR
+  messageCount: number; // Leads / WhatsApp / Social inquiries
+  orderCount: number; // Paid orders / converted members
+  roas: number; // Return on Ad Spend = Actual / Spend
+  cpr: number; // Cost Per Result = Spend / Message count
+  notes?: string;
+  updatedAt?: string;
+}
+
+export interface CrmMarketingSummary {
+  accountLifetimeSpend: number; // Total ad account spend e.g. 635,555.20 LKR
+  monthlyTargetSales: number;
+  dailyDate: string; // e.g. '11/1/2026'
+  dailySpend: number;
+  dailySales: number;
+  dailyOrdersCount: number;
+  dailyAov: number; // Average Order Value
+  dailyCpr: number;
+  dailyRoas: number;
+  dailyMsgCount: number;
+  dailyConversionRate: number;
+  dailyCac: number;
+  cumulativeSpend: number;
+  cumulativeSales: number;
+  cumulativeOrdersCount: number;
+  cumulativeAov: number;
+  cumulativeCpr: number;
+  cumulativeRoas: number;
+  cumulativeMsgCount: number;
+  cumulativeConversionRate: number;
+  cumulativeCac: number;
+}

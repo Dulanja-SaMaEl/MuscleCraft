@@ -7,7 +7,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   switchPersona: (personaId: string) => Promise<void>;
-  login: (email: string) => Promise<boolean>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   availablePersonas: { id: string; name: string; role: string; email: string; tier: string }[];
   refreshUser: () => Promise<void>;
@@ -66,25 +66,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password?: string
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, password }),
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      if (res.ok && data.user) {
         setCurrentUser(data.user);
         if (typeof window !== 'undefined') {
           localStorage.setItem('musclecraft_user_id', data.user.id);
         }
-        return true;
+        return { success: true, user: data.user };
       }
-      return false;
-    } catch (err) {
+      return { success: false, error: data.error || 'Invalid email or password' };
+    } catch (err: any) {
       console.error('Login error:', err);
-      return false;
+      return { success: false, error: err.message || 'Connection error during sign in' };
     }
   };
 
