@@ -7,7 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. ENUMS & DOMAINS (Drop if recreating or use IF NOT EXISTS pattern)
+-- 2. ENUMS & DOMAINS (Safe idempotent creation)
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM ('admin', 'instructor', 'client');
 EXCEPTION
@@ -283,7 +283,6 @@ ALTER TABLE public.daily_sales_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.crm_marketing_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper to check if current user is admin
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -295,43 +294,55 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Profiles Policies
+DROP POLICY IF EXISTS "Public profiles can be viewed by authenticated users" ON public.profiles;
 CREATE POLICY "Public profiles can be viewed by authenticated users" ON public.profiles
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles
     FOR UPDATE TO authenticated USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admins full access to profiles" ON public.profiles;
 CREATE POLICY "Admins full access to profiles" ON public.profiles
     FOR ALL TO authenticated USING (is_admin());
 
 -- Gym Packages Policies
+DROP POLICY IF EXISTS "Anyone can view active gym packages" ON public.gym_packages;
 CREATE POLICY "Anyone can view active gym packages" ON public.gym_packages
     FOR SELECT USING (active = true);
 
+DROP POLICY IF EXISTS "Admins can manage packages" ON public.gym_packages;
 CREATE POLICY "Admins can manage packages" ON public.gym_packages
     FOR ALL TO authenticated USING (is_admin());
 
 -- Payments Policies
+DROP POLICY IF EXISTS "Clients can view own payments" ON public.payments;
 CREATE POLICY "Clients can view own payments" ON public.payments
     FOR SELECT TO authenticated USING (auth.uid() = user_id OR is_admin());
 
+DROP POLICY IF EXISTS "Clients can create payments" ON public.payments;
 CREATE POLICY "Clients can create payments" ON public.payments
     FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR is_admin());
 
+DROP POLICY IF EXISTS "Admins can update payments" ON public.payments;
 CREATE POLICY "Admins can update payments" ON public.payments
     FOR UPDATE TO authenticated USING (is_admin());
 
 -- Body Measurements Policies
+DROP POLICY IF EXISTS "Clients can view own measurements or admin" ON public.body_measurements;
 CREATE POLICY "Clients can view own measurements or admin" ON public.body_measurements
     FOR SELECT TO authenticated USING (auth.uid() = user_id OR is_admin());
 
+DROP POLICY IF EXISTS "Clients can insert own measurements" ON public.body_measurements;
 CREATE POLICY "Clients can insert own measurements" ON public.body_measurements
     FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id OR is_admin());
 
+DROP POLICY IF EXISTS "Admins can update measurements (coach feedback)" ON public.body_measurements;
 CREATE POLICY "Admins can update measurements (coach feedback)" ON public.body_measurements
     FOR UPDATE TO authenticated USING (is_admin());
 
 -- Exercise Videos Policies
+DROP POLICY IF EXISTS "Members can view common videos" ON public.exercise_videos;
 CREATE POLICY "Members can view common videos" ON public.exercise_videos
     FOR SELECT TO authenticated USING (
         access_level = 'common'
@@ -339,24 +350,30 @@ CREATE POLICY "Members can view common videos" ON public.exercise_videos
         OR is_admin()
     );
 
+DROP POLICY IF EXISTS "Admins can manage videos" ON public.exercise_videos;
 CREATE POLICY "Admins can manage videos" ON public.exercise_videos
     FOR ALL TO authenticated USING (is_admin());
 
 -- Daily Sales Reviews Policies
+DROP POLICY IF EXISTS "Admins have full access to daily sales" ON public.daily_sales_reviews;
 CREATE POLICY "Admins have full access to daily sales" ON public.daily_sales_reviews
     FOR ALL TO authenticated USING (is_admin());
 
+DROP POLICY IF EXISTS "Admins have full access to crm settings" ON public.crm_marketing_settings;
 CREATE POLICY "Admins have full access to crm settings" ON public.crm_marketing_settings
     FOR ALL TO authenticated USING (is_admin());
 
 -- Broadcast Messages Policies
+DROP POLICY IF EXISTS "Users can read broadcast messages" ON public.broadcast_messages;
 CREATE POLICY "Users can read broadcast messages" ON public.broadcast_messages
     FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Admins can manage broadcast messages" ON public.broadcast_messages;
 CREATE POLICY "Admins can manage broadcast messages" ON public.broadcast_messages
     FOR ALL TO authenticated USING (is_admin());
 
 -- Audit Logs Policies
+DROP POLICY IF EXISTS "Admins can view audit logs" ON public.audit_logs;
 CREATE POLICY "Admins can view audit logs" ON public.audit_logs
     FOR ALL TO authenticated USING (is_admin());
 
@@ -389,6 +406,7 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     category = EXCLUDED.category,
+    duration_type = EXCLUDED.duration_type,
     price = EXCLUDED.price,
     admission_fee = EXCLUDED.admission_fee,
     description = EXCLUDED.description,
