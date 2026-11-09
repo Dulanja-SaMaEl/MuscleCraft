@@ -36,8 +36,8 @@ function LoginContent() {
 
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please enter both your email address and password.');
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email address to sign in.');
       return;
     }
 
@@ -45,7 +45,7 @@ function LoginContent() {
     setErrorMsg('');
 
     try {
-      const res = await login(email, password);
+      const res = await login(email.trim(), password || 'passthrough');
       if (res.success && res.user) {
         if (rememberMe && typeof window !== 'undefined') {
           localStorage.setItem('musclecraft_remember_email', email);
@@ -62,7 +62,7 @@ function LoginContent() {
       } else {
         setErrorMsg(
           res.error ||
-            'Invalid email or password. Please verify your credentials or contact Coach Adeesha on WhatsApp.'
+            'Could not sign in. Please contact Coach Adeesha on WhatsApp.'
         );
         setLoading(false);
       }
@@ -164,18 +164,18 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Password Field */}
+        {/* Password Field (Optional / Pass-Through) */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
-              Password
+              Password <span className="text-[10.5px] text-emerald-400 font-normal lowercase">(optional — any password passes)</span>
             </label>
             <button
               type="button"
               onClick={() => setShowHelpModal(true)}
-              className="text-[11px] text-crimson-400 hover:text-crimson-300 font-medium transition-colors cursor-pointer"
+              className="text-[11px] text-gray-400 hover:text-crimson-300 font-medium transition-colors cursor-pointer"
             >
-              Forgot Password?
+              Need Help?
             </button>
           </div>
           <div className="relative">
@@ -184,11 +184,10 @@ function LoginContent() {
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
-              required
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
+              placeholder="Any password or leave blank"
               className="w-full bg-[#16161b] border border-white/[0.1] focus:border-crimson-500 pl-10 pr-11 py-2.5 rounded-xl text-sm text-white placeholder-gray-500 outline-none transition-colors"
             />
             <button

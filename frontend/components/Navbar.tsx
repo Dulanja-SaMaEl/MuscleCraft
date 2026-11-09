@@ -107,70 +107,8 @@ export default function Navbar() {
 
   return (
     <div ref={headerContainerRef} className="relative z-50">
-      {/* ── Preserved Live Persona Quick Switcher Top Bar ── */}
-      <div className="relative z-50 bg-[#0d0d11]/95 border-b border-white/[0.08] px-3 sm:px-4 py-1 text-xs text-gray-400">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="inline-block w-2 h-2 rounded-full bg-crimson-500 animate-pulse" />
-            <span className="font-medium text-gray-300 hidden sm:inline">Live Persona:</span>
-            <span className="text-white font-semibold">
-              {currentUser ? currentUser.name : 'Guest Visitor'}
-            </span>
-            {currentUser?.tier === 'coaching_90' && (
-              <span className="bg-crimson-900/40 text-crimson-300 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-crimson-500/40">
-                VIP COACHING
-              </span>
-            )}
-            {currentUser?.tier === 'monthly' && (
-              <span className="bg-gray-800 text-gray-300 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">
-                MEMBER
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="text-gray-400 hidden md:inline text-[11px]">Role:</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => switchPersona('usr_client_90')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors ${
-                  currentUser?.id === 'usr_client_90'
-                    ? 'bg-crimson-600 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
-                    : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
-                }`}
-                title="Neluka Rodrigo (3-Month Client)"
-              >
-                Client
-              </button>
-              <button
-                onClick={() => switchPersona('usr_client_90')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors cursor-pointer ${
-                  currentUser?.id === 'usr_client_90' || currentUser?.role === 'client'
-                    ? 'bg-crimson-600 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
-                    : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
-                }`}
-                title="Member Dashboard (Marcus Vance)"
-              >
-                Client
-              </button>
-              <button
-                onClick={() => switchPersona('usr_admin_1')}
-                className={`px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] transition-colors cursor-pointer ${
-                  currentUser?.id === 'usr_admin_1' || currentUser?.role === 'admin'
-                    ? 'bg-crimson-800 text-white font-semibold shadow-[0_0_10px_rgba(186,26,26,0.5)]'
-                    : 'bg-[#18181f] hover:bg-[#202029] text-gray-300'
-                }`}
-                title="Owner / Head Coach Adeesha (Admin)"
-              >
-                Owner Adeesha (Admin)
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── FLOATING PILL NAVBAR: Centered, blur(18px) saturate(1.4), 1px border rgba(255,255,255,.12), Crimson CTA ── */}
-      <div className="fixed top-10 sm:top-12 left-0 right-0 z-40 flex justify-center px-3 sm:px-6 pointer-events-none">
+      <div className="fixed top-4 sm:top-6 left-0 right-0 z-40 flex justify-center px-3 sm:px-6 pointer-events-none">
         <header
           ref={pillRef}
           style={{

@@ -577,14 +577,14 @@ export default function AdminDashboard() {
           LEFT NAVIGATION SIDEBAR (Fixed Desktop, Slide Drawer Mobile)
           ═══════════════════════════════════════════════════════════════ */}
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-64 lg:w-72 bg-[#09090d] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed md:sticky top-0 left-0 h-screen w-72 lg:w-80 shrink-0 bg-[#09090d] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 md:translate-x-0 ${
           mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-4 sm:p-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0 bg-[#0c0c11]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-crimson-950/80 border border-crimson-500/50 flex items-center justify-center p-1 shadow-[0_0_15px_rgba(186,26,26,0.4)]">
+        <div className="p-4 sm:p-5 border-b border-white/[0.06] flex items-center justify-between shrink-0 bg-[#0c0c11]">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-crimson-950/80 border border-crimson-500/50 flex items-center justify-center p-1 shadow-[0_0_15px_rgba(186,26,26,0.4)] shrink-0">
               <Image
                 src="/images/musclecraft-emblem.png"
                 alt="MuscleCraft Emblem"
@@ -593,11 +593,11 @@ export default function AdminDashboard() {
                 className="object-contain"
               />
             </div>
-            <div>
-              <span className="font-extrabold tracking-wider text-white text-sm uppercase leading-tight block">
+            <div className="min-w-0">
+              <span className="font-extrabold tracking-wider text-white text-sm uppercase leading-tight block whitespace-nowrap">
                 Muscle<span className="text-crimson-500">Craft</span>
               </span>
-              <span className="text-[9px] font-mono font-bold tracking-widest text-crimson-400 uppercase block">
+              <span className="text-[9px] font-mono font-bold tracking-widest text-crimson-400 uppercase block whitespace-nowrap">
                 Owner Portal
               </span>
             </div>
@@ -605,7 +605,7 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setMobileSidebarOpen(false)}
-            className="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            className="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shrink-0"
             aria-label="Close sidebar"
           >
             <X className="w-5 h-5" />
@@ -613,7 +613,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Scrollable Navigation Items */}
-        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1" aria-label="Admin Navigation">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]" aria-label="Admin Navigation">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -624,22 +624,22 @@ export default function AdminDashboard() {
                   setActiveTab(item.id as any);
                   setMobileSidebarOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[44px] cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[42px] cursor-pointer ${
                   isActive
                     ? 'bg-crimson-600 text-white shadow-crimson-glow font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-400'}`} />
-                  <span className="truncate">{item.label}</span>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  <span className="truncate whitespace-nowrap text-left">{item.label}</span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
                   {item.statusDot === 'green' && (
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   )}
                   {item.badge && (
-                    <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                    <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap">
                       {item.badge}
                     </span>
                   )}
@@ -650,13 +650,13 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Sidebar Footer: Owner Identity & Fast Public Link */}
-        <div className="p-3 border-t border-white/[0.06] bg-[#0c0c11] flex-shrink-0 space-y-2">
+        <div className="p-3 border-t border-white/[0.06] bg-[#0c0c11] shrink-0 space-y-2">
           {/* Owner Profile Card */}
           <div className="p-2.5 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
               alt="Adeesha Kumarasingha"
-              className="w-8 h-8 rounded-full object-cover border border-crimson-500/50 flex-shrink-0"
+              className="w-8 h-8 rounded-full object-cover border border-crimson-500/50 shrink-0"
             />
             <div className="min-w-0 flex-1">
               <span className="text-xs font-bold text-white block truncate">

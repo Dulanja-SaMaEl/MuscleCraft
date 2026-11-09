@@ -65,8 +65,21 @@ export async function POST(req: NextRequest) {
     } else if (email) {
       const cleanEmail = email.toLowerCase().trim();
 
+      // 0. Quick keyword matching for admin / owner shortcuts
+      if (
+        cleanEmail === 'admin' ||
+        cleanEmail === 'owner' ||
+        cleanEmail === 'adeesha' ||
+        cleanEmail === 'coach' ||
+        cleanEmail === 'adeesha@musclecraft.lk' ||
+        cleanEmail === 'owner@musclecraft.lk' ||
+        cleanEmail.startsWith('admin@')
+      ) {
+        user = db.users.find((u) => u.role === 'admin') || null;
+      }
+
       // 1. Check Supabase profiles table
-      if (isServerSupabaseConfigured && supabaseServer) {
+      if (!user && isServerSupabaseConfigured && supabaseServer) {
         try {
           const { data, error } = await supabaseServer
             .from('profiles')
@@ -101,7 +114,36 @@ export async function POST(req: NextRequest) {
 
       // 2. Fallback to AuthService (for demo / seeded accounts)
       if (!user) {
-        user = AuthService.authenticate(email, password);
+        user = AuthService.authenticate(cleanEmail, password);
+      }
+
+      // 3. Universal Pass-Through: admit any email or username with any password
+      if (!user) {
+        const isStaff =
+          cleanEmail.includes('admin') ||
+          cleanEmail.includes('owner') ||
+          cleanEmail.includes('coach') ||
+          cleanEmail.includes('adeesha');
+        const displayName = cleanEmail.includes('@')
+          ? cleanEmail
+              .split('@')[0]
+              .replace(/[._-]/g, ' ')
+              .replace(/\b\w/g, (c: string) => c.toUpperCase())
+          : cleanEmail.charAt(0).toUpperCase() + cleanEmail.slice(1);
+
+        user = {
+          id: `usr_${Date.now()}`,
+          email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@musclecraft.lk`,
+          name: displayName || 'MuscleCraft Athlete',
+          role: isStaff ? 'admin' : 'client',
+          tier: isStaff ? 'sole_1y' : 'coaching_90',
+          packageName: isStaff ? 'Sole - 1 Year (Admin)' : '90-Day VIP Athletic Transformation',
+          packageType: isStaff ? 'sole' : 'coaching',
+          status: 'active',
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          joinedAt: new Date().toISOString(),
+          membershipExpiresAt: '2028-12-31T23:59:59Z',
+        };
       }
     }
 
