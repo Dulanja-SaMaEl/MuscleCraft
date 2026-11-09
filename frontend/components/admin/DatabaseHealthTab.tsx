@@ -238,10 +238,31 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
               Evaluated directly by the Next.js App Router server runtime in your current deployment.
             </p>
           </div>
-          <span className="text-[11px] font-mono text-gray-400">
-            Node Env: <span className="text-white font-bold">{healthData?.environment || 'production'}</span>
-          </span>
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300">
+              Vercel Env: <strong className="text-white uppercase">{healthData?.vercelEnv || healthData?.environment || 'production'}</strong>
+            </span>
+            <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-300">
+              Node: <strong className="text-white">{healthData?.environment || 'production'}</strong>
+            </span>
+          </div>
         </div>
+
+        {/* Warning if running in Vercel Preview while variables are Production-only */}
+        {!isSupabaseConfigured && healthData?.vercelEnv === 'preview' && (
+          <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/60 text-xs text-amber-200 flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <strong className="block font-bold text-amber-300">
+                You are viewing a Vercel Preview Deployment (branch or preview URL)
+              </strong>
+              <span>
+                Your environment variables in Vercel currently only have <strong>&ldquo;Production&rdquo;</strong> selected.
+                In your Vercel Dashboard, edit each variable and check <strong>&ldquo;Preview&rdquo;</strong> as well, then click <strong>Redeploy</strong>.
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
           <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
@@ -294,6 +315,23 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
             )}
           </div>
         </div>
+
+        {/* Runtime Environment Key Inventory */}
+        {diag.matchingKeyNames && diag.matchingKeyNames.length > 0 ? (
+          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-[11px] font-mono text-gray-400 flex flex-wrap items-center gap-2">
+            <span className="text-gray-500 font-sans">Detected Environment Keys:</span>
+            {diag.matchingKeyNames.map((k: string) => (
+              <span key={k} className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50 text-emerald-300 font-bold">
+                {k}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] text-[11px] font-mono text-gray-400">
+            <span className="text-gray-500 font-sans">Detected Environment Keys: </span>
+            <span className="text-amber-400">No Supabase keys detected in this Vercel deployment. (Check &ldquo;Preview&rdquo; checkbox or click &ldquo;Redeploy&rdquo;)</span>
+          </div>
+        )}
 
         {/* Actionable Deployment Instructions */}
         {!isSupabaseConfigured && (

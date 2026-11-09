@@ -62,7 +62,9 @@ const nextConfig = {
     if (backendUrl) {
       const cleanUrl = backendUrl.replace(/\/$/, '');
       return {
-        beforeFiles: [
+        // Use afterFiles so Next.js App Router routes (/api/health, /api/admin/*, etc.)
+        // are prioritized and never hijacked if an external backend is configured.
+        afterFiles: [
           {
             source: '/api/:path*',
             destination: `${cleanUrl}/api/:path*`,

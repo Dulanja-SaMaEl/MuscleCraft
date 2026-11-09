@@ -60,6 +60,7 @@ export async function GET() {
   const isSecretKey = Boolean(
     process.env.SUPABASE_SECRET_KEY ||
     process.env.SECRET_KEY ||
+    process.env['secret_key'] ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
     supabaseKey.startsWith('sb_secret_')
@@ -67,6 +68,8 @@ export async function GET() {
   const isPubKey = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_PUBLISHABLE_KEY ||
+    process.env['NEXT_PUBLIC_publishable key'] ||
+    process.env['publishable key'] ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_ANON_KEY ||
@@ -78,6 +81,24 @@ export async function GET() {
     : isPubKey
     ? 'Publishable / Client (Standard Access)'
     : (supabaseKey ? 'Custom Supabase Key' : 'none');
+
+  // Safely collect matching environment key names (NAMES ONLY, NEVER VALUES)
+  const matchingKeyNames = Object.keys(process.env).filter(k => {
+    const lower = k.toLowerCase();
+    return (
+      lower.includes('supabase') ||
+      lower.includes('secret') ||
+      lower.includes('publishable') ||
+      lower.includes('anon') ||
+      lower.includes('vercel') ||
+      lower.includes('database') ||
+      lower.includes('backend') ||
+      lower.includes('next_public')
+    );
+  });
+
+  const vercelEnv = process.env.VERCEL_ENV || 'production';
+  const vercelUrl = process.env.VERCEL_URL || null;
 
   // Check which exact env vars are set
   const checkedEnvVars = {
@@ -115,7 +136,9 @@ export async function GET() {
   };
 
   const actionGuidance = !isServerSupabaseConfigured
-    ? 'Step 1: Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY) in Vercel/Railway Environment Variables. Step 2: Ensure "Production" is checked. Step 3: Trigger a REDEPLOY so the runtime receives the variables.'
+    ? (vercelEnv === 'preview'
+      ? 'NOTICE: Running on Vercel Preview environment (VERCEL_ENV=preview). Your environment variables in Vercel currently only have "Production" checked! Go to Vercel -> Project Settings -> Environment Variables, edit NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, and SUPABASE_SECRET_KEY, and check both "Production" and "Preview". Then Redeploy.'
+      : 'Step 1: In Vercel Project Settings -> Environment Variables, ensure Production, Preview, and Development are ALL checked. Step 2: Go to Deployments -> [Latest Deployment (•••)] -> Redeploy so the build receives the variables.')
     : (!isConnected
     ? `Supabase host reached but connection failed: ${errorMessage}. Run supabase/schema.sql in the Supabase SQL Editor.`
     : 'Supabase Cloud Database connected and operational.');
@@ -124,6 +147,8 @@ export async function GET() {
     status: isConnected ? 'healthy' : (isServerSupabaseConfigured ? 'degraded' : 'local_fallback'),
     backendEngine: 'Next.js App Router API & Supabase Edge',
     environment: process.env.NODE_ENV || 'production',
+    vercelEnv,
+    vercelUrl,
     serverTimestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime ? process.uptime() : 120),
     supabaseConfigured: isServerSupabaseConfigured,
@@ -148,6 +173,9 @@ export async function GET() {
       checkedEnvVars,
       actionGuidance,
       pingResult,
+      vercelEnv,
+      matchingKeyNames,
+      totalEnvKeysCount: Object.keys(process.env).length,
     },
     services: {
       authService: 'operational',
