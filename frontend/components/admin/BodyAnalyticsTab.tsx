@@ -141,26 +141,26 @@ export default function BodyAnalyticsTab({
           <div className="text-[11px] text-gray-400 mt-1.5">Across all enrolled members</div>
         </div>
 
-        <div className="bg-[#111116] border border-amber-600/30 p-5 rounded-2xl bg-gradient-to-br from-[#111116] to-amber-950/20">
-          <div className="flex items-center justify-between text-amber-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
+          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
             <span>Pending Coach Reviews</span>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-300 font-mono mt-2">
             {pendingCount}
           </div>
-          <div className="text-[11px] text-amber-400/80 mt-1.5">Requires Coach Adeesha cues</div>
+          <div className="text-[11px] text-gray-400 mt-1.5">Requires Coach Adeesha cues</div>
         </div>
 
-        <div className="bg-[#111116] border border-emerald-600/30 p-5 rounded-2xl bg-gradient-to-br from-[#111116] to-emerald-950/20">
-          <div className="flex items-center justify-between text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
+          <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
             <span>Coach Feedback Delivered</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-300 font-mono mt-2">
             {reviewedCount}
           </div>
-          <div className="text-[11px] text-emerald-400/80 mt-1.5">Reviewed and verified</div>
+          <div className="text-[11px] text-gray-400 mt-1.5">Reviewed and verified</div>
         </div>
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
@@ -398,12 +398,12 @@ export default function BodyAnalyticsTab({
                   {/* Feedback Status Pill */}
                   <div className="flex items-center gap-3">
                     {hasFeedback ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Feedback Delivered</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/70 border border-amber-600/60 text-amber-300 text-xs font-bold animate-pulse">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-medium">
                         <Clock className="w-3.5 h-3.5 text-amber-400" />
                         <span>Awaiting Coach Review</span>
                       </span>

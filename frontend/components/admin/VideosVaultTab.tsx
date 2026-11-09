@@ -177,24 +177,24 @@ export default function VideosVaultTab({
           <span className="text-[11px] text-gray-400 mt-1 block">Indexed in MuscleCraft CDN</span>
         </div>
 
-        <div className="bg-[#111116] border border-crimson-800/40 p-5 rounded-2xl bg-gradient-to-br from-[#111116] to-crimson-950/20">
-          <span className="text-crimson-300 text-xs font-semibold uppercase tracking-wider block">
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
+          <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
             Client-Specific Sessions
           </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-crimson-300 font-mono mt-2 block">
+          <span className="text-2xl sm:text-3xl font-extrabold text-crimson-400 font-mono mt-2 block">
             {clientSpecificCount}
           </span>
-          <span className="text-[11px] text-crimson-400/80 mt-1 block">Private technique audits</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">Private technique audits</span>
         </div>
 
-        <div className="bg-[#111116] border border-emerald-800/40 p-5 rounded-2xl bg-gradient-to-br from-[#111116] to-emerald-950/20">
-          <span className="text-emerald-300 text-xs font-semibold uppercase tracking-wider block">
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
+          <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
             All-Member Library
           </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-emerald-300 font-mono mt-2 block">
+          <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono mt-2 block">
             {allMembersCount}
           </span>
-          <span className="text-[11px] text-emerald-400/80 mt-1 block">Accessible to all athletes</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">Accessible to all athletes</span>
         </div>
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">

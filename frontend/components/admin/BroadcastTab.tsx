@@ -113,8 +113,8 @@ export default function BroadcastTab({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span>Broadcast Gateway Ready</span>
           </span>
         </div>

@@ -365,13 +365,13 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
         <div className="xl:col-span-3 space-y-4">
           <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-4">
             {/* Header: Date + Brand Name */}
-            <div className="bg-gradient-to-r from-[#1e1528] to-[#151222] p-3.5 rounded-2xl border border-purple-500/20 flex items-center justify-between text-white shadow-sm">
+            <div className="bg-[#14141c] p-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-between text-white shadow-sm">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-400 block">CRM Review</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">CRM Review</span>
                 <span className="text-sm font-extrabold font-mono text-white">{summary.dailyDate}</span>
               </div>
-              <span className="text-xs font-black tracking-widest uppercase bg-purple-950/80 px-2.5 py-1 rounded-lg border border-purple-500/30 text-purple-200">
-                Musclecraft
+              <span className="text-xs font-mono font-bold tracking-wider uppercase bg-white/[0.06] px-2.5 py-1 rounded-lg border border-white/[0.08] text-zinc-200">
+                MuscleCraft
               </span>
             </div>
 
@@ -379,7 +379,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
             <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#0c0c11]">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#161424] text-purple-300 font-bold border-b border-white/[0.08] text-[10.5px]">
+                  <tr className="bg-[#161622] text-zinc-400 font-bold border-b border-white/[0.08] text-[10.5px]">
                     <th className="py-2.5 px-3 text-left whitespace-nowrap">CRM Metric</th>
                     <th className="py-2.5 px-2 text-right whitespace-nowrap">Daily</th>
                     <th className="py-2.5 px-3 text-right whitespace-nowrap bg-white/[0.02]">Total MTD</th>
@@ -449,8 +449,8 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   {/* Msg Count */}
                   <tr className="hover:bg-white/[0.02]">
                     <td className="py-2.5 px-3 font-sans font-semibold text-gray-200">Msg count</td>
-                    <td className="py-2.5 px-3 text-right text-cyan-400 font-bold">{summary.dailyMsgCount}</td>
-                    <td className="py-2.5 px-3 text-right text-cyan-400 font-bold bg-white/[0.02]">{summary.cumulativeMsgCount}</td>
+                    <td className="py-2.5 px-3 text-right text-zinc-200 font-bold">{summary.dailyMsgCount}</td>
+                    <td className="py-2.5 px-3 text-right text-zinc-200 font-bold bg-white/[0.02]">{summary.cumulativeMsgCount}</td>
                   </tr>
 
                   {/* Conversion Rate */}
@@ -475,7 +475,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
             </div>
 
             <div className="p-3 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[11px] text-gray-400 flex items-start gap-2">
-              <Info className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-crimson-400 flex-shrink-0 mt-0.5" />
               <span>
                 Lifetime Ad Account Spend calibrated to <strong>Rs. {summary.accountLifetimeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong> LKR.
               </span>
@@ -492,7 +492,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
             </div>
             <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08] shadow-sm">
               <span className="text-[10px] text-gray-400 uppercase font-bold block">Total Leads</span>
-              <span className="text-lg font-mono font-extrabold text-cyan-300 mt-1 block">
+              <span className="text-lg font-mono font-extrabold text-zinc-200 mt-1 block">
                 {summary.cumulativeMsgCount} Inquiries
               </span>
             </div>
@@ -574,7 +574,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                         </td>
 
                         {/* Message count */}
-                        <td className={`py-2.5 px-2 text-center font-bold ${r.messageCount > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
+                        <td className={`py-2.5 px-2 text-center font-bold ${r.messageCount > 0 ? 'text-zinc-200' : 'text-gray-500'}`}>
                           {r.messageCount || 0}
                         </td>
 
@@ -609,24 +609,24 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   })}
                 </tbody>
 
-                {/* ── YELLOW CUMULATIVE FOOTER ROW (EXACTLY LIKE CLIENT SPREADSHEET) ── */}
-                <tfoot className="sticky bottom-0 z-10 bg-[#fff2cc] text-[#111111] font-mono font-bold text-xs border-t-2 border-amber-600 shadow-2xl">
+                {/* ── CUMULATIVE SUMMARY FOOTER ROW ── */}
+                <tfoot className="sticky bottom-0 z-10 bg-[#161622] text-white font-mono font-bold text-xs border-t border-white/20 shadow-2xl backdrop-blur-md">
                   <tr>
-                    <td className="py-3 px-2.5 uppercase font-sans tracking-wider">Cumulative</td>
-                    <td className="py-3 px-2 text-right">{summary.monthlyTargetSales.toFixed(2)}</td>
-                    <td className="py-3 px-2.5 text-right border-x border-amber-400 text-emerald-950 font-black">
+                    <td className="py-3 px-2.5 uppercase font-sans tracking-wider text-zinc-300 font-extrabold">Cumulative</td>
+                    <td className="py-3 px-2 text-right text-zinc-400 font-bold">{summary.monthlyTargetSales.toFixed(2)}</td>
+                    <td className="py-3 px-2.5 text-right border-x border-white/10 text-emerald-400 font-black bg-emerald-950/20">
                       {summary.cumulativeSales.toFixed(2)}
                     </td>
-                    <td className="py-3 px-2 text-right">
+                    <td className="py-3 px-2 text-right text-zinc-300 font-bold">
                       {(summary.cumulativeSales - summary.monthlyTargetSales).toFixed(2)}
                     </td>
-                    <td className="py-3 px-2.5 text-right text-amber-950 font-black">
+                    <td className="py-3 px-2.5 text-right text-amber-300 font-black">
                       {summary.cumulativeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-2 text-center text-black font-black">{summary.cumulativeMsgCount}</td>
-                    <td className="py-3 px-2 text-center text-black font-black">{summary.cumulativeOrdersCount}</td>
-                    <td className="py-3 px-2 text-right">{summary.cumulativeRoas.toFixed(1)}</td>
-                    <td className="py-3 px-2.5 text-right text-[#BA1A1A] font-black">
+                    <td className="py-3 px-2 text-center text-white font-black">{summary.cumulativeMsgCount}</td>
+                    <td className="py-3 px-2 text-center text-white font-black">{summary.cumulativeOrdersCount}</td>
+                    <td className="py-3 px-2 text-right text-zinc-200">{summary.cumulativeRoas.toFixed(1)}</td>
+                    <td className="py-3 px-2.5 text-right text-crimson-400 font-black">
                       {summary.cumulativeCpr.toFixed(0)}
                     </td>
                     <td className="py-3 px-2"></td>

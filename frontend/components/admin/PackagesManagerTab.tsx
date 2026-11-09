@@ -396,7 +396,7 @@ export default function PackagesManagerTab({
       <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-400/80" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Couple Membership Packages (2 Partner Access)
             </h3>
@@ -405,7 +405,7 @@ export default function PackagesManagerTab({
             </span>
           </div>
           <span className="text-xs text-gray-400 hidden sm:inline">
-            One-time admission: <strong className="text-purple-400">Rs. {admissionFees.couple.toLocaleString()} LKR</strong>
+            One-time admission: <strong className="text-rose-300 font-mono">Rs. {admissionFees.couple.toLocaleString()} LKR</strong>
           </span>
         </div>
 
@@ -419,15 +419,15 @@ export default function PackagesManagerTab({
             return (
               <div
                 key={pkg.id}
-                className="p-5 rounded-2xl bg-[#16161f] border border-white/[0.06] hover:border-purple-500/40 transition-all relative flex flex-col justify-between group"
+                className="p-5 rounded-2xl bg-[#16161f] border border-white/[0.06] hover:border-rose-500/40 transition-all relative flex flex-col justify-between group"
               >
                 {pkg.popular && (
-                  <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-purple-600 text-white px-2 py-0.5 rounded-full shadow">
+                  <span className="absolute top-3 right-3 text-[9px] font-mono font-medium uppercase tracking-wider bg-rose-500/15 border border-rose-500/30 text-rose-300 px-2 py-0.5 rounded-full">
                     Popular Duo
                   </span>
                 )}
                 {isBest && !pkg.popular && (
-                  <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-indigo-600 text-white px-2 py-0.5 rounded-full shadow">
+                  <span className="absolute top-3 right-3 text-[9px] font-mono font-medium uppercase tracking-wider bg-white/[0.08] border border-white/[0.1] text-zinc-300 px-2 py-0.5 rounded-full">
                     Best Value
                   </span>
                 )}
@@ -441,7 +441,7 @@ export default function PackagesManagerTab({
                     <span className="text-[11px] text-gray-400">/ 2 people</span>
                   </div>
 
-                  <span className="text-[11px] text-purple-400 font-semibold block mt-0.5">
+                  <span className="text-[11px] text-rose-300/90 font-medium block mt-0.5">
                     ~Rs. {perPerson.toLocaleString()} per person {pkg.savings ? `(${pkg.savings})` : ''}
                   </span>
 
@@ -460,7 +460,7 @@ export default function PackagesManagerTab({
                     <div className="mt-3 pt-2.5 border-t border-white/[0.04] space-y-1">
                       {pkg.features.slice(0, 3).map((feat, idx) => (
                         <div key={idx} className="text-[10.5px] text-gray-400 flex items-start gap-1.5 line-clamp-1">
-                          <Check className="w-3 h-3 text-purple-400 flex-shrink-0 mt-0.5" />
+                          <Check className="w-3 h-3 text-rose-400 flex-shrink-0 mt-0.5" />
                           <span>{feat}</span>
                         </div>
                       ))}
@@ -477,7 +477,7 @@ export default function PackagesManagerTab({
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(pkg)}
-                    className="w-full py-2 px-3 bg-white/[0.04] hover:bg-purple-600 hover:text-white text-gray-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 px-3 bg-white/[0.04] hover:bg-crimson-600 hover:text-white text-gray-300 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Package</span>
@@ -493,7 +493,7 @@ export default function PackagesManagerTab({
       <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
               Signature Coaching & Specialty Programs (Coach Adeesha)
             </h3>
@@ -515,10 +515,10 @@ export default function PackagesManagerTab({
             return (
               <div
                 key={pkg.id}
-                className="p-5 rounded-2xl bg-[#16161f] border border-amber-500/20 hover:border-amber-500/50 transition-all relative flex flex-col justify-between group shadow-lg"
+                className="p-5 rounded-2xl bg-[#16161f] border border-white/[0.06] hover:border-amber-500/40 transition-all relative flex flex-col justify-between group shadow-sm"
               >
                 {pkg.popular && (
-                  <span className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-wider bg-amber-500 text-black px-2 py-0.5 rounded-full shadow">
+                  <span className="absolute top-3 right-3 text-[9px] font-mono font-medium uppercase tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300 px-2 py-0.5 rounded-full">
                     {is90Day ? 'VIP Flagship' : 'High Intensity'}
                   </span>
                 )}
@@ -574,7 +574,7 @@ export default function PackagesManagerTab({
                   <button
                     type="button"
                     onClick={() => handleOpenEdit(pkg)}
-                    className="w-full py-2 px-3 bg-white/[0.04] hover:bg-amber-500 hover:text-black text-gray-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 px-3 bg-white/[0.04] hover:bg-amber-600 hover:text-white text-gray-300 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Edit Package</span>

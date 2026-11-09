@@ -116,7 +116,7 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
         <button
           onClick={handlePing}
           disabled={isPinging}
-          className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-60 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
         >
           <RefreshCw className={`w-4 h-4 ${isPinging ? 'animate-spin' : ''}`} />
           <span>{isPinging ? 'Pinging Database...' : 'Run Diagnostics Ping'}</span>
@@ -127,17 +127,14 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
           2. LIVE CONNECTION BANNER (TRUTH-BASED)
           ─────────────────────────────────────────────────────────── */}
       {isSupabaseConfigured && isConnected ? (
-        <div className="bg-gradient-to-r from-emerald-950/70 via-[#111116] to-emerald-950/50 border border-emerald-600/60 p-6 rounded-3xl shadow-xl">
+        <div className="bg-[#111116] border border-emerald-500/40 p-6 rounded-3xl shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="relative flex h-5 w-5 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-5 w-5 bg-emerald-500"></span>
-              </div>
+              <span className="w-3 h-3 rounded-full bg-emerald-400 shrink-0" />
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-white">Supabase Cloud Database Connected & Active</h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600 text-[10.5px] font-mono font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-[10.5px] font-mono font-medium">
                     LIVE PRODUCTION
                   </span>
                 </div>
@@ -148,11 +145,11 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
             </div>
 
             <div className="flex items-center gap-3 font-mono text-xs text-gray-300">
-              <span className="px-3 py-1.5 rounded-xl bg-black/50 border border-emerald-500/30 flex items-center gap-1.5 text-emerald-300">
+              <span className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-emerald-500/30 flex items-center gap-1.5 text-emerald-300">
                 <Wifi className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Ping: {lastPingMs}ms</span>
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 flex items-center gap-1.5">
+              <span className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-gray-400" />
                 <span>Checked: {lastPingTime}</span>
               </span>
@@ -160,16 +157,16 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
           </div>
         </div>
       ) : isSupabaseConfigured && !isConnected ? (
-        <div className="bg-gradient-to-r from-rose-950/80 via-[#141014] to-rose-950/60 border border-rose-600/60 p-6 rounded-3xl shadow-xl">
+        <div className="bg-[#111116] border border-rose-500/40 p-6 rounded-3xl shadow-xl">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="p-2 rounded-xl bg-rose-900/60 border border-rose-500 text-rose-300 flex-shrink-0 mt-1">
+              <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex-shrink-0 mt-1">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-white">Supabase Credentials Detected, But Connection Failed</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-rose-900 text-rose-200 text-[10.5px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 text-[10.5px] font-mono font-medium">
                     ATTENTION REQUIRED
                   </span>
                 </div>
@@ -188,23 +185,23 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
 
             <button
               onClick={handlePing}
-              className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex-shrink-0"
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-medium transition-colors cursor-pointer flex-shrink-0"
             >
               Retry Connection
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-amber-950/70 via-[#16130e] to-amber-950/50 border border-amber-600/60 p-6 rounded-3xl shadow-xl">
+        <div className="bg-[#111116] border border-amber-500/30 p-6 rounded-3xl shadow-xl">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="p-2 rounded-xl bg-amber-900/60 border border-amber-500 text-amber-300 flex-shrink-0 mt-1">
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex-shrink-0 mt-1">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-white">Local Cache Active — Supabase Credentials Not Detected</h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-900/80 text-amber-200 border border-amber-500/50 text-[10.5px] font-mono font-bold">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10.5px] font-mono font-medium">
                     OFFLINE FALLBACK
                   </span>
                 </div>
@@ -216,7 +213,7 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
 
             <button
               onClick={copyEnvSnippet}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all cursor-pointer flex-shrink-0"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-medium border border-white/[0.08] transition-all cursor-pointer flex-shrink-0"
             >
               {copiedEnv ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               <span>{copiedEnv ? 'Copied .env' : 'Copy Variables'}</span>
@@ -335,7 +332,7 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
 
         {/* Actionable Deployment Instructions */}
         {!isSupabaseConfigured && (
-          <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-950/30 via-[#181313] to-amber-950/20 border border-amber-600/30 text-xs text-gray-300 space-y-3 font-sans">
+          <div className="p-5 rounded-2xl bg-[#14141c] border border-white/[0.08] text-xs text-gray-300 space-y-3 font-sans">
             <p className="font-bold text-amber-300 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>How to connect your live Supabase cloud database on Vercel / Railway:</span>
@@ -360,10 +357,10 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
                 <strong className="text-white">Environment Scope:</strong> Ensure <strong>Production</strong>, <strong>Preview</strong>, and <strong>Development</strong> checkboxes are checked.
               </li>
               <li className="pt-1">
-                <span className="inline-block px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 mr-1.5">
+                <span className="inline-block px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-mono text-[10px] font-medium border border-amber-500/30 mr-1.5">
                   CRITICAL STEP
                 </span>
-                <strong className="text-amber-200">Trigger a Redeploy:</strong> In Vercel, go to <strong>Deployments &rarr; [Latest Deployment (•••)] &rarr; Redeploy</strong>. Next.js inlines variables at build time, so an already-running deployment will not receive newly saved environment variables until you trigger a Redeploy!
+                <strong className="text-zinc-200">Trigger a Redeploy:</strong> In Vercel, go to <strong>Deployments &rarr; [Latest Deployment (•••)] &rarr; Redeploy</strong>. Next.js inlines variables at build time, so an already-running deployment will not receive newly saved environment variables until you trigger a Redeploy!
               </li>
             </ol>
           </div>

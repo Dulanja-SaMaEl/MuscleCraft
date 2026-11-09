@@ -636,10 +636,18 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-2">
                   {item.statusDot === 'green' && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   )}
                   {item.badge && (
-                    <span className="bg-amber-500 text-black text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    <span
+                      className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors ${
+                        isActive
+                          ? 'bg-white/20 text-white border-white/25'
+                          : item.badge.includes('Due') || item.badge.includes('Slips') || !isNaN(Number(item.badge))
+                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                          : 'bg-white/[0.06] text-zinc-300 border-white/[0.08]'
+                      }`}
+                    >
                       {item.badge}
                     </span>
                   )}
@@ -725,37 +733,20 @@ export default function AdminDashboard() {
             {/* Live Database Status Pill (Clean Single-Line, Never Wraps) */}
             <button
               onClick={() => setActiveTab('database_health')}
-              className={`hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
-                healthData?.supabaseConfigured && healthData?.database?.connected
-                  ? 'bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                  : healthData?.supabaseConfigured
-                  ? 'bg-rose-950/60 hover:bg-rose-900/60 border-rose-500/40 text-rose-300'
-                  : 'bg-amber-950/50 hover:bg-amber-900/60 border-amber-500/40 text-amber-300'
-              }`}
+              className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 bg-[#13131b] hover:bg-[#181824] text-zinc-300 whitespace-nowrap shrink-0 shadow-sm"
               title="Click to view Database & Backend Telemetry"
               aria-label="View Database and Backend Telemetry"
             >
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span
-                  className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                    healthData?.supabaseConfigured && healthData?.database?.connected
-                      ? 'bg-emerald-400'
-                      : healthData?.supabaseConfigured
-                      ? 'bg-rose-400'
-                      : 'bg-amber-400'
-                  }`}
-                ></span>
-                <span
-                  className={`relative inline-flex rounded-full h-2 w-2 ${
-                    healthData?.supabaseConfigured && healthData?.database?.connected
-                      ? 'bg-emerald-500'
-                      : healthData?.supabaseConfigured
-                      ? 'bg-rose-500'
-                      : 'bg-amber-500'
-                  }`}
-                ></span>
-              </span>
-              <span className="font-semibold tracking-tight">
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  healthData?.supabaseConfigured && healthData?.database?.connected
+                    ? 'bg-emerald-400'
+                    : healthData?.supabaseConfigured
+                    ? 'bg-rose-400'
+                    : 'bg-amber-400'
+                }`}
+              />
+              <span className="font-medium tracking-tight">
                 {healthData?.supabaseConfigured && healthData?.database?.connected
                   ? `Supabase Live (${healthData?.database?.latencyMs || 21}ms)`
                   : healthData?.supabaseConfigured
@@ -764,7 +755,7 @@ export default function AdminDashboard() {
               </span>
             </button>
 
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs font-mono font-semibold whitespace-nowrap shrink-0">
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#13131b] border border-white/[0.08] text-zinc-300 text-xs font-mono font-medium whitespace-nowrap shrink-0">
               <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Rs. {stats.totalRevenue.toLocaleString()} MTD</span>
             </div>
@@ -776,10 +767,10 @@ export default function AdminDashboard() {
                   const el = document.getElementById('renewals-desk');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-crimson-950/80 border border-crimson-600/70 text-crimson-300 hover:text-white hover:bg-crimson-900/80 text-xs font-bold animate-pulse cursor-pointer shadow-[0_0_15px_rgba(186,26,26,0.3)] transition-colors whitespace-nowrap shrink-0"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-mono font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
                 title={`${expiredMembersCount} Expired, ${expiringMembersCount} Expiring Soon`}
               >
-                <AlertCircle className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                 <span>{expiredMembersCount + expiringMembersCount} Renewals Due</span>
               </button>
             )}
@@ -787,16 +778,16 @@ export default function AdminDashboard() {
             {stats.pendingTransfers > 0 && (
               <button
                 onClick={() => setActiveTab('payments')}
-                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-600/50 text-amber-300 text-xs font-bold animate-pulse cursor-pointer whitespace-nowrap shrink-0"
+                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-mono font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
               >
-                <Clock className="w-3.5 h-3.5 shrink-0" />
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>{stats.pendingTransfers} Slips Waiting</span>
               </button>
             )}
 
             <button
               onClick={() => loadAdminData()}
-              className="p-2 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white rounded-xl border border-white/10 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
+              className="p-2 bg-[#13131b] hover:bg-white/[0.06] text-zinc-400 hover:text-white rounded-xl border border-white/[0.08] transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center shrink-0"
               title="Refresh Data"
               aria-label="Refresh telemetry data"
             >
@@ -806,7 +797,7 @@ export default function AdminDashboard() {
             {/* Direct Logout CTA */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-600/30 text-rose-300 hover:text-rose-100 text-xs font-semibold transition-colors cursor-pointer min-h-[36px] whitespace-nowrap shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-950/40 border border-white/[0.08] hover:border-rose-500/30 text-zinc-400 hover:text-rose-300 text-xs font-medium transition-colors cursor-pointer min-h-[36px] whitespace-nowrap shrink-0"
               title="Sign Out of Admin Portal"
               aria-label="Sign Out of Admin Portal"
             >
@@ -881,8 +872,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-[#111116] border border-amber-600/30 p-5 rounded-2xl relative overflow-hidden bg-gradient-to-br from-[#111116] to-amber-950/20">
-                  <div className="flex items-center justify-between text-amber-400 text-xs font-semibold uppercase tracking-wider">
+                <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl relative overflow-hidden">
+                  <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
                     <span>Pending Bank Slips</span>
                     <Clock className="w-4 h-4 text-amber-400" />
                   </div>
@@ -891,7 +882,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     onClick={() => setActiveTab('payments')}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 underline mt-2 block font-medium cursor-pointer"
+                    className="text-[11px] text-amber-400/90 hover:text-amber-300 underline mt-2 block font-medium cursor-pointer"
                   >
                     Verify bank slips now →
                   </button>
@@ -918,8 +909,8 @@ export default function AdminDashboard() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-amber-950/70 border border-amber-600/50 flex items-center justify-center text-amber-400">
-                      <AlertCircle className="w-5 h-5 animate-pulse" />
+                    <div className="w-10 h-10 rounded-2xl bg-amber-950/40 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <AlertCircle className="w-5 h-5" />
                     </div>
                     <div>
                       <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -932,10 +923,10 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-950/80 border border-rose-600/50 text-rose-300">
+                    <span className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300">
                       {expiredMembersCount} Overdue / Expired
                     </span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-950/80 border border-amber-600/50 text-amber-300">
+                    <span className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300">
                       {expiringMembersCount} Expiring Soon (≤ 7d)
                     </span>
                   </div>
@@ -1148,11 +1139,11 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-gray-300 font-medium">1. Total Registered</span>
+                          <span className="text-zinc-300 font-medium">1. Total Registered</span>
                           <span className="text-white font-mono font-bold">{stats.registrationFunnel.registered}</span>
                         </div>
-                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: '100%' }} />
+                        <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.04] rounded-full overflow-hidden">
+                          <div className="h-full bg-zinc-500/80 rounded-full" style={{ width: '100%' }} />
                         </div>
                       </div>
 
@@ -1165,9 +1156,9 @@ export default function AdminDashboard() {
                             {stats.registrationFunnel.approved} ({Math.round((stats.registrationFunnel.approved / stats.registrationFunnel.registered) * 100)}%)
                           </span>
                         </div>
-                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.04] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                            className="h-full bg-emerald-500/90 rounded-full"
                             style={{ width: `${(stats.registrationFunnel.approved / stats.registrationFunnel.registered) * 100}%` }}
                           />
                         </div>
@@ -1180,9 +1171,9 @@ export default function AdminDashboard() {
                           </span>
                           <span className="text-amber-300 font-mono font-bold">{stats.registrationFunnel.pending}</span>
                         </div>
-                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.04] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                            className="h-full bg-amber-500/80 rounded-full"
                             style={{ width: `${(stats.registrationFunnel.pending / stats.registrationFunnel.registered) * 100}%` }}
                           />
                         </div>
@@ -1195,9 +1186,9 @@ export default function AdminDashboard() {
                           </span>
                           <span className="text-rose-300 font-mono font-bold">{stats.registrationFunnel.notApproved}</span>
                         </div>
-                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2.5 w-full bg-white/[0.04] border border-white/[0.04] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-rose-500 rounded-full"
+                            className="h-full bg-rose-500/70 rounded-full"
                             style={{ width: `${(stats.registrationFunnel.notApproved / stats.registrationFunnel.registered) * 100}%` }}
                           />
                         </div>
@@ -1244,7 +1235,7 @@ export default function AdminDashboard() {
                         <span className="font-mono font-bold text-white">23% (20 Pairs)</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-500 rounded-full" style={{ width: '23%' }} />
+                        <div className="h-full bg-rose-400/80 rounded-full" style={{ width: '23%' }} />
                       </div>
                     </div>
                     <div>
@@ -1294,7 +1285,7 @@ export default function AdminDashboard() {
                         <span className="font-mono font-bold text-white">20%</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: '20%' }} />
+                        <div className="h-full bg-zinc-400 rounded-full" style={{ width: '20%' }} />
                       </div>
                     </div>
                     <div>
@@ -1351,21 +1342,21 @@ export default function AdminDashboard() {
               </div>
 
               {/* Quick Link Card to Musclecraft Daily Dashboard */}
-              <div className="bg-gradient-to-r from-crimson-950/60 via-[#161622] to-amber-950/40 border border-crimson-700/50 p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="bg-[#111116] border border-white/[0.08] hover:border-crimson-600/40 p-6 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-crimson-600 flex items-center justify-center text-white flex-shrink-0 shadow-[0_0_20px_rgba(186,26,26,0.5)]">
+                  <div className="w-12 h-12 rounded-2xl bg-crimson-600/20 border border-crimson-500/30 flex items-center justify-center text-crimson-400 flex-shrink-0">
                     <Target className="w-6 h-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-crimson-600 text-white">
+                      <span className="text-[10px] font-mono font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-zinc-300">
                         Client Sheet Integrated
                       </span>
                       <h3 className="text-base font-bold text-white">
                         Musclecraft Daily Dashboard (Ad Spend, Inquiries & Sales)
                       </h3>
                     </div>
-                    <p className="text-xs text-gray-300 mt-1">
+                    <p className="text-xs text-gray-400 mt-1">
                       Monitor daily Meta Ads spend, WhatsApp lead counts, CPR, ROAS, and Target vs Actual sales directly.
                     </p>
                   </div>
@@ -1373,7 +1364,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('daily_dashboard')}
-                  className="px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer whitespace-nowrap"
+                  className="px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs rounded-xl transition-all shadow-md cursor-pointer whitespace-nowrap"
                 >
                   Open Daily Dashboard →
                 </button>
@@ -1514,13 +1505,13 @@ export default function AdminDashboard() {
                                 </span>
                               )}
                               {p.status === 'pending' && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50 animate-pulse">
-                                  <Clock className="w-3 h-3" /> Awaiting Review
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+                                  <Clock className="w-3 h-3 text-amber-400" /> Awaiting Review
                                 </span>
                               )}
                               {p.status === 'rejected' && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/50">
-                                  <XCircle className="w-3 h-3" /> Rejected
+                                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30">
+                                  <XCircle className="w-3 h-3 text-rose-400" /> Rejected
                                 </span>
                               )}
                             </td>
@@ -1529,13 +1520,13 @@ export default function AdminDashboard() {
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={() => handleApprovePayment(p.id)}
-                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-sm"
                                   >
                                     <Check className="w-3.5 h-3.5" /> Approve
                                   </button>
                                   <button
                                     onClick={() => handleRejectPayment(p.id)}
-                                    className="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30 rounded-lg font-medium text-xs transition-colors cursor-pointer"
                                   >
                                     Reject
                                   </button>
@@ -1744,10 +1735,10 @@ export default function AdminDashboard() {
                                 )}
                                 <button
                                   onClick={() => handleToggleMemberStatus(m)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                                     m.status === 'active'
-                                      ? 'bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800'
-                                      : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-800'
+                                      ? 'bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30'
+                                      : 'bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/30'
                                   }`}
                                 >
                                   {m.status === 'active' ? 'Suspend' : 'Activate'}
