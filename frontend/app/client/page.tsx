@@ -23,6 +23,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { BodyMeasurement, DietPlan, Appointment, ExerciseVideo, PaymentRecord } from '@/lib/types';
+import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -728,12 +729,12 @@ export default function ClientDashboard() {
                   </button>
                 </div>
 
-                <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/[0.1] relative">
-                  <video
-                    src={selectedVideo.videoUrl}
-                    controls
+                <div className="w-full rounded-2xl overflow-hidden border border-gold/40 shadow-2xl relative">
+                  <MuscleCraftVideoPlayer
+                    src={selectedVideo.videoUrl || ''}
+                    poster={selectedVideo.thumbnailUrl}
+                    title={selectedVideo.title}
                     autoPlay
-                    className="w-full h-full object-cover"
                   />
                 </div>
 

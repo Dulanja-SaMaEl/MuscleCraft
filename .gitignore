@@ -25,6 +25,10 @@ dist/
 *.tsbuildinfo
 !frontend/public/**
 
+# Uploads
+frontend/public/uploads/videos/*
+!frontend/public/uploads/videos/.gitkeep
+
 # Environment Variables
 .env
 .env*.local

@@ -18,8 +18,18 @@ import {
   ExternalLink,
   Shield,
   Layers,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  FileVideo,
+  HardDrive,
+  Link as LinkIcon,
+  HelpCircle,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import { ExerciseVideo, User as UserType, VideoTargetScope } from '@/lib/types';
+import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
 
 interface VideosVaultTabProps {
   videos: ExerciseVideo[];
@@ -70,6 +80,90 @@ export default function VideosVaultTab({
     thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
     description: '',
   });
+
+  // Video Upload & Percentage Progress State
+  const [sourceMode, setSourceMode] = useState<'upload' | 'url'>('upload');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [uploadSpeed, setUploadSpeed] = useState<string>('');
+  const [uploadedBytes, setUploadedBytes] = useState<string>('');
+  const [uploadError, setUploadError] = useState<string>('');
+  const [showR2GuideModal, setShowR2GuideModal] = useState<boolean>(false);
+
+  const handleUploadFile = (file: File) => {
+    setSelectedFile(file);
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError('');
+    setUploadStatus('Initializing video stream upload...');
+
+    const startTime = Date.now();
+    const xhr = new XMLHttpRequest();
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    formDataObj.append('title', formData.title || file.name);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        if (elapsedSec > 0.3) {
+          const speedMBps = event.loaded / (1024 * 1024) / elapsedSec;
+          setUploadSpeed(`${speedMBps.toFixed(1)} MB/s`);
+        }
+        const loadedMB = (event.loaded / (1024 * 1024)).toFixed(1);
+        const totalMB = (event.total / (1024 * 1024)).toFixed(1);
+        setUploadedBytes(`${loadedMB} MB / ${totalMB} MB`);
+
+        if (percent < 100) {
+          setUploadStatus(`Uploading to Video Storage Vault... ${percent}%`);
+        } else {
+          setUploadStatus('Verifying & indexing video stream (100%)...');
+        }
+      }
+    };
+
+    xhr.onload = () => {
+      setIsUploading(false);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          if (res.url) {
+            setFormData((prev) => ({
+              ...prev,
+              videoUrl: res.url,
+              title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+            }));
+            setUploadProgress(100);
+            const providerName =
+              res.storageProvider === 'cloudflare_r2'
+                ? 'Cloudflare R2 Bucket'
+                : res.storageProvider === 'supabase_storage'
+                ? 'Supabase Storage'
+                : 'MuscleCraft Local Vault';
+            setUploadStatus(`Upload Complete (100%) — Stored in ${providerName}`);
+          }
+        } catch (e) {
+          setUploadError('Failed to parse upload response from server.');
+        }
+      } else {
+        setUploadError(`Upload failed with status HTTP ${xhr.status}. Please check file format or size.`);
+      }
+    };
+
+    xhr.onerror = () => {
+      setIsUploading(false);
+      setUploadError('Connection error while uploading video. Please check your network.');
+    };
+
+    const storedUid = typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
+    xhr.open('POST', `/api/videos/upload?userId=${encodeURIComponent(storedUid)}`);
+    xhr.send(formDataObj);
+  };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const clientMembers = members.filter((m) => m.role === 'client');
@@ -156,13 +250,24 @@ export default function VideosVaultTab({
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-5 py-2.5 bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 hover:to-rose-500 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(186,26,26,0.4)] flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Submit New Session Video</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowR2GuideModal(true)}
+            className="px-4 py-2.5 bg-[#161620] hover:bg-[#1e1e2d] border border-amber-500/40 text-amber-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 min-h-[44px] cursor-pointer shadow-sm hover:border-amber-400"
+          >
+            <HardDrive className="w-4 h-4 text-amber-400" />
+            <span>Cloudflare R2 Storage Guide</span>
+          </button>
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-5 py-2.5 bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 hover:to-rose-500 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(186,26,26,0.4)] flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Submit New Session Video</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Overview */}
@@ -568,21 +673,169 @@ export default function VideosVaultTab({
                   </div>
                 </div>
 
-                {/* Video URL */}
+                {/* Video Source Segmented Selector */}
                 <div>
-                  <label htmlFor="videoUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Video Stream URL:
-                  </label>
-                  <input
-                    id="videoUrl"
-                    type="url"
-                    required
-                    placeholder="https://commondatastorage.googleapis.com/... or MP4 link"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-300">
+                      Video Source & Storage:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowR2GuideModal(true)}
+                      className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <HardDrive className="w-3 h-3" />
+                      <span>Cloudflare R2 Free Setup Guide</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-[#111116] border border-white/10 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setSourceMode('upload')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        sourceMode === 'upload'
+                          ? 'bg-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.4)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      <span>Upload Video File (%)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSourceMode('url')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        sourceMode === 'url'
+                          ? 'bg-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.4)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      <span>Paste Stream / R2 URL</span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Source Mode 1: File Upload with Progress Percentage */}
+                {sourceMode === 'upload' && (
+                  <div className="space-y-3">
+                    <div className="relative border-2 border-dashed border-white/15 hover:border-crimson-500/60 rounded-2xl p-5 text-center bg-[#14141c]/80 transition-all">
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadFile(file);
+                        }}
+                        disabled={isUploading}
+                        id="videoFileInput"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                      />
+
+                      <div className="flex flex-col items-center pointer-events-none">
+                        <div className="w-12 h-12 rounded-2xl bg-crimson-950/80 border border-crimson-700/60 text-crimson-400 flex items-center justify-center mb-2.5 shadow-[0_0_20px_rgba(186,26,26,0.3)]">
+                          {isUploading ? (
+                            <Loader2 className="w-6 h-6 animate-spin text-crimson-400" />
+                          ) : (
+                            <UploadCloud className="w-6 h-6 text-crimson-400" />
+                          )}
+                        </div>
+
+                        {selectedFile ? (
+                          <div className="space-y-1">
+                            <span className="text-white font-bold text-xs block line-clamp-1">
+                              {selectedFile.name}
+                            </span>
+                            <span className="text-[11px] font-mono text-gray-400 block">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB • {selectedFile.type || 'Video file'}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <span className="text-white font-bold text-xs block">
+                              Click or Drag & Drop Video File to Upload
+                            </span>
+                            <span className="text-[11px] text-gray-400 block">
+                              Supports MP4, MOV, WebM, MKV (Stored in Cloudflare R2 / Storage Vault)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Bar & Percentage Section */}
+                    {(isUploading || uploadProgress > 0) && (
+                      <div id="uploadProgressSection" className="p-4 rounded-2xl bg-[#0f0f15] border border-white/10 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-200 font-bold flex items-center gap-2">
+                            {isUploading && <Loader2 className="w-4 h-4 animate-spin text-crimson-400" />}
+                            {uploadProgress === 100 && !uploadError && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                            <span>{uploadStatus || 'Uploading...'}</span>
+                          </span>
+
+                          <span className="font-mono font-black text-sm text-crimson-400 bg-crimson-950 px-3 py-1 rounded-lg border border-crimson-700 shadow-sm">
+                            {uploadProgress}%
+                          </span>
+                        </div>
+
+                        {/* Progress Bar Track */}
+                        <div className="w-full h-3.5 bg-black/80 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
+                          <div
+                            className="h-full bg-gradient-to-r from-crimson-600 via-rose-500 to-crimson-400 rounded-full transition-all duration-200 shadow-[0_0_15px_rgba(186,26,26,0.8)]"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+
+                        {/* Secondary Stats */}
+                        <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 pt-0.5">
+                          <span>{uploadedBytes || 'Transferring chunks...'}</span>
+                          {uploadSpeed && <span className="text-emerald-400 font-semibold">{uploadSpeed}</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Error Banner */}
+                    {uploadError && (
+                      <div className="p-3 bg-rose-950/80 border border-rose-800 text-rose-300 text-xs rounded-xl flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{uploadError}</span>
+                      </div>
+                    )}
+
+                    {/* Current Uploaded Stream URL (read-only verification) */}
+                    {formData.videoUrl && (
+                      <div className="p-2.5 rounded-xl bg-black/40 border border-emerald-900/40 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
+                        <span className="line-clamp-1 truncate mr-2">
+                          ✓ Ready URL: {formData.videoUrl}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold text-emerald-500 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 flex-shrink-0">
+                          Synced
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Source Mode 2: Direct URL */}
+                {sourceMode === 'url' && (
+                  <div>
+                    <label htmlFor="videoUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
+                      Video Stream URL:
+                    </label>
+                    <input
+                      id="videoUrl"
+                      type="url"
+                      required
+                      placeholder="https://pub-xxx.r2.dev/video.mp4, YouTube, or MP4 link"
+                      value={formData.videoUrl}
+                      onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                      className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">
+                      Supports direct Cloudflare R2 links, YouTube links (e.g. youtube.com/watch?v=...), and MP4 files.
+                    </span>
+                  </div>
+                )}
 
                 {/* Thumbnail URL */}
                 <div>
@@ -671,14 +924,12 @@ export default function VideosVaultTab({
 
             {/* Video Player */}
             <div className="relative aspect-video w-full bg-black">
-              <video
+              <MuscleCraftVideoPlayer
                 src={activePlaybackVideo.videoUrl}
-                controls
+                poster={activePlaybackVideo.thumbnailUrl}
+                title={activePlaybackVideo.title}
                 autoPlay
-                className="w-full h-full object-contain"
-              >
-                Your browser does not support HTML5 video playback.
-              </video>
+              />
             </div>
 
             {/* Video Details */}
@@ -705,6 +956,103 @@ export default function VideosVaultTab({
                   {activePlaybackVideo.description}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────
+          6. CLOUDFLARE R2 FREE STORAGE SETUP GUIDE MODAL
+          ─────────────────────────────────────────────────────────── */}
+      {showR2GuideModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+        >
+          <div className="bg-[#111116] border border-amber-500/50 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="p-5 border-b border-white/[0.08] flex items-center justify-between bg-gradient-to-r from-amber-950/40 to-black">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-950 border border-amber-700/60 text-amber-400">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-white font-extrabold text-base">
+                    Cloudflare R2 Free Video Storage Setup
+                  </h3>
+                  <span className="text-[11px] text-amber-400 font-mono">
+                    10 GB Free Forever • Zero Egress / Bandwidth Fees
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowR2GuideModal(false)}
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 cursor-pointer"
+                aria-label="Close guide"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Guide Content */}
+            <div className="p-6 space-y-4 overflow-y-auto text-xs text-gray-300 leading-relaxed">
+              <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-800/40 text-amber-200">
+                💡 <strong>Why Cloudflare R2?</strong> Unlike AWS S3 or Supabase Storage, Cloudflare R2 includes <strong>10 GB free storage</strong> and charges <strong>$0 for video streaming bandwidth</strong>, meaning athletes can watch your coaching videos unlimited times without incurring bandwidth charges!
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-[#161620] border border-white/10 space-y-1">
+                  <span className="font-bold text-white block text-xs">
+                    Step 1: Open Cloudflare Dashboard & Create Bucket
+                  </span>
+                  <p className="text-gray-400 text-[11px]">
+                    Go to <strong className="text-gray-200">cloudflare.com</strong> → Left menu: <strong className="text-gray-200">R2 Object Storage</strong> → Click <strong className="text-white">Create Bucket</strong> → Name it <code className="text-amber-400">musclecraft-videos</code>.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#161620] border border-white/10 space-y-1">
+                  <span className="font-bold text-white block text-xs">
+                    Step 2: Enable Public URL Access
+                  </span>
+                  <p className="text-gray-400 text-[11px]">
+                    Inside your new bucket, click the <strong className="text-gray-200">Settings</strong> tab → Scroll to <strong className="text-gray-200">Public Access</strong> → Click <strong className="text-white">Allow Access</strong> under <em>R2.dev Subdomain</em> (or connect a custom domain like <code className="text-amber-400">videos.musclecraft.lk</code>). Copy this public URL.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#161620] border border-white/10 space-y-1">
+                  <span className="font-bold text-white block text-xs">
+                    Step 3: Create S3 API Token (Access Key & Secret)
+                  </span>
+                  <p className="text-gray-400 text-[11px]">
+                    Go back to the R2 overview page → Click <strong className="text-gray-200">Manage R2 API Tokens</strong> (top right) → Click <strong className="text-white">Create API Token</strong> → Set permissions to <strong className="text-emerald-400">Object Read & Write</strong> → Click Create. Copy your <strong className="text-gray-200">Access Key ID</strong> and <strong className="text-gray-200">Secret Access Key</strong>.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#161620] border border-white/10 space-y-2">
+                  <span className="font-bold text-white block text-xs">
+                    Step 4: Add Environment Variables in Vercel (or .env.local)
+                  </span>
+                  <div className="p-3 rounded-lg bg-black/80 font-mono text-[11px] text-gray-200 space-y-1 select-all border border-white/10">
+                    <div>R2_ACCOUNT_ID=your_cloudflare_account_id</div>
+                    <div>R2_ACCESS_KEY_ID=your_access_key_id</div>
+                    <div>R2_SECRET_ACCESS_KEY=your_secret_access_key</div>
+                    <div>R2_BUCKET_NAME=musclecraft-videos</div>
+                    <div>R2_PUBLIC_DOMAIN=https://pub-xxxxxxxxxxxx.r2.dev</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-white/[0.08] flex items-center justify-end bg-[#0e0e13]">
+              <button
+                onClick={() => setShowR2GuideModal(false)}
+                className="px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md"
+              >
+                Done / Got It
+              </button>
             </div>
           </div>
         </div>
