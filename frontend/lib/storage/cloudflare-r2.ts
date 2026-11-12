@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadBucketCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadBucketCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Helper to sanitize env values
@@ -294,4 +294,32 @@ export async function getPresignedR2UploadUrl(params: {
   }
 
   return { uploadUrl, publicUrl, key: params.key };
+}
+
+/**
+ * Permanently deletes an object from Cloudflare R2 bucket
+ */
+export async function deleteFromR2(key: string): Promise<{ success: boolean; key: string; error?: string }> {
+  const config = getR2Credentials();
+  const client = getR2Client();
+
+  if (!client || !config.isConfigured) {
+    console.warn(`[Cloudflare R2] Deletion skipped for ${key}: R2 credentials are not configured.`);
+    return { success: false, key, error: 'R2 storage credentials not configured.' };
+  }
+
+  try {
+    const cleanKey = key.replace(/^\/+/, '');
+    const command = new DeleteObjectCommand({
+      Bucket: config.bucketName,
+      Key: cleanKey,
+    });
+
+    await client.send(command);
+    console.log(`[Cloudflare R2] Successfully deleted object "${cleanKey}" from bucket "${config.bucketName}".`);
+    return { success: true, key: cleanKey };
+  } catch (err: any) {
+    console.error(`[Cloudflare R2] Error deleting object "${key}" from bucket "${config.bucketName}":`, err);
+    return { success: false, key, error: err.message || 'R2 DeleteObjectCommand failed.' };
+  }
 }

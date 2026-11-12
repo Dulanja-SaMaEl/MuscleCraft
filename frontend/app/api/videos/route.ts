@@ -3,6 +3,10 @@ import { VideoService } from '@/lib/services/video-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { AddVideoSchema } from '@/lib/validation';
 import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { deleteFromR2 } from '@/lib/storage/cloudflare-r2';
+import { db } from '@/lib/db/mock-db';
+import fs from 'fs';
+import path from 'path';
 import { ExerciseVideo } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
@@ -119,7 +123,74 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
     }
 
-    // 1. Delete from Supabase PostgreSQL cloud database if active
+    // 1. Locate video metadata before deleting to identify R2 object key
+    let videoUrl: string | undefined = undefined;
+    let cfStreamId: string | undefined = undefined;
+
+    if (isServerSupabaseConfigured && supabaseServer) {
+      try {
+        const { data: sbRow } = await supabaseServer
+          .from('exercise_videos')
+          .select('video_url, cf_stream_id')
+          .eq('id', videoId)
+          .maybeSingle();
+        if (sbRow) {
+          videoUrl = sbRow.video_url;
+          cfStreamId = sbRow.cf_stream_id;
+        }
+      } catch (findErr) {
+        console.warn('Could not query video from Supabase before deletion:', findErr);
+      }
+    }
+
+    if (!videoUrl) {
+      const localVid = db.videos.find((v) => v.id === videoId);
+      if (localVid) {
+        videoUrl = localVid.videoUrl;
+        cfStreamId = localVid.cfStreamId;
+      }
+    }
+
+    // 2. Extract Cloudflare R2 object key (e.g. vault_179..._name.mp4)
+    let r2Deleted = false;
+    let r2Key: string | null = null;
+
+    if (cfStreamId && cfStreamId.startsWith('vault_')) {
+      r2Key = cfStreamId;
+    } else if (videoUrl) {
+      if (videoUrl.includes('key=')) {
+        try {
+          const u = new URL(videoUrl, 'http://localhost');
+          r2Key = u.searchParams.get('key');
+        } catch (_) {}
+      }
+      if (!r2Key) {
+        const match = videoUrl.match(/vault_[a-zA-Z0-9_\-\.]+/);
+        if (match) {
+          r2Key = match[0];
+        }
+      }
+    }
+
+    // 3. Delete physical object file from Cloudflare R2 bucket
+    if (r2Key) {
+      try {
+        const r2Res = await deleteFromR2(r2Key);
+        r2Deleted = r2Res.success;
+      } catch (r2DelErr) {
+        console.warn('[Cloudflare R2] Deletion failed:', r2DelErr);
+      }
+
+      // Also clean up local file if stored on server filesystem
+      try {
+        const localPath = path.join(process.cwd(), 'public', 'uploads', 'videos', r2Key);
+        if (fs.existsSync(localPath)) {
+          fs.unlinkSync(localPath);
+        }
+      } catch (_) {}
+    }
+
+    // 4. Delete from Supabase PostgreSQL cloud database if active
     let supabaseDeleted = false;
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
@@ -134,10 +205,19 @@ export async function DELETE(req: NextRequest) {
       }
     }
 
-    // 2. Also remove from local in-memory cache
+    // 5. Also remove from local in-memory cache
     const success = VideoService.deleteVideo(caller, videoId);
 
-    return NextResponse.json({ success: true, supabaseDeleted, videoId });
+    return NextResponse.json({
+      success: true,
+      supabaseDeleted,
+      r2Deleted,
+      r2Key,
+      videoId,
+      message: r2Deleted
+        ? `Video and Cloudflare R2 storage object (${r2Key}) permanently deleted.`
+        : `Video record deleted from database.`,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

@@ -330,7 +330,7 @@ export default function MuscleCraftVideoPlayer({
       {/* Custom Video Control Bar */}
       {!hasError && (
         <div
-          className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-4 pb-3 pt-8 z-30 transition-opacity duration-300 ${
+          className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/85 to-transparent backdrop-blur-md px-4 pb-3 pt-8 z-30 transition-opacity duration-300 border-t border-white/[0.04] ${
             showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
@@ -410,9 +410,9 @@ export default function MuscleCraftVideoPlayer({
                 />
               </div>
 
-              {/* Time display */}
-              <div className="font-mono text-[11px] text-gray-300">
-                <span>{formatTime(currentTime)}</span>
+              {/* Time display with protective badge to prevent text collision */}
+              <div className="font-mono text-[11px] text-gray-200 bg-black/60 px-2 py-0.5 rounded-md border border-white/10 shadow-sm select-none flex items-center">
+                <span className="font-semibold text-white">{formatTime(currentTime)}</span>
                 <span className="text-gray-500 mx-1">/</span>
                 <span className="text-gray-400">{formatTime(duration)}</span>
               </div>

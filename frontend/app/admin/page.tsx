@@ -78,6 +78,10 @@ const DailySalesDashboardTab = dynamic(() => import('@/components/admin/DailySal
   loading: () => <TabLoadingState name="Daily Sales & Ad CRM" />,
   ssr: false,
 });
+const BankApprovalsTab = dynamic(() => import('@/components/admin/BankApprovalsTab'), {
+  loading: () => <TabLoadingState name="Bank Transfer Slips & Approvals" />,
+  ssr: false,
+});
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -310,11 +314,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRejectPayment = async (paymentId: string) => {
-    const reason = prompt(
-      'Enter rejection reason (e.g., Unverified slip reference, amount mismatch, duplicate submission):',
-      'Unverified deposit slip reference'
-    );
+  const handleRejectPayment = async (paymentId: string, customReason?: string) => {
+    let reason = customReason;
+    if (!reason && typeof window !== 'undefined') {
+      reason = prompt(
+        'Enter rejection reason (e.g., Unverified slip reference, amount mismatch, duplicate submission):',
+        'Unverified deposit slip reference'
+      ) || undefined;
+    }
     if (!reason) return;
 
     try {
@@ -1480,154 +1487,15 @@ export default function AdminDashboard() {
           )}
 
           {/* ───────────────────────────────────────────────────────────
-              TAB 2: BANK APPROVALS
+              TAB 2: BANK APPROVALS & PAYMENT SLIPS VERIFICATION
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'payments' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-crimson-500" />
-                    Bank Transfer Slips & Payment Verification
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Review submitted bank slips, match reference codes, and approve activations in 1-click.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-[#181822] p-1 rounded-xl border border-white/5 text-xs">
-                  {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setPaymentFilter(st)}
-                      className={`px-3 py-1.5 rounded-lg font-semibold uppercase text-[11px] transition-all cursor-pointer ${
-                        paymentFilter === st
-                          ? 'bg-crimson-600 text-white font-bold shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Search */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search by reference code (TRF-MC-...), member name, or bank..."
-                  value={paymentSearch}
-                  onChange={(e) => setPaymentSearch(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Table */}
-              <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#16161f] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
-                      <tr>
-                        <th className="py-3.5 px-4 font-bold">Reference / Date</th>
-                        <th className="py-3.5 px-4 font-bold">Member & Contact</th>
-                        <th className="py-3.5 px-4 font-bold">Package & Tier</th>
-                        <th className="py-3.5 px-4 font-bold">Amount (LKR)</th>
-                        <th className="py-3.5 px-4 font-bold">Bank & Slip Details</th>
-                        <th className="py-3.5 px-4 font-bold">Status</th>
-                        <th className="py-3.5 px-4 font-bold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {filteredPayments.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="text-center py-12 text-gray-500">
-                            No payment records found matching the filter criteria.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredPayments.map((p) => (
-                          <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              <span className="font-mono font-bold text-white block">{p.referenceCode}</span>
-                              <span className="text-[10px] text-gray-500">{new Date(p.createdAt).toLocaleDateString()}</span>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="font-semibold text-white block">{p.userName}</span>
-                              <span className="text-[11px] text-gray-400 block">{p.userEmail}</span>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="font-semibold text-gray-200 block">{p.packageName || p.tier}</span>
-                              {p.admissionFee && p.admissionFee > 0 ? (
-                                <span className="text-[10px] text-crimson-400 font-mono">
-                                  Includes Rs. {p.admissionFee.toLocaleString()} Admission
-                                </span>
-                              ) : null}
-                            </td>
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              <span className="text-sm font-bold font-mono text-white block">
-                                Rs. {p.amount.toLocaleString()} LKR
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 max-w-xs">
-                              <span className="text-gray-300 font-medium block truncate">{p.bankName}</span>
-                              <span className="text-[11px] text-gray-400 block truncate">
-                                Sender: {p.senderAccountName}
-                              </span>
-                              {p.receiptNotes && (
-                                <span className="text-[10px] text-gray-500 italic block truncate mt-0.5">
-                                  Note: {p.receiptNotes}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              {p.status === 'approved' && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
-                                  <CheckCircle2 className="w-3 h-3" /> Approved
-                                </span>
-                              )}
-                              {p.status === 'pending' && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
-                                  <Clock className="w-3 h-3 text-amber-400" /> Awaiting Review
-                                </span>
-                              )}
-                              {p.status === 'rejected' && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30">
-                                  <XCircle className="w-3 h-3 text-rose-400" /> Rejected
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 text-right whitespace-nowrap">
-                              {p.status === 'pending' ? (
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() => handleApprovePayment(p.id)}
-                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-sm"
-                                  >
-                                    <Check className="w-3.5 h-3.5" /> Approve
-                                  </button>
-                                  <button
-                                    onClick={() => handleRejectPayment(p.id)}
-                                    className="px-3 py-1.5 bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30 rounded-lg font-medium text-xs transition-colors cursor-pointer"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-[11px] text-gray-500">
-                                  {p.reviewedAt ? `Reviewed ${new Date(p.reviewedAt).toLocaleDateString()}` : 'Archived'}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <BankApprovalsTab
+              payments={payments}
+              onApprove={handleApprovePayment}
+              onReject={handleRejectPayment}
+              onRefresh={loadAdminData}
+            />
           )}
 
           {/* ───────────────────────────────────────────────────────────

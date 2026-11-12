@@ -7,6 +7,7 @@ export const SubmitBankTransferSchema = z.object({
   transferDate: z.string().min(8).max(20),
   senderAccountName: z.string().min(2).max(100),
   receiptNotes: z.string().max(500).optional(),
+  receiptUrl: z.string().optional(),
 });
 
 export const ApprovePaymentSchema = z.object({
@@ -77,8 +78,8 @@ export const AddVideoSchema = z.object({
   targetClientId: z.string().optional(),
   targetClientName: z.string().optional(),
   cfStreamId: z.string().default('cf_stream_local'),
-  videoUrl: z.string().url().optional(),
-  thumbnailUrl: z.string().url(),
+  videoUrl: z.string().min(1).optional(),
+  thumbnailUrl: z.string().min(1).optional().default('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80'),
   description: z.preprocess(
     (val) => (typeof val === 'string' && val.trim() ? val.trim() : 'Personalized coaching session video.'),
     z.string().max(1000)

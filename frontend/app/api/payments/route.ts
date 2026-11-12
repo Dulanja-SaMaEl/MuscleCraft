@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       transferDate: validated.transferDate,
       senderAccountName: validated.senderAccountName,
       receiptNotes: validated.receiptNotes,
+      receiptUrl: validated.receiptUrl,
     });
 
     if (isServerSupabaseConfigured && supabaseServer) {
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
           transfer_date: payment.transferDate,
           sender_account_name: payment.senderAccountName,
           receipt_notes: payment.receiptNotes,
+          receipt_url: payment.receiptUrl || validated.receiptUrl || null,
           status: 'pending',
           created_at: new Date().toISOString(),
         });

@@ -311,6 +311,17 @@ export default function VideosVaultTab({
         thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
         description: '',
       });
+    } catch (err: any) {
+      let msg = err.message || 'Failed to publish video.';
+      if (typeof msg === 'string' && msg.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(msg);
+          if (Array.isArray(parsed)) {
+            msg = parsed.map((e: any) => e.message || `${e.path?.join('.')}: invalid`).join('. ');
+          }
+        } catch (_) {}
+      }
+      setUploadError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -1029,10 +1040,10 @@ export default function VideosVaultTab({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6"
         >
-          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]">
-            <div className="p-4 sm:p-5 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[92vh]">
+            <div className="p-4 sm:p-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-gradient-to-r from-crimson-950/40 to-[#111116]">
               <div>
                 <span className="text-[10px] font-mono font-bold text-crimson-400 uppercase tracking-widest block">
                   MuscleCraft Video Vault Preview
@@ -1044,46 +1055,55 @@ export default function VideosVaultTab({
 
               <button
                 onClick={() => setActivePlaybackVideo(null)}
-                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 cursor-pointer"
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label="Close preview"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Video Player */}
-            <div className="relative aspect-video w-full bg-black">
-              <MuscleCraftVideoPlayer
-                src={activePlaybackVideo.videoUrl}
-                poster={activePlaybackVideo.thumbnailUrl}
-                title={activePlaybackVideo.title}
-                autoPlay
-              />
-            </div>
-
-            {/* Video Details */}
-            <div className="p-5 sm:p-6 bg-[#161620] space-y-3 overflow-y-auto">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-1 rounded bg-crimson-950 text-crimson-300 border border-crimson-800 text-[11px] font-bold">
-                  {activePlaybackVideo.category}
-                </span>
-                <span className="px-2.5 py-1 rounded bg-white/5 text-gray-300 border border-white/10 text-[11px] font-mono">
-                  Duration: {activePlaybackVideo.duration}
-                </span>
-                {activePlaybackVideo.targetClientName && (
-                  <span className="px-2.5 py-1 rounded bg-amber-950 text-amber-300 border border-amber-800 text-[11px] font-semibold">
-                    👤 Targeted Athlete: {activePlaybackVideo.targetClientName}
-                  </span>
-                )}
+            {/* Scrollable Modal Content */}
+            <div className="flex-1 overflow-y-auto flex flex-col">
+              {/* Video Player Section */}
+              <div className="relative w-full bg-black flex items-center justify-center max-h-[55vh] overflow-hidden flex-shrink-0">
+                <div className="w-full aspect-video max-h-[55vh]">
+                  <MuscleCraftVideoPlayer
+                    src={activePlaybackVideo.videoUrl}
+                    poster={activePlaybackVideo.thumbnailUrl}
+                    title={activePlaybackVideo.title}
+                    autoPlay
+                  />
+                </div>
               </div>
 
-              <div>
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                  Coach Instructions & Breakdown:
-                </span>
-                <p className="text-xs sm:text-sm text-gray-200 leading-relaxed">
-                  {activePlaybackVideo.description}
-                </p>
+              {/* Video Details Section (Never clipped) */}
+              <div className="p-5 sm:p-6 bg-[#161620] space-y-4 border-t border-white/[0.06] flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-lg bg-crimson-950 text-crimson-300 border border-crimson-700 text-xs font-bold shadow-sm">
+                    {activePlaybackVideo.category}
+                  </span>
+                  <span className="px-3 py-1 rounded-lg bg-white/5 text-gray-200 border border-white/10 text-xs font-mono">
+                    Duration: {activePlaybackVideo.duration}
+                  </span>
+                  {activePlaybackVideo.targetClientName ? (
+                    <span className="px-3 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-800 text-xs font-semibold">
+                      👤 Targeted Athlete: {activePlaybackVideo.targetClientName}
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-800 text-xs font-semibold">
+                      🌐 Broadcast to All Gym Members
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-black/30 p-4 rounded-2xl border border-white/[0.04]">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5 font-mono">
+                    Coach Instructions & Technique Notes:
+                  </span>
+                  <p className="text-xs sm:text-sm text-gray-200 leading-relaxed whitespace-pre-line">
+                    {activePlaybackVideo.description || 'Follow standard tempo and posture cues provided during session review.'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

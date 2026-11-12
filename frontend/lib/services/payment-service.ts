@@ -56,6 +56,7 @@ export class PaymentService {
     transferDate: string;
     senderAccountName: string;
     receiptNotes?: string;
+    receiptUrl?: string;
   }): PaymentRecord {
     const user = db.users.find((u) => u.id === data.userId);
     if (!user) {
@@ -80,6 +81,7 @@ export class PaymentService {
       transferDate: data.transferDate,
       senderAccountName: data.senderAccountName,
       receiptNotes: data.receiptNotes,
+      receiptUrl: data.receiptUrl,
       status: 'pending',
       createdAt: new Date().toISOString(),
     };

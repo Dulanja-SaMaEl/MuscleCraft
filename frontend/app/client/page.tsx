@@ -21,8 +21,14 @@ import {
   User,
   ShieldAlert,
   LogOut,
+  Upload,
+  Eye,
+  CreditCard,
+  Building,
+  X,
+  Check,
 } from 'lucide-react';
-import { BodyMeasurement, DietPlan, Appointment, ExerciseVideo, PaymentRecord } from '@/lib/types';
+import { BodyMeasurement, DietPlan, Appointment, ExerciseVideo, PaymentRecord, GYM_PACKAGES } from '@/lib/types';
 import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
 
 export default function ClientDashboard() {
@@ -53,8 +59,25 @@ export default function ClientDashboard() {
   const [measNotes, setMeasNotes] = useState('');
   const [measSubmitting, setMeasSubmitting] = useState(false);
 
+  // Bank Transfer Slip Submission & Viewer States
+  const [slipModalOpen, setSlipModalOpen] = useState(false);
+  const [viewSlipModalRecord, setViewSlipModalRecord] = useState<PaymentRecord | null>(null);
+  const [proposedRefCode, setProposedRefCode] = useState('');
+  const [slipPackageTier, setSlipPackageTier] = useState<string>('sole_1m');
+  const [slipBankName, setSlipBankName] = useState<string>('Commercial Bank of Ceylon');
+  const [slipTransferDate, setSlipTransferDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [slipSenderName, setSlipSenderName] = useState<string>('');
+  const [slipRefCode, setSlipRefCode] = useState<string>('');
+  const [slipNotes, setSlipNotes] = useState<string>('');
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const [slipPreviewUrl, setSlipPreviewUrl] = useState<string>('');
+  const [isUploadingSlip, setIsUploadingSlip] = useState(false);
+  const [slipStatusMessage, setSlipStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     if (currentUser) {
+      setSlipSenderName(currentUser.name || '');
+      setSlipPackageTier(currentUser.tier || 'sole_1m');
       loadClientData();
     }
   }, [currentUser]);
@@ -95,9 +118,100 @@ export default function ClientDashboard() {
       if (payRes.ok) {
         const d = await payRes.json();
         setPayments(d.payments || []);
+        if (d.referenceCodeProposal) {
+          setProposedRefCode(d.referenceCodeProposal);
+          if (!slipRefCode) setSlipRefCode(d.referenceCodeProposal);
+        }
       }
     } catch (err) {
       console.error('Error loading client data:', err);
+    }
+  };
+
+  const handleSlipFileSelect = (file: File | null) => {
+    setSlipFile(file);
+    if (!file) {
+      setSlipPreviewUrl('');
+      return;
+    }
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSlipPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setSlipPreviewUrl('');
+    }
+  };
+
+  const handleSubmitSlip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setIsUploadingSlip(true);
+    setSlipStatusMessage(null);
+
+    try {
+      let uploadedSlipUrl: string | undefined = undefined;
+
+      // 1. Upload receipt image/PDF if attached
+      if (slipFile) {
+        const formData = new FormData();
+        formData.append('file', slipFile);
+        const upRes = await fetch(`/api/payments/upload-slip?userId=${currentUser.id}`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (upRes.ok) {
+          const upData = await upRes.json();
+          uploadedSlipUrl = upData.url;
+        } else {
+          const err = await upRes.json();
+          throw new Error(err.error || 'Failed to upload bank transfer slip.');
+        }
+      }
+
+      // 2. Submit payment record to ledger
+      const finalRef = slipRefCode.trim() || proposedRefCode || `TRF-MC-${Math.floor(100000 + Math.random() * 900000)}`;
+      const payRes = await fetch(`/api/payments?userId=${currentUser.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: slipPackageTier,
+          referenceCode: finalRef,
+          bankName: slipBankName,
+          transferDate: slipTransferDate,
+          senderAccountName: slipSenderName.trim() || currentUser.name,
+          receiptNotes: slipNotes.trim() || undefined,
+          receiptUrl: uploadedSlipUrl,
+        }),
+      });
+
+      if (!payRes.ok) {
+        const err = await payRes.json();
+        throw new Error(err.error || 'Failed to submit bank transfer record.');
+      }
+
+      setSlipStatusMessage({
+        type: 'success',
+        text: `Bank slip (${finalRef}) submitted successfully! Coach Adeesha will verify and activate your membership shortly.`,
+      });
+
+      // Reset form
+      setSlipModalOpen(false);
+      setSlipFile(null);
+      setSlipPreviewUrl('');
+      setSlipNotes('');
+      await loadClientData();
+      setActiveTab('billing');
+    } catch (err: any) {
+      setSlipStatusMessage({
+        type: 'error',
+        text: err.message || 'Failed to submit transfer slip. Please try again.',
+      });
+    } finally {
+      setIsUploadingSlip(false);
     }
   };
 
@@ -287,6 +401,13 @@ export default function ClientDashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setSlipModalOpen(true)}
+                className="flex-1 md:flex-initial px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Upload className="w-4 h-4" /> Submit Bank Slip
+              </button>
               <Link
                 href={`/checkout?tier=${currentUser?.tier || 'sole_1m'}`}
                 className="flex-1 md:flex-initial px-5 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer"
@@ -333,6 +454,13 @@ export default function ClientDashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => setSlipModalOpen(true)}
+                className="flex-1 md:flex-initial px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Upload className="w-4 h-4" /> Submit Bank Slip
+              </button>
               <Link
                 href={`/checkout?tier=${currentUser?.tier || 'sole_1m'}`}
                 className="flex-1 md:flex-initial px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-md text-center cursor-pointer"
@@ -790,53 +918,140 @@ export default function ClientDashboard() {
         {/* TAB 5: BILLING & MANUAL TRANSFER RECORDS */}
         {activeTab === 'billing' && (
           <div className="space-y-6">
-            <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg">
-              <h3 className="text-base font-bold text-white uppercase tracking-wider mb-2">
-                Verified Manual Transfer Receipts
-              </h3>
-              <p className="text-xs text-gray-400 mb-6">
-                All bank transfers are reconciled and verified by MuscleCraft accounting.
-              </p>
+            {slipStatusMessage && (
+              <div
+                className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm ${
+                  slipStatusMessage.type === 'success'
+                    ? 'bg-emerald-950/80 border border-emerald-700/60 text-emerald-200'
+                    : 'bg-rose-950/80 border border-rose-700/60 text-rose-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {slipStatusMessage.type === 'success' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+                  )}
+                  <span>{slipStatusMessage.text}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSlipStatusMessage(null)}
+                  className="text-gray-400 hover:text-white p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <div className="bg-[#121215] border border-white/[0.08] p-5 sm:p-6 rounded-2xl shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-amber-400" />
+                    Verified Manual Bank Transfer Receipts
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Upload deposit slips, track verification status, and manage your membership renewals.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSlipModalOpen(true);
+                    setSlipStatusMessage(null);
+                  }}
+                  className="px-4 py-2.5 bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 hover:to-rose-500 text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg hover:shadow-crimson-glow flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
+                >
+                  <Upload className="w-4 h-4" /> Submit Bank Slip
+                </button>
+              </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#18181d] text-gray-400 uppercase tracking-wider border-b border-white/[0.06]">
+                  <thead className="bg-[#18181d] text-gray-400 uppercase tracking-wider border-b border-white/[0.06] text-[10px]">
                     <tr>
-                      <th className="py-3 px-4">Reference Code</th>
-                      <th className="py-3 px-4">Tier</th>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Bank & Sender</th>
-                      <th className="py-3 px-4">Amount</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Audit Note</th>
+                      <th className="py-3 px-4 font-bold">Reference Code</th>
+                      <th className="py-3 px-4 font-bold">Package & Tier</th>
+                      <th className="py-3 px-4 font-bold">Transfer Date</th>
+                      <th className="py-3 px-4 font-bold">Bank & Sender</th>
+                      <th className="py-3 px-4 font-bold">Amount (LKR)</th>
+                      <th className="py-3 px-4 font-bold">Slip Document</th>
+                      <th className="py-3 px-4 font-bold">Status</th>
+                      <th className="py-3 px-4 font-bold">Audit Note</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {payments.map((p) => (
-                      <tr key={p.id}>
-                        <td className="py-3.5 px-4 font-mono font-bold text-gold">{p.referenceCode}</td>
-                        <td className="py-3.5 px-4 uppercase font-semibold text-white">{p.tier.replace('_', ' ')}</td>
-                        <td className="py-3.5 px-4 font-mono text-gray-300">{p.transferDate}</td>
-                        <td className="py-3.5 px-4 text-gray-300">
-                          {p.bankName} ({p.senderAccountName})
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-gray-500">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <CreditCard className="w-8 h-8 text-gray-600" />
+                            <span className="text-sm font-medium text-gray-400">No payment receipts found</span>
+                            <span className="text-xs text-gray-600">
+                              Submit your bank transfer slip to activate or renew your gym membership.
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSlipModalOpen(true)}
+                              className="mt-3 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs rounded-xl cursor-pointer"
+                            >
+                              Submit Bank Slip Now
+                            </button>
+                          </div>
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-white font-mono">${p.amount.toFixed(2)}</td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              p.status === 'approved'
-                                ? 'bg-green-950 text-green-400 border border-green-700/60'
-                                : p.status === 'pending'
-                                ? 'bg-amber-950 text-amber-400 border border-amber-700/60'
-                                : 'bg-red-950 text-red-400 border border-red-700/60'
-                            }`}
-                          >
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-gray-400 italic">{p.adminNotes || p.receiptNotes || '—'}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      payments.map((p) => (
+                        <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-amber-400">{p.referenceCode}</td>
+                          <td className="py-3.5 px-4 uppercase font-semibold text-white">
+                            {p.packageName || p.tier.replace('_', ' ')}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-gray-300">{p.transferDate}</td>
+                          <td className="py-3.5 px-4 text-gray-300">
+                            <span className="block font-medium text-white">{p.bankName}</span>
+                            <span className="text-[11px] text-gray-400">Sender: {p.senderAccountName}</span>
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-white font-mono whitespace-nowrap">
+                            Rs. {p.amount.toLocaleString()} LKR
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            {p.receiptUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setViewSlipModalRecord(p)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-800/60 text-amber-300 hover:text-amber-200 text-[11px] font-mono font-medium transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> View Slip
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-gray-500 font-mono">No File</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 ${
+                                p.status === 'approved'
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-700/60'
+                                  : p.status === 'pending'
+                                  ? 'bg-amber-950 text-amber-400 border border-amber-700/60'
+                                  : 'bg-rose-950 text-rose-400 border border-rose-700/60'
+                              }`}
+                            >
+                              {p.status === 'approved' && <CheckCircle2 className="w-3 h-3" />}
+                              {p.status === 'pending' && <Clock className="w-3 h-3" />}
+                              {p.status === 'rejected' && <X className="w-3 h-3" />}
+                              {p.status === 'pending' ? 'Under Review' : p.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-gray-400 italic text-[11px] max-w-xs truncate">
+                            {p.adminNotes || p.receiptNotes || '—'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1017,6 +1232,354 @@ export default function ClientDashboard() {
                 >
                   WhatsApp Coach
                 </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── SUBMIT BANK TRANSFER SLIP MODAL ── */}
+        {slipModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          >
+            <div className="bg-[#121217] border border-amber-500/40 rounded-3xl max-w-xl w-full p-5 sm:p-7 shadow-2xl space-y-5 max-h-[92vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-amber-950/60 border border-amber-700/60 text-amber-400">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-white">
+                      Submit Bank Transfer Slip
+                    </h3>
+                    <span className="text-xs text-gray-400">
+                      Upload receipt to activate or extend your membership.
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSlipModalOpen(false)}
+                  className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 cursor-pointer"
+                  aria-label="Close modal"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Form Body (Scrollable) */}
+              <form onSubmit={handleSubmitSlip} className="space-y-4 overflow-y-auto flex-1 pr-1">
+                {/* 1. Package Selection */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Select Gym Package / Plan *
+                  </label>
+                  <select
+                    value={slipPackageTier}
+                    onChange={(e) => setSlipPackageTier(e.target.value)}
+                    required
+                    className="w-full bg-[#181822] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-medium cursor-pointer"
+                  >
+                    <optgroup label="Sole Membership (Gym Access)">
+                      <option value="sole_1m">Sole - 1 Month (Rs. 4,500 + Rs. 500 Admission = Rs. 5,000 LKR)</option>
+                      <option value="sole_3m">Sole - 3 Months (Rs. 12,000 LKR - No Admission)</option>
+                      <option value="sole_6m">Sole - 6 Months (Rs. 22,000 LKR - No Admission)</option>
+                      <option value="sole_1y">Sole - 1 Year (Rs. 40,000 LKR - Best Value)</option>
+                    </optgroup>
+                    <optgroup label="Couple Membership (2 Athletes)">
+                      <option value="couple_1m">Couple - 1 Month (Rs. 8,000 + Rs. 1,000 Admission = Rs. 9,000 LKR)</option>
+                      <option value="couple_3m">Couple - 3 Months (Rs. 22,500 LKR)</option>
+                      <option value="couple_6m">Couple - 6 Months (Rs. 42,000 LKR)</option>
+                      <option value="couple_1y">Couple - 1 Year (Rs. 78,000 LKR)</option>
+                    </optgroup>
+                    <optgroup label="VIP Coaching Programs">
+                      <option value="coaching_90">90 Days Better Me (VIP Online Coaching - Rs. 8,000 LKR)</option>
+                      <option value="burnzone">BurnZone Functional Conditioning (Rs. 3,500 LKR)</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* 2. Bank Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Bank Deposited / Transferred To *
+                    </label>
+                    <select
+                      value={slipBankName}
+                      onChange={(e) => setSlipBankName(e.target.value)}
+                      required
+                      className="w-full bg-[#181822] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-medium cursor-pointer"
+                    >
+                      <option value="Commercial Bank of Ceylon">Commercial Bank of Ceylon</option>
+                      <option value="Sampath Bank PLC">Sampath Bank PLC</option>
+                      <option value="Bank of Ceylon (BOC)">Bank of Ceylon (BOC)</option>
+                      <option value="Hatton National Bank (HNB)">Hatton National Bank (HNB)</option>
+                      <option value="Nations Trust Bank (NTB)">Nations Trust Bank (NTB)</option>
+                      <option value="People's Bank">People's Bank</option>
+                      <option value="DFCC Bank">DFCC Bank</option>
+                      <option value="Seylan Bank">Seylan Bank</option>
+                      <option value="National Development Bank (NDB)">National Development Bank (NDB)</option>
+                      <option value="Other Bank / Online App">Other Bank / Online Transfer</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Reference Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={slipRefCode}
+                      onChange={(e) => setSlipRefCode(e.target.value)}
+                      placeholder={proposedRefCode || 'TRF-MC-849201'}
+                      className="w-full bg-[#181822] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Sender Name & Transfer Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Sender Account / Depositor Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={slipSenderName}
+                      onChange={(e) => setSlipSenderName(e.target.value)}
+                      placeholder="e.g. Adeesha K. / Personal Account"
+                      className="w-full bg-[#181822] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                      Transfer Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={slipTransferDate}
+                      onChange={(e) => setSlipTransferDate(e.target.value)}
+                      className="w-full bg-[#181822] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Bank Slip File Upload Area */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Attach Deposit Slip / Transfer Screenshot (Image or PDF) *</span>
+                    <span className="text-[10px] text-amber-400 font-normal">Max 15MB</span>
+                  </label>
+
+                  {!slipFile ? (
+                    <label className="border-2 border-dashed border-white/15 hover:border-amber-500/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#181822]/60 hover:bg-[#181822]">
+                      <div className="p-3 rounded-full bg-white/5 text-amber-400 mb-2">
+                        <Upload className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs font-semibold text-white">
+                        Click to select or drag & drop slip file
+                      </span>
+                      <span className="text-[11px] text-gray-400 mt-0.5">
+                        JPG, PNG, WEBP or PDF receipt from bank app / deposit counter
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleSlipFileSelect(e.target.files?.[0] || null)}
+                        className="hidden"
+                      />
+                    </label>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-[#181822] border border-emerald-500/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="p-2 rounded-lg bg-emerald-950 border border-emerald-700/60 text-emerald-400 shrink-0">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold text-white block truncate">
+                              {slipFile.name}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              {(slipFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSlipFileSelect(null)}
+                          className="text-xs text-rose-400 hover:text-rose-300 font-medium underline cursor-pointer shrink-0 ml-2"
+                        >
+                          Remove / Change
+                        </button>
+                      </div>
+
+                      {/* Image Thumbnail Preview */}
+                      {slipPreviewUrl && (
+                        <div className="rounded-xl overflow-hidden border border-white/10 max-h-40 bg-black flex items-center justify-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={slipPreviewUrl}
+                            alt="Slip thumbnail"
+                            className="max-h-40 w-auto object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Optional Notes */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+                    Notes / Remarks (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={slipNotes}
+                    onChange={(e) => setSlipNotes(e.target.value)}
+                    placeholder="e.g. Transferred via Commercial Bank Online app. Ref #492819."
+                    className="w-full bg-[#181822] border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 resize-none"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-2 border-t border-white/[0.08] flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSlipModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUploadingSlip}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 hover:to-rose-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-crimson-glow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isUploadingSlip ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Uploading & Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Submit Slip for Verification</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ── VIEW ATHLETE BANK SLIP MODAL ── */}
+        {viewSlipModalRecord && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          >
+            <div className="bg-[#121217] border border-amber-500/40 rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-950/60 border border-amber-700/60 text-amber-400">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm sm:text-base">
+                      Bank Transfer Receipt
+                    </h3>
+                    <span className="text-[11px] font-mono text-gray-400">
+                      {viewSlipModalRecord.referenceCode} • {viewSlipModalRecord.transferDate}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {viewSlipModalRecord.receiptUrl && (
+                    <a
+                      href={viewSlipModalRecord.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+                      title="Open Full Image"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setViewSlipModalRecord(null)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Slip Image & Details */}
+              <div className="flex-1 overflow-y-auto space-y-4">
+                {viewSlipModalRecord.receiptUrl ? (
+                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-black flex items-center justify-center p-2 max-h-[50vh]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={viewSlipModalRecord.receiptUrl}
+                      alt="Bank slip"
+                      className="max-h-[48vh] w-auto object-contain rounded-lg"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-gray-500 bg-white/[0.02] rounded-2xl border border-white/[0.06]">
+                    No receipt image was uploaded with this transaction.
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Amount</span>
+                    <span className="font-mono font-bold text-white mt-0.5 block">
+                      Rs. {viewSlipModalRecord.amount.toLocaleString()} LKR
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Bank</span>
+                    <span className="font-semibold text-white mt-0.5 block truncate">
+                      {viewSlipModalRecord.bankName}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Sender</span>
+                    <span className="font-semibold text-emerald-300 mt-0.5 block truncate">
+                      {viewSlipModalRecord.senderAccountName}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 block">Status</span>
+                    <span className="font-bold uppercase text-[10px] mt-0.5 block text-amber-400">
+                      {viewSlipModalRecord.status === 'pending' ? 'Under Review' : viewSlipModalRecord.status}
+                    </span>
+                  </div>
+                </div>
+
+                {viewSlipModalRecord.receiptNotes && (
+                  <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-800/30 text-xs text-amber-200">
+                    <span className="text-[10px] font-bold uppercase text-amber-400 block mb-0.5">Notes:</span>
+                    <p className="italic">{viewSlipModalRecord.receiptNotes}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
