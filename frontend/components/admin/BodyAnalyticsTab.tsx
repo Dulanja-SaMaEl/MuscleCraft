@@ -34,12 +34,14 @@ type EnrichedMeasurement = BodyMeasurement & {
 interface BodyAnalyticsTabProps {
   measurements: EnrichedMeasurement[];
   members: UserType[];
+  isLoading?: boolean;
   onSaveFeedback: (measurementId: string, feedback: string) => Promise<void>;
 }
 
 export default function BodyAnalyticsTab({
   measurements: initialMeasurements,
   members,
+  isLoading,
   onSaveFeedback,
 }: BodyAnalyticsTabProps) {
   const [measurements, setMeasurements] = useState<EnrichedMeasurement[]>(initialMeasurements);
@@ -307,6 +309,81 @@ export default function BodyAnalyticsTab({
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading && measurements.length === 0) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-72 bg-white/15 rounded-xl" />
+            <div className="h-3.5 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-44 bg-white/10 rounded-xl" />
+            <div className="h-10 w-36 bg-crimson-900/40 border border-crimson-500/20 rounded-xl" />
+          </div>
+        </div>
+
+        {/* 4 KPI Recomp Cards Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="h-3 w-28 bg-white/10 rounded" />
+                <div className="w-5 h-5 bg-white/10 rounded-lg" />
+              </div>
+              <div className="h-8 w-32 bg-white/20 rounded-lg" />
+              <div className="h-3 w-24 bg-white/5 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Weight Trajectory Chart Skeleton */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="space-y-1">
+              <div className="h-4 w-48 bg-white/15 rounded" />
+              <div className="h-3 w-64 bg-white/5 rounded" />
+            </div>
+            <div className="h-7 w-28 bg-white/10 rounded-full" />
+          </div>
+          <div className="h-56 w-full bg-white/[0.02] rounded-2xl flex items-end justify-around p-6 gap-4">
+            {[40, 65, 55, 80, 70, 90, 85].map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                <div style={{ height: `${h}%` }} className="w-full max-w-[48px] bg-white/10 rounded-t-xl" />
+                <div className="h-2.5 w-8 bg-white/5 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Submissions List Skeleton */}
+        <div className="space-y-4">
+          <div className="h-5 w-44 bg-white/15 rounded-xl" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/10" />
+                  <div className="space-y-1">
+                    <div className="h-4 w-32 bg-white/15 rounded" />
+                    <div className="h-3 w-40 bg-white/5 rounded" />
+                  </div>
+                </div>
+                <div className="h-6 w-24 bg-white/10 rounded-full" />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="h-12 bg-white/[0.03] rounded-xl" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

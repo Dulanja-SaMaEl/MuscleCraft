@@ -97,6 +97,119 @@ const TabLoadingState = ({ name }: { name: string }) => (
   </div>
 );
 
+const AnalyticsDashboardSkeleton = () => (
+  <div className="space-y-8 animate-pulse">
+    {/* Primary 4 KPI Cards Skeleton */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="h-3 w-28 bg-white/10 rounded" />
+            <div className="w-4 h-4 bg-white/10 rounded" />
+          </div>
+          <div className="h-8 w-36 bg-white/20 rounded-lg" />
+          <div className="h-3 w-28 bg-white/5 rounded" />
+        </div>
+      ))}
+    </div>
+
+    {/* Expirations / Renewals Desk Skeleton */}
+    <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl space-y-4">
+      <div className="flex justify-between items-center pb-4 border-b border-white/[0.04]">
+        <div className="space-y-2">
+          <div className="h-5 w-56 bg-white/15 rounded-xl" />
+          <div className="h-3 w-72 bg-white/5 rounded-lg" />
+        </div>
+        <div className="h-8 w-28 bg-white/10 rounded-full" />
+      </div>
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-16 w-full bg-white/[0.02] rounded-xl flex items-center px-4 gap-4">
+            <div className="w-10 h-10 rounded-full bg-white/10" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3.5 w-40 bg-white/15 rounded" />
+              <div className="h-2.5 w-56 bg-white/5 rounded" />
+            </div>
+            <div className="h-7 w-28 bg-white/10 rounded-xl" />
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Split Grids Skeleton */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="lg:col-span-8 bg-[#111116] border border-white/[0.08] p-6 rounded-3xl space-y-4">
+        <div className="h-5 w-44 bg-white/15 rounded-xl" />
+        <div className="h-64 w-full bg-white/[0.03] rounded-2xl" />
+      </div>
+      <div className="lg:col-span-4 bg-[#111116] border border-white/[0.08] p-6 rounded-3xl space-y-4">
+        <div className="h-5 w-36 bg-white/15 rounded-xl" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 bg-white/[0.02] rounded-xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const MembersDirectorySkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
+      <div className="space-y-2">
+        <div className="h-6 w-52 bg-white/15 rounded-xl" />
+        <div className="h-3 w-72 bg-white/5 rounded-lg" />
+      </div>
+      <div className="h-9 w-48 bg-white/10 rounded-xl" />
+    </div>
+
+    <div className="flex gap-3">
+      <div className="h-11 flex-1 bg-[#111116] border border-white/[0.08] rounded-xl" />
+      <div className="h-11 w-40 bg-[#111116] border border-white/[0.08] rounded-xl" />
+    </div>
+
+    <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl p-4 space-y-3">
+      <div className="h-10 w-full bg-white/[0.04] rounded-xl" />
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div key={i} className="h-16 w-full bg-white/[0.02] rounded-xl flex items-center px-4 gap-4">
+          <div className="w-10 h-10 rounded-full bg-white/10" />
+          <div className="space-y-1.5 flex-1">
+            <div className="h-3.5 w-36 bg-white/15 rounded" />
+            <div className="h-2.5 w-48 bg-white/5 rounded" />
+          </div>
+          <div className="h-6 w-24 bg-white/10 rounded-full hidden sm:block" />
+          <div className="h-6 w-20 bg-white/10 rounded-full" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const AuditLogsSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="h-6 w-64 bg-white/15 rounded-xl" />
+        <div className="h-3 w-80 bg-white/5 rounded-lg" />
+      </div>
+      <div className="h-4 w-28 bg-white/10 rounded" />
+    </div>
+
+    <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl p-4 space-y-3">
+      <div className="h-10 w-full bg-white/[0.04] rounded-xl" />
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="h-12 w-full bg-white/[0.02] rounded-xl flex items-center px-4 gap-4">
+          <div className="h-3 w-32 bg-white/10 rounded" />
+          <div className="h-3 w-40 bg-white/15 rounded" />
+          <div className="h-6 w-24 bg-white/10 rounded" />
+          <div className="h-3 w-64 bg-white/5 rounded ml-auto" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const BodyAnalyticsTab = dynamic(() => import('@/components/admin/BodyAnalyticsTab'), {
   loading: () => <TabLoadingState name="Client Analytics & Care" />,
   ssr: false,
@@ -257,12 +370,14 @@ export default function AdminDashboard() {
 
   // Action status message
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
     loadAdminData();
   }, [currentUser]);
 
   const loadAdminData = async () => {
+    setIsLoadingData(true);
     try {
       const adminId = currentUser?.id || 'usr_admin_1';
 
@@ -330,6 +445,8 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error('Error fetching admin data:', err);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -975,6 +1092,9 @@ export default function AdminDashboard() {
               TAB 1: ANALYTICS & DASHBOARD CHARTS
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'analytics' && (
+            isLoadingData && !stats ? (
+              <AnalyticsDashboardSkeleton />
+            ) : (
             <div className="space-y-8">
               {/* Primary KPI Strip */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1503,6 +1623,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
+            )
           )}
 
           {/* ───────────────────────────────────────────────────────────
@@ -1535,6 +1656,7 @@ export default function AdminDashboard() {
           {activeTab === 'payments' && (
             <BankApprovalsTab
               payments={payments}
+              isLoading={isLoadingData}
               onApprove={handleApprovePayment}
               onReject={handleRejectPayment}
               onRefresh={loadAdminData}
@@ -1545,6 +1667,9 @@ export default function AdminDashboard() {
               TAB 3: MEMBERS DIRECTORY
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'members' && (
+            isLoadingData && members.length === 0 ? (
+              <MembersDirectorySkeleton />
+            ) : (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
                 <div>
@@ -1747,6 +1872,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* ───────────────────────────────────────────────────────────
@@ -1756,6 +1882,7 @@ export default function AdminDashboard() {
             <BodyAnalyticsTab
               measurements={allClientMeasurements}
               members={members}
+              isLoading={isLoadingData}
               onSaveFeedback={handleSaveFeedback}
             />
           )}
@@ -1768,6 +1895,7 @@ export default function AdminDashboard() {
               videos={videos}
               members={members}
               healthData={healthData}
+              isLoading={isLoadingData}
               onAddVideo={handleAddVideo}
               onDeleteVideo={handleDeleteVideo}
             />
@@ -1780,6 +1908,7 @@ export default function AdminDashboard() {
             <BroadcastTab
               members={members}
               broadcastHistory={broadcastHistory}
+              isLoading={isLoadingData}
               onSendBroadcast={handleSendBroadcast}
             />
           )}
@@ -1799,6 +1928,9 @@ export default function AdminDashboard() {
               TAB 7: AUDIT LOGS
               ─────────────────────────────────────────────────────────── */}
           {activeTab === 'audit' && (
+            isLoadingData && auditLogs.length === 0 ? (
+              <AuditLogsSkeleton />
+            ) : (
             <div className="space-y-6">
               <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl flex items-center justify-between">
                 <div>
@@ -1848,6 +1980,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* ───────────────────────────────────────────────────────────
@@ -1856,6 +1989,7 @@ export default function AdminDashboard() {
           {activeTab === 'database_health' && (
             <DatabaseHealthTab
               healthData={healthData}
+              isLoading={isLoadingData}
               onRefreshHealth={handleRefreshHealth}
             />
           )}

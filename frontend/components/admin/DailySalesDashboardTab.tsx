@@ -33,7 +33,7 @@ interface DailySalesDashboardTabProps {
 export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySalesDashboardTabProps) {
   const [records, setRecords] = useState<DailySalesRecord[]>([]);
   const [lifetimeSpend, setLifetimeSpend] = useState<number>(635555.2);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState('11/2026');
 
   // Edit Modal State
@@ -302,6 +302,78 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
     const vals = records.map((r) => Math.max(Number(r.actual) || 0, Number(r.target) || 0));
     return Math.max(...vals, 1000);
   }, [records]);
+
+  if (loading && records.length === 0) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2">
+            <div className="h-6 w-72 bg-white/15 rounded-xl" />
+            <div className="h-3 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-36 bg-crimson-900/40 rounded-xl border border-crimson-500/20" />
+            <div className="h-10 w-28 bg-white/10 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Main 3-Column Layout Skeleton */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          {/* Left Column Skeleton */}
+          <div className="xl:col-span-2 space-y-4">
+            <div className="bg-[#111116] border border-white/[0.08] p-4 rounded-2xl space-y-3">
+              <div className="h-4 w-28 bg-white/15 rounded" />
+              <div className="space-y-2 pt-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="flex justify-between py-1 border-b border-white/[0.04]">
+                    <div className="h-2.5 w-16 bg-white/10 rounded" />
+                    <div className="h-2.5 w-12 bg-white/5 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-[#111116] border border-white/[0.08] p-4 rounded-2xl space-y-2">
+              <div className="h-3 w-20 bg-white/10 rounded" />
+              <div className="h-6 w-28 bg-white/20 rounded" />
+            </div>
+          </div>
+
+          {/* Center Table Skeleton */}
+          <div className="xl:col-span-8 bg-[#111116] border border-white/[0.08] p-5 rounded-2xl space-y-3">
+            <div className="flex justify-between items-center pb-2">
+              <div className="h-4 w-44 bg-white/15 rounded" />
+              <div className="h-3 w-28 bg-white/10 rounded" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-8 w-full bg-white/[0.04] rounded-lg" />
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="h-10 w-full bg-white/[0.02] rounded-lg flex items-center px-3 gap-3">
+                  <div className="h-2.5 w-16 bg-white/10 rounded" />
+                  <div className="h-2.5 w-12 bg-white/5 rounded ml-auto" />
+                  <div className="h-2.5 w-12 bg-white/10 rounded" />
+                  <div className="h-2.5 w-14 bg-white/5 rounded" />
+                  <div className="h-2.5 w-10 bg-white/5 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column Skeleton */}
+          <div className="xl:col-span-2 space-y-4">
+            <div className="bg-[#111116] border border-white/[0.08] p-4 rounded-2xl space-y-3">
+              <div className="h-3 w-24 bg-white/15 rounded" />
+              <div className="h-28 w-full bg-white/[0.02] rounded-xl" />
+            </div>
+            <div className="bg-[#111116] border border-white/[0.08] p-4 rounded-2xl space-y-3">
+              <div className="h-3 w-24 bg-white/15 rounded" />
+              <div className="h-28 w-full bg-white/[0.02] rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

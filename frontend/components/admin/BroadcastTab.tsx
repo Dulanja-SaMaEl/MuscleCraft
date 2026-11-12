@@ -25,12 +25,14 @@ import { BroadcastAudience, BroadcastChannel, User as UserType } from '@/lib/typ
 interface BroadcastTabProps {
   members: UserType[];
   broadcastHistory: any[];
+  isLoading?: boolean;
   onSendBroadcast: (broadcastData: any) => Promise<void>;
 }
 
 export default function BroadcastTab({
   members,
   broadcastHistory,
+  isLoading,
   onSendBroadcast,
 }: BroadcastTabProps) {
   // Form State
@@ -93,6 +95,62 @@ export default function BroadcastTab({
   };
 
   const recipientCount = calculateRecipients();
+
+  if (isLoading && broadcastHistory.length === 0) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-72 bg-white/15 rounded-xl" />
+            <div className="h-3.5 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-36 bg-white/10 rounded-xl" />
+            <div className="h-10 w-28 bg-white/10 rounded-xl" />
+          </div>
+        </div>
+
+        {/* 2-Column Composer Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left: Composer Skeleton */}
+          <div className="lg:col-span-7 bg-[#111116] border border-white/[0.08] rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="h-5 w-44 bg-white/15 rounded-xl" />
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 bg-white/[0.03] rounded-xl" />
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-28 bg-white/10 rounded" />
+              <div className="h-11 w-full bg-white/[0.03] rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-28 bg-white/10 rounded" />
+              <div className="h-32 w-full bg-white/[0.03] rounded-xl" />
+            </div>
+            <div className="h-12 w-full bg-crimson-900/30 rounded-xl border border-crimson-500/20" />
+          </div>
+
+          {/* Right: Phone Preview Skeleton */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 space-y-4">
+              <div className="h-5 w-36 bg-white/15 rounded-xl" />
+              <div className="h-64 w-full bg-white/[0.02] rounded-2xl flex items-center justify-center">
+                <div className="h-8 w-44 bg-white/5 rounded-lg" />
+              </div>
+            </div>
+            <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 space-y-3">
+              <div className="h-4 w-32 bg-white/15 rounded" />
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 w-full bg-white/[0.02] rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

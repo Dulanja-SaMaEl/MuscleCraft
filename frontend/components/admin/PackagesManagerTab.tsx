@@ -35,6 +35,7 @@ export default function PackagesManagerTab({
     couple: 1000,
   });
   const [loading, setLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Edit Package Modal State
   const [editingPackage, setEditingPackage] = useState<GymPackage | null>(null);
@@ -64,6 +65,7 @@ export default function PackagesManagerTab({
   }, []);
 
   const loadPackages = async () => {
+    setIsInitialLoading(true);
     try {
       const res = await fetch('/api/admin/packages');
       if (res.ok) {
@@ -78,6 +80,8 @@ export default function PackagesManagerTab({
       }
     } catch (err) {
       console.warn('Could not fetch server packages, falling back to local defaults:', err);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -246,6 +250,56 @@ export default function PackagesManagerTab({
   const coachingList = packages.filter(
     (p) => p.type === 'coaching' || p.id === 'burnzone' || p.id === 'coaching_90'
   );
+
+  if (isInitialLoading && packages.length === 0) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-6 w-64 bg-white/15 rounded-xl" />
+            <div className="h-3.5 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-36 bg-white/10 rounded-xl" />
+            <div className="h-10 w-36 bg-crimson-900/40 border border-crimson-500/20 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Category Tabs Skeleton */}
+        <div className="flex gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-9 w-32 bg-[#111116] border border-white/[0.06] rounded-xl" />
+          ))}
+        </div>
+
+        {/* Packages Cards Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="p-6 rounded-3xl bg-[#111116] border border-white/[0.08] space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="h-5 w-32 bg-white/15 rounded-lg" />
+                <div className="h-5 w-20 bg-white/10 rounded-full" />
+              </div>
+              <div className="space-y-1">
+                <div className="h-8 w-28 bg-white/20 rounded-lg" />
+                <div className="h-3 w-40 bg-white/5 rounded" />
+              </div>
+              <div className="space-y-2 pt-2 border-t border-white/[0.04]">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="h-3 w-full bg-white/[0.03] rounded" />
+                ))}
+              </div>
+              <div className="flex gap-2 pt-3 border-t border-white/[0.06]">
+                <div className="h-9 flex-1 bg-white/10 rounded-xl" />
+                <div className="h-9 w-10 bg-white/[0.05] rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

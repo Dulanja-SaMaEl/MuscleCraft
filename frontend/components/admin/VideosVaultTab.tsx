@@ -36,6 +36,7 @@ interface VideosVaultTabProps {
   videos: ExerciseVideo[];
   members: UserType[];
   healthData?: any;
+  isLoading?: boolean;
   onAddVideo: (videoData: any) => Promise<void>;
   onDeleteVideo: (videoId: string) => Promise<void>;
 }
@@ -44,6 +45,7 @@ export default function VideosVaultTab({
   videos,
   members,
   healthData,
+  isLoading,
   onAddVideo,
   onDeleteVideo,
 }: VideosVaultTabProps) {
@@ -343,6 +345,55 @@ export default function VideosVaultTab({
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading && videos.length === 0) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-72 bg-white/15 rounded-xl" />
+            <div className="h-3.5 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 w-44 bg-white/10 rounded-xl" />
+            <div className="h-10 w-36 bg-crimson-900/40 border border-crimson-500/20 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Filter Bar Skeleton */}
+        <div className="bg-[#111116] border border-white/[0.08] p-4 rounded-2xl flex flex-col md:flex-row gap-4 justify-between">
+          <div className="h-10 flex-1 bg-white/[0.03] rounded-xl" />
+          <div className="flex gap-2">
+            <div className="h-10 w-32 bg-white/[0.05] rounded-xl" />
+            <div className="h-10 w-32 bg-white/[0.05] rounded-xl" />
+          </div>
+        </div>
+
+        {/* Videos Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-[#111116] border border-white/[0.08] rounded-3xl overflow-hidden space-y-4 p-4">
+              <div className="h-44 w-full bg-white/[0.03] rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-white/10" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <div className="h-4 w-40 bg-white/15 rounded" />
+                  <div className="h-4 w-16 bg-white/10 rounded-full" />
+                </div>
+                <div className="h-3 w-56 bg-white/5 rounded" />
+              </div>
+              <div className="flex gap-2 pt-2 border-t border-white/[0.06]">
+                <div className="h-9 flex-1 bg-white/10 rounded-xl" />
+                <div className="h-9 w-10 bg-rose-950/30 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

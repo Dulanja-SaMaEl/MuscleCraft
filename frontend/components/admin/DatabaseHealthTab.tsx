@@ -26,11 +26,13 @@ import {
 
 interface DatabaseHealthTabProps {
   healthData?: any;
+  isLoading?: boolean;
   onRefreshHealth: () => Promise<void>;
 }
 
 export default function DatabaseHealthTab({
   healthData,
+  isLoading,
   onRefreshHealth,
 }: DatabaseHealthTabProps) {
   const [isPinging, setIsPinging] = useState(false);
@@ -113,6 +115,53 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
     { method: 'GET', path: '/api/payments', target: 'Bank Transfer Slips Ledger', status: 200, latency: (lastPingMs || 18) + 8 },
     { method: 'GET', path: '/api/auth/session', target: 'Authentication & Session Service', status: 200, latency: (lastPingMs || 18) + 2 },
   ];
+
+  if (isLoading && !healthData) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-7 w-72 bg-white/15 rounded-xl" />
+            <div className="h-3.5 w-96 bg-white/5 rounded-lg" />
+          </div>
+          <div className="h-10 w-36 bg-white/10 rounded-xl" />
+        </div>
+
+        {/* 3 Telemetry Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="h-4 w-32 bg-white/15 rounded" />
+                <div className="h-5 w-20 bg-white/10 rounded-full" />
+              </div>
+              <div className="h-16 w-full bg-white/[0.03] rounded-2xl" />
+              <div className="space-y-2">
+                <div className="h-3 w-40 bg-white/10 rounded" />
+                <div className="h-3 w-56 bg-white/5 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Probes Table Skeleton */}
+        <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-6 space-y-4">
+          <div className="h-5 w-48 bg-white/15 rounded-xl" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-12 w-full bg-white/[0.02] rounded-xl flex items-center px-4 gap-4">
+                <div className="h-6 w-14 bg-white/10 rounded" />
+                <div className="h-3 w-40 bg-white/15 rounded" />
+                <div className="h-3 w-64 bg-white/5 rounded" />
+                <div className="h-3 w-16 bg-white/10 rounded ml-auto" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
