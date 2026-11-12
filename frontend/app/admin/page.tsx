@@ -263,6 +263,16 @@ export default function AdminDashboard() {
     | 'audit'
   >('analytics');
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolled(window.scrollY > 12);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -829,10 +839,11 @@ export default function AdminDashboard() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          LEFT NAVIGATION SIDEBAR (Fixed Desktop, Slide Drawer Mobile)
+          LEFT NAVIGATION SIDEBAR (Full-Height Desktop Rail + Sticky Nav)
           ═══════════════════════════════════════════════════════════════ */}
+      <div className="md:w-72 lg:w-80 shrink-0 md:bg-[#09090d] md:border-r md:border-white/[0.08] md:self-stretch">
       <aside
-        className={`fixed md:sticky top-0 left-0 h-screen w-72 lg:w-80 shrink-0 bg-[#09090d] border-r border-white/[0.08] flex flex-col z-50 transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed md:sticky top-0 left-0 h-screen w-72 lg:w-full bg-[#09090d] border-r md:border-r-0 border-white/[0.08] flex flex-col z-50 md:z-30 transition-transform duration-300 md:translate-x-0 ${
           mobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
@@ -965,13 +976,20 @@ export default function AdminDashboard() {
           </div>
         </div>
       </aside>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════
           MAIN APP CANVAS (Dedicated Admin Topbar + Content View)
           ═══════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#08080a]">
         {/* Dedicated Admin Topbar / Navigation Bar */}
-        <header className="h-16 px-3 sm:px-6 lg:px-8 border-b border-white/[0.08] bg-[#0c0c11]/90 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-3">
+        <header
+          className={`h-16 px-3 sm:px-6 lg:px-8 border-b sticky top-0 z-30 flex items-center justify-between gap-3 transition-all duration-200 ${
+            isScrolled
+              ? 'bg-[#09090d]/95 backdrop-blur-xl border-white/[0.14] shadow-[0_12px_32px_-8px_rgba(0,0,0,0.85)]'
+              : 'bg-[#0c0c11]/85 backdrop-blur-md border-white/[0.08]'
+          }`}
+        >
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
