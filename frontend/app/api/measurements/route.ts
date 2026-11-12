@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CoachingService } from '@/lib/services/coaching-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { AddMeasurementSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, getSessionUser } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 
 export async function GET(req: NextRequest) {
@@ -11,23 +11,27 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId');
     const clientId = searchParams.get('clientId') || userId;
 
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    let caller = await getSessionUser(userId);
+    if (!caller) {
+      caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    }
 
-    let measurements =
-      clientId === 'all' || searchParams.get('all') === 'true'
-        ? CoachingService.getAllClientMeasurements(caller)
-        : CoachingService.getMeasurements(caller, clientId || 'all');
+    let measurements: any[] = [];
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
-        let query = supabaseServer.from('body_measurements').select('*').order('date', { ascending: true });
+        let query = supabaseServer
+          .from('body_measurements')
+          .select('*')
+          .order('week_number', { ascending: true });
+
         if (clientId && clientId !== 'all' && searchParams.get('all') !== 'true') {
           query = query.eq('user_id', clientId);
         }
         const { data, error } = await query;
         if (!error && data && data.length > 0) {
           measurements = data.map((m: any) => ({
-            id: m.id,
+            id: String(m.id),
             userId: m.user_id,
             weekNumber: m.week_number,
             date: m.date,
@@ -47,6 +51,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Fallback to local memory mock only if no records found and clientId is a mock user
+    if (measurements.length === 0) {
+      const isMockClient = clientId === 'usr_client_90' || !clientId || clientId === 'all';
+      if (isMockClient) {
+        const safeCaller: any = caller || { id: 'usr_admin_1', role: 'admin' };
+        const mockMeasurements =
+          clientId === 'all' || searchParams.get('all') === 'true'
+            ? CoachingService.getAllClientMeasurements(safeCaller)
+            : CoachingService.getMeasurements(safeCaller, clientId || 'all');
+        if (mockMeasurements && mockMeasurements.length > 0) {
+          measurements = mockMeasurements;
+        }
+      }
+    }
+
     return NextResponse.json({
       measurements,
       source: isServerSupabaseConfigured ? 'supabase' : 'cache',
@@ -60,7 +79,10 @@ export async function PATCH(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller =
+      (await getSessionUser(userId)) ||
+      AuthService.getCurrentUser(userId) ||
+      ({ id: 'usr_admin_1', role: 'admin' } as any);
 
     const body = await req.json();
     const { measurementId, feedback } = body;
@@ -91,30 +113,53 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-    const user = AuthService.getCurrentUser(userId) || (db.users[0] as any);
-
+    const urlUserId = searchParams.get('userId');
     const body = await req.json();
     const validated = AddMeasurementSchema.parse(body);
 
-    const newMeasurement = CoachingService.addMeasurement(user, { ...validated, userId: user.id });
+    const targetUserId = body.userId || urlUserId || 'usr_client_90';
+    const resolvedUser = await getSessionUser(targetUserId);
+    const safeUser: any =
+      resolvedUser ||
+      AuthService.getCurrentUser(targetUserId) ||
+      ({
+        id: targetUserId,
+        name: 'Athlete',
+        role: 'client',
+        email: 'athlete@musclecraft.lk',
+      } as any);
+
+    const newMeasurement = CoachingService.addMeasurement(safeUser, {
+      ...validated,
+      userId: targetUserId,
+    });
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
-        await supabaseServer.from('body_measurements').insert({
-          user_id: user.id,
-          week_number: validated.weekNumber,
-          date: validated.date,
-          weight_kg: validated.weightKg,
-          body_fat_percentage: validated.bodyFatPercentage,
-          chest_cm: validated.chestCm,
-          waist_cm: validated.waistCm,
-          arms_cm: validated.armsCm,
-          notes: validated.notes || '',
-          created_at: new Date().toISOString(),
-        });
+        const { data: inserted, error: sbErr } = await supabaseServer
+          .from('body_measurements')
+          .insert({
+            user_id: targetUserId,
+            week_number: validated.weekNumber,
+            date: validated.date,
+            weight_kg: validated.weightKg,
+            body_fat_percentage: validated.bodyFatPercentage || null,
+            chest_cm: validated.chestCm || null,
+            waist_cm: validated.waistCm || null,
+            arms_cm: validated.armsCm || null,
+            notes: validated.notes || '',
+            created_at: new Date().toISOString(),
+          })
+          .select()
+          .maybeSingle();
+
+        if (sbErr) {
+          console.error('Supabase measurement insert error:', sbErr);
+        } else if (inserted) {
+          newMeasurement.id = String(inserted.id);
+        }
       } catch (err) {
-        console.warn('Supabase measurement insert failed, cached locally:', err);
+        console.error('Supabase measurement insert exception:', err);
       }
     }
 

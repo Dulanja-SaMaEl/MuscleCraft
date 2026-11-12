@@ -11,6 +11,7 @@ import {
   Video,
   Utensils,
   TrendingDown,
+  TrendingUp,
   Clock,
   ExternalLink,
   Plus,
@@ -25,6 +26,8 @@ import {
   Eye,
   CreditCard,
   Building,
+  Scale,
+  ClipboardList,
   X,
   Check,
 } from 'lucide-react';
@@ -58,6 +61,7 @@ export default function ClientDashboard() {
   const [newArms, setNewArms] = useState('');
   const [measNotes, setMeasNotes] = useState('');
   const [measSubmitting, setMeasSubmitting] = useState(false);
+  const [measError, setMeasError] = useState<string | null>(null);
 
   // Bank Transfer Slip Submission & Viewer States
   const [slipModalOpen, setSlipModalOpen] = useState(false);
@@ -218,38 +222,56 @@ export default function ClientDashboard() {
   const handleAddMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    setMeasError(null);
+
+    const weightVal = parseFloat(newWeight);
+    if (!weightVal || isNaN(weightVal) || weightVal <= 0 || weightVal > 300) {
+      setMeasError('Please enter a valid body weight between 1 kg and 300 kg.');
+      return;
+    }
+
     setMeasSubmitting(true);
 
     try {
       const nextWeek = measurements.length + 1;
-      const res = await fetch(`/api/measurements?userId=${currentUser.id}`, {
+      const payload: any = {
+        userId: currentUser.id,
+        weekNumber: nextWeek,
+        date: new Date().toISOString().split('T')[0],
+        weightKg: weightVal,
+      };
+
+      if (newBodyFat && !isNaN(parseFloat(newBodyFat))) payload.bodyFatPercentage = parseFloat(newBodyFat);
+      if (newWaist && !isNaN(parseFloat(newWaist))) payload.waistCm = parseFloat(newWaist);
+      if (newChest && !isNaN(parseFloat(newChest))) payload.chestCm = parseFloat(newChest);
+      if (newArms && !isNaN(parseFloat(newArms))) payload.armsCm = parseFloat(newArms);
+      if (measNotes.trim()) payload.notes = measNotes.trim();
+
+      const res = await fetch(`/api/measurements?userId=${currentUser.id}&clientId=${currentUser.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          weekNumber: nextWeek,
-          date: new Date().toISOString().split('T')[0],
-          weightKg: parseFloat(newWeight),
-          bodyFatPercentage: newBodyFat ? parseFloat(newBodyFat) : undefined,
-          waistCm: newWaist ? parseFloat(newWaist) : undefined,
-          chestCm: newChest ? parseFloat(newChest) : undefined,
-          armsCm: newArms ? parseFloat(newArms) : undefined,
-          notes: measNotes,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        setLogModalOpen(false);
-        setNewWeight('');
-        setNewBodyFat('');
-        setNewWaist('');
-        setNewChest('');
-        setNewArms('');
-        setMeasNotes('');
-        await loadClientData();
+      const resData = await res.json();
+
+      if (!res.ok || resData.error) {
+        setMeasError(resData.error || 'Failed to record measurement. Please check inputs and try again.');
+        return;
       }
-    } catch (err) {
+
+      setLogModalOpen(false);
+      setNewWeight('');
+      setNewBodyFat('');
+      setNewWaist('');
+      setNewChest('');
+      setNewArms('');
+      setMeasNotes('');
+      setMeasError(null);
+      await loadClientData();
+    } catch (err: any) {
       console.error('Failed to log measurement:', err);
+      setMeasError(err.message || 'Connection error while saving weekly check-in.');
     } finally {
       setMeasSubmitting(false);
     }
@@ -296,6 +318,29 @@ export default function ClientDashboard() {
     logout();
     router.push('/login?reason=expired_90day');
   };
+
+  const latestMeas = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+  const initialMeas = measurements.length > 0 ? measurements[0] : null;
+
+  const deltaWeight =
+    latestMeas && initialMeas && measurements.length > 1
+      ? Number((latestMeas.weightKg - initialMeas.weightKg).toFixed(1))
+      : null;
+
+  const deltaFat =
+    latestMeas?.bodyFatPercentage && initialMeas?.bodyFatPercentage && measurements.length > 1
+      ? Number((latestMeas.bodyFatPercentage - initialMeas.bodyFatPercentage).toFixed(1))
+      : null;
+
+  const deltaWaist =
+    latestMeas?.waistCm && initialMeas?.waistCm && measurements.length > 1
+      ? Number((latestMeas.waistCm - initialMeas.waistCm).toFixed(1))
+      : null;
+
+  const deltaArms =
+    latestMeas?.armsCm && initialMeas?.armsCm && measurements.length > 1
+      ? Number((latestMeas.armsCm - initialMeas.armsCm).toFixed(1))
+      : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
@@ -504,11 +549,26 @@ export default function ClientDashboard() {
                   Current Weight
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {measurements[measurements.length - 1]?.weightKg || 86.6} kg
+                  {latestMeas ? `${latestMeas.weightKg} kg` : 'Pending Entry'}
                 </span>
-                <span className="text-[11px] text-green-400 flex items-center gap-1 mt-1 font-medium">
-                  <TrendingDown className="w-3 h-3" /> -1.9kg since Week 1
-                </span>
+                {measurements.length > 1 && deltaWeight !== null ? (
+                  <span
+                    className={`text-[11px] flex items-center gap-1 mt-1 font-medium ${
+                      deltaWeight <= 0 ? 'text-green-400' : 'text-gold'
+                    }`}
+                  >
+                    {deltaWeight <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                    {deltaWeight > 0 ? `+${deltaWeight}` : deltaWeight}kg since Week 1
+                  </span>
+                ) : measurements.length === 1 ? (
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
+                    Week 1 baseline established
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1 mt-1 font-medium">
+                    No weekly logs recorded
+                  </span>
+                )}
               </div>
 
               <div className="bg-[#121215] border border-white/[0.08] p-5 rounded-lg">
@@ -516,11 +576,26 @@ export default function ClientDashboard() {
                   Body Fat Recomp
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {measurements[measurements.length - 1]?.bodyFatPercentage || 16.9} %
+                  {latestMeas?.bodyFatPercentage ? `${latestMeas.bodyFatPercentage} %` : 'Pending Entry'}
                 </span>
-                <span className="text-[11px] text-green-400 flex items-center gap-1 mt-1 font-medium">
-                  <TrendingDown className="w-3 h-3" /> -1.6% body fat
-                </span>
+                {measurements.length > 1 && deltaFat !== null ? (
+                  <span
+                    className={`text-[11px] flex items-center gap-1 mt-1 font-medium ${
+                      deltaFat <= 0 ? 'text-green-400' : 'text-gold'
+                    }`}
+                  >
+                    {deltaFat <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                    {deltaFat > 0 ? `+${deltaFat}` : deltaFat}% body fat
+                  </span>
+                ) : measurements.length === 1 && latestMeas?.bodyFatPercentage ? (
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
+                    Baseline fat % tracked
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1 mt-1 font-medium">
+                    Optional body fat metric
+                  </span>
+                )}
               </div>
 
               <div className="bg-[#121215] border border-white/[0.08] p-5 rounded-lg">
@@ -528,11 +603,26 @@ export default function ClientDashboard() {
                   Waist Measurement
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {measurements[measurements.length - 1]?.waistCm || 85.5} cm
+                  {latestMeas?.waistCm ? `${latestMeas.waistCm} cm` : 'Pending Entry'}
                 </span>
-                <span className="text-[11px] text-green-400 flex items-center gap-1 mt-1 font-medium">
-                  <TrendingDown className="w-3 h-3" /> -3.5cm waist reduction
-                </span>
+                {measurements.length > 1 && deltaWaist !== null ? (
+                  <span
+                    className={`text-[11px] flex items-center gap-1 mt-1 font-medium ${
+                      deltaWaist <= 0 ? 'text-green-400' : 'text-gold'
+                    }`}
+                  >
+                    {deltaWaist <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                    {deltaWaist > 0 ? `+${deltaWaist}` : deltaWaist}cm waist reduction
+                  </span>
+                ) : measurements.length === 1 && latestMeas?.waistCm ? (
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
+                    Baseline waist circumference
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1 mt-1 font-medium">
+                    Optional waist metric
+                  </span>
+                )}
               </div>
 
               <div className="bg-[#121215] border border-white/[0.08] p-5 rounded-lg">
@@ -540,11 +630,25 @@ export default function ClientDashboard() {
                   Arm Circumference
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {measurements[measurements.length - 1]?.armsCm || 38.4} cm
+                  {latestMeas?.armsCm ? `${latestMeas.armsCm} cm` : 'Pending Entry'}
                 </span>
-                <span className="text-[11px] text-gold flex items-center gap-1 mt-1 font-medium">
-                  +0.9cm lean hypertrophy
-                </span>
+                {measurements.length > 1 && deltaArms !== null ? (
+                  <span
+                    className={`text-[11px] flex items-center gap-1 mt-1 font-medium ${
+                      deltaArms >= 0 ? 'text-gold' : 'text-gray-400'
+                    }`}
+                  >
+                    {deltaArms >= 0 ? `+${deltaArms}` : deltaArms}cm lean hypertrophy
+                  </span>
+                ) : measurements.length === 1 && latestMeas?.armsCm ? (
+                  <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
+                    Baseline arm circumference
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1 mt-1 font-medium">
+                    Optional arms metric
+                  </span>
+                )}
               </div>
             </div>
 
@@ -638,8 +742,12 @@ export default function ClientDashboard() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setLogModalOpen(true)}
-                  className="px-4 py-2 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded flex items-center gap-1.5 transition-colors"
+                  type="button"
+                  onClick={() => {
+                    setMeasError(null);
+                    setLogModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-[#D4A359] hover:bg-[#C2934B] text-[#111111] font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Add Week {measurements.length + 1} Entry
                 </button>
@@ -647,28 +755,62 @@ export default function ClientDashboard() {
 
               {/* Progress Curve SVG Visualization */}
               <div className="bg-[#0a0a0c] border border-white/[0.06] p-6 rounded-lg mb-6">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-4">
-                  Weight Trajectory (kg) Over Time
-                </span>
-                <div className="h-44 w-full flex items-end justify-between gap-4 pt-4 border-b border-white/[0.1] px-4">
-                  {measurements.map((m) => {
-                    const minW = 85;
-                    const maxW = 90;
-                    const heightPercent = Math.max(10, Math.min(100, ((m.weightKg - minW) / (maxW - minW)) * 100));
-                    return (
-                      <div key={m.id} className="flex-1 flex flex-col items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-gold">{m.weightKg}kg</span>
-                        <div
-                          style={{ height: `${heightPercent}%` }}
-                          className="w-full max-w-[48px] bg-gradient-to-t from-gold/30 to-gold rounded-t transition-all duration-500"
-                        />
-                        <span className="text-[10px] text-gray-400 font-bold uppercase">
-                          Wk {m.weekNumber}
-                        </span>
-                      </div>
-                    );
-                  })}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Weight Trajectory (kg) Over Time
+                  </span>
+                  {measurements.length > 0 && (
+                    <span className="text-[11px] font-mono text-gray-400">
+                      {measurements.length} Check-in{measurements.length === 1 ? '' : 's'} Logged
+                    </span>
+                  )}
                 </div>
+
+                {measurements.length === 0 ? (
+                  <div className="h-44 w-full flex flex-col items-center justify-center border border-dashed border-white/[0.1] rounded-lg px-4 text-center">
+                    <Scale className="w-8 h-8 text-gray-500 mb-2" />
+                    <span className="text-sm font-semibold text-gray-200">No Weight Entries Logged Yet</span>
+                    <p className="text-xs text-gray-400 max-w-sm mt-1">
+                      Start tracking your body recomposition journey by recording your Week 1 baseline check-in.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMeasError(null);
+                        setLogModalOpen(true);
+                      }}
+                      className="mt-3 px-3.5 py-1.5 bg-gold/20 hover:bg-gold/30 text-gold border border-gold/40 text-xs font-semibold uppercase tracking-wider rounded transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Log Week 1 Baseline Check-in
+                    </button>
+                  </div>
+                ) : (
+                  <div className="h-44 w-full flex items-end justify-between gap-4 pt-4 border-b border-white/[0.1] px-4">
+                    {(() => {
+                      const weights = measurements.map((m) => m.weightKg);
+                      const minW = Math.max(0, Math.floor(Math.min(...weights) - 2));
+                      const maxW = Math.ceil(Math.max(...weights) + 2);
+                      const range = maxW - minW || 1;
+
+                      return measurements.map((m) => {
+                        const heightPercent = Math.max(20, Math.min(100, Math.round(((m.weightKg - minW) / range) * 100)));
+                        return (
+                          <div key={m.id} className="flex-1 flex flex-col items-center gap-2">
+                            <span className="text-xs font-mono font-bold text-gold">{m.weightKg}kg</span>
+                            <div
+                              style={{ height: `${heightPercent}%` }}
+                              className="w-full max-w-[48px] bg-gradient-to-t from-gold/30 to-gold rounded-t transition-all duration-500 hover:brightness-125"
+                              title={`Week ${m.weekNumber}: ${m.weightKg} kg on ${m.date}`}
+                            />
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">
+                              Wk {m.weekNumber}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Historical Log Table */}
@@ -687,24 +829,40 @@ export default function ClientDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {measurements.map((m) => (
-                      <tr key={m.id} className="hover:bg-white/[0.02]">
-                        <td className="py-3.5 px-4 font-bold text-gold">Week {m.weekNumber}</td>
-                        <td className="py-3.5 px-4 text-gray-300 font-mono">{m.date}</td>
-                        <td className="py-3.5 px-4 font-bold text-white font-mono">{m.weightKg} kg</td>
-                        <td className="py-3.5 px-4 text-gray-300 font-mono">{m.bodyFatPercentage || '—'}%</td>
-                        <td className="py-3.5 px-4 text-gray-300 font-mono">{m.waistCm || '—'} cm</td>
-                        <td className="py-3.5 px-4 text-gray-300 font-mono">{m.chestCm || '—'} cm</td>
-                        <td className="py-3.5 px-4 text-gray-300 font-mono">{m.armsCm || '—'} cm</td>
-                        <td className="py-3.5 px-4 text-gray-300 italic max-w-xs">
-                          {m.coachFeedback ? (
-                            <span className="text-gold font-medium">"{m.coachFeedback}"</span>
-                          ) : (
-                            <span className="text-gray-500">Awaiting coach review</span>
-                          )}
+                    {measurements.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-gray-400">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <ClipboardList className="w-6 h-6 text-gray-500" />
+                            <span className="font-semibold text-gray-300 text-xs uppercase tracking-wider">
+                              No Historical Check-ins Recorded
+                            </span>
+                            <span className="text-[11px] text-gray-500">
+                              Submit your weekly check-in using the "+ Add Week 1 Entry" button above.
+                            </span>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      measurements.map((m) => (
+                        <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-gold">Week {m.weekNumber}</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.date}</td>
+                          <td className="py-3.5 px-4 font-bold text-white font-mono">{m.weightKg} kg</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.bodyFatPercentage || '—'}%</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.waistCm || '—'} cm</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.chestCm || '—'} cm</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.armsCm || '—'} cm</td>
+                          <td className="py-3.5 px-4 text-gray-300 italic max-w-xs">
+                            {m.coachFeedback ? (
+                              <span className="text-gold font-medium">"{m.coachFeedback}"</span>
+                            ) : (
+                              <span className="text-gray-500">Awaiting coach review</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1067,12 +1225,26 @@ export default function ClientDashboard() {
             <div className="bg-[#121215] border border-gold/40 rounded-lg max-w-md w-full p-6 shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Log Weekly Body Measurement
+                  Log Weekly Body Measurement (Week {measurements.length + 1})
                 </h3>
-                <button onClick={() => setLogModalOpen(false)} className="text-gray-400 hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMeasError(null);
+                    setLogModalOpen(false);
+                  }}
+                  className="text-gray-400 hover:text-white cursor-pointer"
+                >
                   ✕
                 </button>
               </div>
+
+              {measError && (
+                <div className="p-3 rounded-lg bg-red-950/60 border border-red-500/50 text-red-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
+                  <span>{measError}</span>
+                </div>
+              )}
 
               <form onSubmit={handleAddMeasurement} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
