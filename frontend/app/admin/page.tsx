@@ -31,6 +31,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Globe,
   Check,
@@ -261,6 +262,7 @@ export default function AdminDashboard() {
     | 'database_health'
     | 'audit'
   >('analytics');
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -776,7 +778,7 @@ export default function AdminDashboard() {
       id: 'daily_dashboard',
       label: 'Daily Sales & Ad CRM',
       icon: Target,
-      badge: 'Client Sheet',
+      badge: 'Sheet',
     },
     {
       id: 'payments',
@@ -810,6 +812,9 @@ export default function AdminDashboard() {
     { id: 'database_health', label: 'Database & Backend', icon: Server, statusDot: 'green' },
     { id: 'audit', label: 'Audit Trail', icon: History },
   ];
+
+  const currentNavItem =
+    navigationItems.find((item) => item.id === activeTab) || navigationItems[0];
 
   return (
     <div className="min-h-screen bg-[#070709] text-gray-100 flex flex-col md:flex-row antialiased selection:bg-crimson-600 selection:text-white">
@@ -863,7 +868,10 @@ export default function AdminDashboard() {
         </div>
 
         {/* Scrollable Navigation Items */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]" aria-label="Admin Navigation">
+        <nav
+          className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20 pb-4"
+          aria-label="Admin Navigation"
+        >
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -874,26 +882,32 @@ export default function AdminDashboard() {
                   setActiveTab(item.id as any);
                   setMobileSidebarOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[42px] cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-[13px] font-semibold transition-all min-h-[40px] cursor-pointer ${
                   isActive
                     ? 'bg-crimson-600 text-white shadow-crimson-glow font-bold'
                     : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-400'}`} />
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? 'text-white' : 'text-gray-400'
+                    }`}
+                  />
                   <span className="truncate whitespace-nowrap text-left">{item.label}</span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
                   {item.statusDot === 'green' && (
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   )}
                   {item.badge && (
                     <span
-                      className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors ${
+                      className={`text-[9.5px] font-mono font-medium px-2 py-0.5 rounded-full whitespace-nowrap border transition-colors ${
                         isActive
                           ? 'bg-white/20 text-white border-white/25'
-                          : item.badge.includes('Due') || item.badge.includes('Slips') || !isNaN(Number(item.badge))
+                          : item.badge.includes('Due') ||
+                            item.badge.includes('Slips') ||
+                            !isNaN(Number(item.badge))
                           ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
                           : 'bg-white/[0.06] text-zinc-300 border-white/[0.08]'
                       }`}
@@ -908,48 +922,47 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Sidebar Footer: Owner Identity & Fast Public Link */}
-        <div className="p-3 border-t border-white/[0.06] bg-[#0c0c11] shrink-0 space-y-2">
+        <div className="p-3 border-t border-white/[0.06] bg-[#0c0c11] shrink-0 space-y-1.5">
           {/* Owner Profile Card */}
-          <div className="p-2.5 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
             <img
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
               alt="Adeesha Kumarasingha"
-              className="w-8 h-8 rounded-full object-cover border border-crimson-500/50 shrink-0"
+              className="w-7 h-7 rounded-full object-cover border border-crimson-500/50 shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <span className="text-xs font-bold text-white block truncate">
+              <span className="text-xs font-bold text-white block truncate leading-tight">
                 Adeesha Kumarasingha
               </span>
-              <span className="text-[10px] text-gray-400 block truncate">
+              <span className="text-[10px] text-gray-400 block truncate leading-tight">
                 Founder & Head Coach
               </span>
             </div>
           </div>
 
-          {/* Public Website Link */}
-          <Link
-            href="/"
-            target="_blank"
-            className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 flex items-center justify-between transition-colors min-h-[38px]"
-          >
-            <span className="flex items-center gap-2">
-              <Globe className="w-3.5 h-3.5 text-crimson-400" /> Public Website
-            </span>
-            <ExternalLink className="w-3 h-3 text-gray-500" />
-          </Link>
+          <div className="grid grid-cols-2 gap-1.5">
+            {/* Public Website Link */}
+            <Link
+              href="/"
+              target="_blank"
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 hover:text-white hover:bg-white/5 border border-white/5 flex items-center justify-center gap-1.5 transition-colors min-h-[34px]"
+              title="Open public website in new tab"
+            >
+              <Globe className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+              <span>Public Site</span>
+            </Link>
 
-          {/* Logout Button */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full px-3 py-2 rounded-xl text-[11px] font-semibold text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/40 flex items-center justify-between transition-colors min-h-[38px] cursor-pointer"
-            title="Log out of Admin Portal"
-          >
-            <span className="flex items-center gap-2">
-              <LogOut className="w-3.5 h-3.5" /> Logout
-            </span>
-            <span className="text-[10px] text-rose-500/70 font-mono">Exit Desk</span>
-          </button>
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-rose-400 hover:text-rose-200 hover:bg-rose-950/40 border border-rose-500/20 hover:border-rose-500/40 flex items-center justify-center gap-1.5 transition-colors min-h-[34px] cursor-pointer"
+              title="Log out of Admin Portal"
+            >
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -957,33 +970,114 @@ export default function AdminDashboard() {
           MAIN APP CANVAS (Dedicated Admin Topbar + Content View)
           ═══════════════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-[#08080a]">
-        {/* Dedicated Admin Topbar (NO website public navbar) */}
-        <header className="h-16 px-4 sm:px-8 border-b border-white/[0.08] bg-[#0c0c11]/80 backdrop-blur sticky top-0 z-30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        {/* Dedicated Admin Topbar / Navigation Bar */}
+        <header className="h-16 px-3 sm:px-6 lg:px-8 border-b border-white/[0.08] bg-[#0c0c11]/90 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden text-gray-400 hover:text-white p-2 rounded-lg bg-white/5"
+              className="md:hidden text-gray-400 hover:text-white p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
               aria-label="Open sidebar"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span>MuscleCraft Admin</span>
-                <span>/</span>
-                <span className="text-white font-semibold capitalize">
-                  {activeTab.replace('_', ' ')}
-                </span>
+            {/* Breadcrumb & Quick Switcher Pill */}
+            <div className="flex items-center gap-2 text-xs min-w-0">
+              <span className="text-gray-400 font-medium hidden xl:inline whitespace-nowrap">
+                MuscleCraft Admin
+              </span>
+              <span className="text-gray-600 hidden xl:inline">/</span>
+
+              {/* Quick Tab Switcher Pill in Topbar */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setHeaderMenuOpen(!headerMenuOpen)}
+                  className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.1] text-white text-xs font-bold transition-all cursor-pointer shadow-sm group shrink-0"
+                  aria-expanded={headerMenuOpen}
+                  aria-haspopup="true"
+                  title="Click to quickly switch admin workspace"
+                >
+                  <currentNavItem.icon className="w-3.5 h-3.5 text-crimson-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="truncate max-w-[130px] sm:max-w-[170px] xl:max-w-[220px]">
+                    {currentNavItem.label}
+                  </span>
+                  <ChevronDown
+                    className={`w-3 h-3 text-gray-400 transition-transform duration-200 shrink-0 ${
+                      headerMenuOpen ? 'rotate-180 text-white' : ''
+                    }`}
+                  />
+                </button>
+
+                {headerMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setHeaderMenuOpen(false)}
+                    />
+                    <div className="absolute left-0 mt-2 w-64 sm:w-72 bg-[#0e0e14] border border-white/[0.12] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] z-50 p-2 space-y-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold border-b border-white/[0.06] flex items-center justify-between">
+                        <span>Select Workspace</span>
+                        <span className="text-crimson-400">10 Workspaces</span>
+                      </div>
+                      <div className="max-h-[360px] overflow-y-auto space-y-0.5 py-1 scrollbar-thin scrollbar-thumb-white/10">
+                        {navigationItems.map((item) => {
+                          const Icon = item.icon;
+                          const isCurrent = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab(item.id as any);
+                                setHeaderMenuOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                                isCurrent
+                                  ? 'bg-crimson-600 text-white font-bold shadow-[0_0_12px_rgba(186,26,26,0.4)]'
+                                  : 'text-gray-300 hover:text-white hover:bg-white/[0.06]'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                <Icon
+                                  className={`w-3.5 h-3.5 shrink-0 ${
+                                    isCurrent ? 'text-white' : 'text-gray-400'
+                                  }`}
+                                />
+                                <span className="truncate">{item.label}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                {item.statusDot === 'green' && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                )}
+                                {item.badge && (
+                                  <span
+                                    className={`text-[9.5px] font-mono font-medium px-1.5 py-0.5 rounded-full border ${
+                                      isCurrent
+                                        ? 'bg-white/20 text-white border-white/30'
+                                        : 'bg-white/[0.06] text-zinc-300 border-white/[0.08]'
+                                    }`}
+                                  >
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-nowrap shrink-0">
-            {/* Live Database Status Pill (Clean Single-Line, Never Wraps) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-nowrap shrink-0">
+            {/* Live Database Status Pill */}
             <button
               onClick={() => setActiveTab('database_health')}
-              className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 bg-[#13131b] hover:bg-[#181824] text-zinc-300 whitespace-nowrap shrink-0 shadow-sm"
+              className="hidden lg:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all cursor-pointer border border-white/[0.08] hover:border-white/20 bg-[#13131b] hover:bg-[#181824] text-zinc-300 whitespace-nowrap shrink-0 shadow-sm"
               title="Click to view Database & Backend Telemetry"
               aria-label="View Database and Backend Telemetry"
             >
@@ -1005,30 +1099,15 @@ export default function AdminDashboard() {
               </span>
             </button>
 
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#13131b] border border-white/[0.08] text-zinc-300 text-xs font-mono font-medium whitespace-nowrap shrink-0">
+            <div className="hidden xl:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#13131b] border border-white/[0.08] text-zinc-300 text-xs font-mono font-medium whitespace-nowrap shrink-0">
               <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Rs. {stats.totalRevenue.toLocaleString()} MTD</span>
             </div>
 
-            {expiredMembersCount + expiringMembersCount > 0 && (
-              <button
-                onClick={() => {
-                  setActiveTab('analytics');
-                  const el = document.getElementById('renewals-desk');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-mono font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                title={`${expiredMembersCount} Expired, ${expiringMembersCount} Expiring Soon`}
-              >
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>{expiredMembersCount + expiringMembersCount} Renewals Due</span>
-              </button>
-            )}
-
             {stats.pendingTransfers > 0 && (
               <button
                 onClick={() => setActiveTab('payments')}
-                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-mono font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                className="hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:text-white text-xs font-mono font-medium cursor-pointer transition-colors whitespace-nowrap shrink-0"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span>{stats.pendingTransfers} Slips Waiting</span>
