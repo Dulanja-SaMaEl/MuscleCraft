@@ -23,13 +23,16 @@
 
 html {
   color-scheme: dark;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
   background-color: #08080A;
   color: #F9FAFB;
   font-family: var(--font-sans), 'Plus Jakarta Sans', var(--font-body), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow-x: clip;
+  overflow-x: hidden;
+  max-width: 100vw;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
