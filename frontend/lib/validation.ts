@@ -61,7 +61,7 @@ export const ScheduleAppointmentSchema = z.object({
 });
 
 export const AddVideoSchema = z.object({
-  title: z.string().min(3).max(120),
+  title: z.string().min(1, 'Video title is required').max(150),
   category: z.enum([
     'Warmup',
     'Hypertrophy',
@@ -71,15 +71,18 @@ export const AddVideoSchema = z.object({
     'Technique Review',
     'Personalized Session',
   ]),
-  duration: z.string().min(2).max(20),
+  duration: z.string().min(1).max(20).default('08:30'),
   accessLevel: z.enum(['common', 'coaching_90']).default('common'),
   targetScope: z.enum(['all_members', 'specific_client', 'coaching_90_vip']).default('all_members'),
   targetClientId: z.string().optional(),
   targetClientName: z.string().optional(),
-  cfStreamId: z.string().min(1).default('cf_stream_local'),
+  cfStreamId: z.string().default('cf_stream_local'),
   videoUrl: z.string().url().optional(),
   thumbnailUrl: z.string().url(),
-  description: z.string().min(5).max(500),
+  description: z.preprocess(
+    (val) => (typeof val === 'string' && val.trim() ? val.trim() : 'Personalized coaching session video.'),
+    z.string().max(1000)
+  ),
 });
 
 export const BroadcastMessageSchema = z.object({

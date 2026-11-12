@@ -207,13 +207,15 @@ export default function VideosVaultTab({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.description.trim()) return;
+    if (!formData.title.trim()) return;
 
     setIsSubmitting(true);
     try {
       const selectedClient = members.find((m) => m.id === formData.targetClientId);
+      const safeDescription = formData.description.trim() || 'Coaching guidance and technique review session.';
       await onAddVideo({
         ...formData,
+        description: safeDescription,
         targetClientName: formData.targetScope === 'specific_client' ? selectedClient?.name : undefined,
         targetClientId: formData.targetScope === 'specific_client' ? formData.targetClientId : undefined,
         accessLevel: formData.targetScope === 'coaching_90_vip' ? 'coaching_90' : 'common',
@@ -875,11 +877,10 @@ export default function VideosVaultTab({
                 {/* Description / Coach Instructions */}
                 <div>
                   <label htmlFor="videoDesc" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Coach Instructions & Athlete Cues:
+                    Coach Instructions & Athlete Cues (Optional):
                   </label>
                   <textarea
                     id="videoDesc"
-                    required
                     rows={3}
                     placeholder="Describe key technique adjustments, bar path, breathing cues, and what the athlete should execute next session..."
                     value={formData.description}

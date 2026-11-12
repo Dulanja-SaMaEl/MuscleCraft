@@ -89,7 +89,18 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, video }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    let cleanMessage = error.message;
+    if (error.errors && Array.isArray(error.errors)) {
+      cleanMessage = error.errors.map((e: any) => e.message || `${e.path?.join('.')}: invalid`).join('. ');
+    } else if (typeof cleanMessage === 'string' && cleanMessage.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(cleanMessage);
+        if (Array.isArray(parsed)) {
+          cleanMessage = parsed.map((e: any) => e.message || `${e.path?.join('.')}: invalid`).join('. ');
+        }
+      } catch (_) {}
+    }
+    return NextResponse.json({ error: cleanMessage || 'Failed to add session video.' }, { status: 400 });
   }
 }
 

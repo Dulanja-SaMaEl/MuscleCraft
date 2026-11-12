@@ -352,10 +352,28 @@ export default function AdminDashboard() {
         await loadAdminData();
       } else {
         const err = await res.json();
-        setActionMessage({ type: 'error', text: err.error || 'Failed to publish video' });
+        let errorText = err.error || 'Failed to publish video';
+        if (typeof errorText === 'string' && errorText.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(errorText);
+            if (Array.isArray(parsed)) {
+              errorText = parsed.map((e: any) => e.message || `${e.path?.join('.')}: invalid`).join('. ');
+            }
+          } catch (_) {}
+        }
+        setActionMessage({ type: 'error', text: errorText });
       }
     } catch (err: any) {
-      setActionMessage({ type: 'error', text: err.message });
+      let errorText = err.message || 'Error occurred';
+      if (typeof errorText === 'string' && errorText.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(errorText);
+          if (Array.isArray(parsed)) {
+            errorText = parsed.map((e: any) => e.message || `${e.path?.join('.')}: invalid`).join('. ');
+          }
+        } catch (_) {}
+      }
+      setActionMessage({ type: 'error', text: errorText });
     }
   };
 
