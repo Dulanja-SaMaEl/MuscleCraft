@@ -20,6 +20,8 @@ import {
   Copy,
   Check,
   FileCode,
+  Cloud,
+  Video,
 } from 'lucide-react';
 
 interface DatabaseHealthTabProps {
@@ -37,6 +39,7 @@ export default function DatabaseHealthTab({
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   );
   const [copiedEnv, setCopiedEnv] = useState(false);
+  const [copiedR2Env, setCopiedR2Env] = useState(false);
 
   const handlePing = async () => {
     setIsPinging(true);
@@ -66,6 +69,16 @@ export default function DatabaseHealthTab({
     ssl: 'Enforced TLSv1.3',
   };
 
+  // Cloudflare R2 Storage Telemetry
+  const r2Storage = healthData?.storage?.cloudflareR2;
+  const isR2Configured = Boolean(r2Storage?.configured ?? diag?.r2Configured);
+  const isR2Connected = Boolean(r2Storage?.connected ?? diag?.r2Connected);
+  const r2LatencyMs = r2Storage?.latencyMs || diag?.r2LatencyMs || 0;
+  const r2Bucket = r2Storage?.bucket || diag?.r2Bucket || 'musclecraft-videos';
+  const r2PublicDomain = r2Storage?.publicDomain || diag?.r2PublicDomain || '';
+  const r2AccountMasked = r2Storage?.accountMasked || null;
+  const r2CheckedVars = r2Storage?.checkedEnvVars || diag?.checkedEnvVars || {};
+
   const copyEnvSnippet = () => {
     const snippet = `# MuscleCraft Supabase Production Credentials
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
@@ -78,8 +91,22 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
     setTimeout(() => setCopiedEnv(false), 2000);
   };
 
+  const copyR2EnvSnippet = () => {
+    const snippet = `# Cloudflare R2 Video Vault Credentials (Vercel / Local)
+R2_ACCOUNT_ID="your_cloudflare_account_id"
+R2_ACCESS_KEY_ID="your_r2_access_key_id"
+R2_SECRET_ACCESS_KEY="your_r2_secret_access_key"
+R2_BUCKET_NAME="musclecraft-videos"
+R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
+`;
+    navigator.clipboard.writeText(snippet);
+    setCopiedR2Env(true);
+    setTimeout(() => setCopiedR2Env(false), 2000);
+  };
+
   const endpoints = [
     { method: 'GET', path: '/api/health', target: 'Diagnostics & Telemetry Probe', status: 200, latency: lastPingMs || 18 },
+    { method: 'POST', path: '/api/videos/upload', target: 'Cloudflare R2 Video Vault & Stream Uploader', status: 200, latency: (lastPingMs || 18) + 12 },
     { method: 'GET', path: '/api/admin/packages', target: 'Gym Packages Catalog (Supabase)', status: 200, latency: (lastPingMs || 18) + 4 },
     { method: 'GET', path: '/api/admin/members', target: 'Member Profiles Directory (Supabase)', status: 200, latency: (lastPingMs || 18) + 6 },
     { method: 'GET', path: '/api/admin/daily-sales', target: 'Client CRM & Daily Sales Reviews', status: 200, latency: (lastPingMs || 18) + 5 },
@@ -261,55 +288,173 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
-          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
-            <div>
-              <span className="text-gray-300 font-semibold block">NEXT_PUBLIC_SUPABASE_URL</span>
-              <span className="text-[10px] text-gray-500 font-mono">
-                {diag.urlMasked || 'Project URL'}
-              </span>
-            </div>
-            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_URL || diag.checkedEnvVars?.SUPABASE_URL || isSupabaseConfigured ? (
-              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                DETECTED
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
-                MISSING
-              </span>
-            )}
+        {/* Supabase Variables */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5 text-emerald-400" /> Supabase Database Variables
+            </span>
+            <button
+              onClick={copyEnvSnippet}
+              className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-mono"
+            >
+              {copiedEnv ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedEnv ? 'Copied' : 'Copy Supabase Vars'}</span>
+            </button>
           </div>
-
-          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
-            <div>
-              <span className="text-gray-300 font-semibold block">PUBLISHABLE KEY</span>
-              <span className="text-[10px] text-gray-500 font-mono">sb_publishable_... (Modern)</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+            <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">NEXT_PUBLIC_SUPABASE_URL</span>
+                <span className="text-[10px] text-gray-500 font-mono">
+                  {diag.urlMasked || 'Project URL'}
+                </span>
+              </div>
+              {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_URL || diag.checkedEnvVars?.SUPABASE_URL || isSupabaseConfigured ? (
+                <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
+                  MISSING
+                </span>
+              )}
             </div>
-            {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY || isSupabaseConfigured ? (
-              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                DETECTED
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
-                MISSING
-              </span>
-            )}
+
+            <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">PUBLISHABLE KEY</span>
+                <span className="text-[10px] text-gray-500 font-mono">sb_publishable_... (Modern)</span>
+              </div>
+              {diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || diag.checkedEnvVars?.NEXT_PUBLIC_SUPABASE_ANON_KEY || diag.checkedEnvVars?.SUPABASE_ANON_KEY || isSupabaseConfigured ? (
+                <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-md bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold">
+                  MISSING
+                </span>
+              )}
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">SECRET KEY (ADMIN)</span>
+                <span className="text-[10px] text-gray-500 font-mono">sb_secret_... (Server)</span>
+              </div>
+              {diag.checkedEnvVars?.SUPABASE_SECRET_KEY || diag.checkedEnvVars?.SUPABASE_SERVICE_ROLE_KEY ? (
+                <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-300 border border-amber-800/60 text-[10px] font-bold">
+                  OPTIONAL
+                </span>
+              )}
+            </div>
           </div>
+        </div>
 
-          <div className="p-3.5 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
-            <div>
-              <span className="text-gray-300 font-semibold block">SECRET KEY (ADMIN)</span>
-              <span className="text-[10px] text-gray-500 font-mono">sb_secret_... (Server)</span>
+        {/* Cloudflare R2 Video Storage Variables */}
+        <div className="space-y-2 pt-2 border-t border-white/[0.04]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <Cloud className="w-3.5 h-3.5 text-amber-400" /> Cloudflare R2 Video Storage Variables
+            </span>
+            <button
+              onClick={copyR2EnvSnippet}
+              className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-mono"
+            >
+              {copiedR2Env ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedR2Env ? 'Copied' : 'Copy R2 Vars'}</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs font-mono">
+            <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">R2_ACCOUNT_ID</span>
+                <span className="text-[10px] text-gray-500 font-mono truncate max-w-[90px] block">
+                  {r2AccountMasked || 'Cloudflare ID'}
+                </span>
+              </div>
+              {r2CheckedVars?.R2_ACCOUNT_ID || isR2Configured ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[9.5px] font-bold">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[9.5px] font-bold">
+                  MISSING
+                </span>
+              )}
             </div>
-            {diag.checkedEnvVars?.SUPABASE_SECRET_KEY || diag.checkedEnvVars?.SUPABASE_SERVICE_ROLE_KEY ? (
-              <span className="px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[10px] font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                DETECTED
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-300 border border-amber-800/60 text-[10px] font-bold">
-                OPTIONAL
-              </span>
-            )}
+
+            <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">R2_ACCESS_KEY_ID</span>
+                <span className="text-[10px] text-gray-500 font-mono">Token Access Key</span>
+              </div>
+              {r2CheckedVars?.R2_ACCESS_KEY_ID || isR2Configured ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[9.5px] font-bold">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[9.5px] font-bold">
+                  MISSING
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">R2_SECRET_ACCESS_KEY</span>
+                <span className="text-[10px] text-gray-500 font-mono">Token Secret</span>
+              </div>
+              {r2CheckedVars?.R2_SECRET_ACCESS_KEY || isR2Configured ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[9.5px] font-bold">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[9.5px] font-bold">
+                  MISSING
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">R2_BUCKET_NAME</span>
+                <span className="text-[10px] text-gray-500 font-mono truncate max-w-[90px] block">
+                  {r2Bucket}
+                </span>
+              </div>
+              {r2CheckedVars?.R2_BUCKET_NAME || r2Bucket ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[9.5px] font-bold">
+                  {r2CheckedVars?.R2_BUCKET_NAME ? 'DETECTED' : 'DEFAULT'}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800/60 text-[9.5px] font-bold">
+                  DEFAULT
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#161620] border border-white/[0.06] flex items-center justify-between">
+              <div>
+                <span className="text-gray-300 font-semibold block">R2_PUBLIC_DOMAIN</span>
+                <span className="text-[10px] text-gray-500 font-mono truncate max-w-[90px] block">
+                  {r2PublicDomain || 'r2.dev / Direct'}
+                </span>
+              </div>
+              {r2CheckedVars?.R2_PUBLIC_DOMAIN || r2PublicDomain ? (
+                <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/60 text-[9.5px] font-bold">
+                  DETECTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 text-[9.5px] font-bold">
+                  OPTIONAL
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -370,7 +515,7 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
       {/* ───────────────────────────────────────────────────────────
           4. CORE INFRASTRUCTURE TELEMETRY CARDS
           ─────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* PostgreSQL Database Card */}
         <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between pb-5 border-b border-white/[0.06]">
@@ -458,6 +603,100 @@ NEXT_PUBLIC_APP_URL="https://your-domain.com"
               </span>
               <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
                 <Lock className="w-3 h-3" /> SSL Enforced
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Cloudflare R2 Object Storage Card */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-lg relative overflow-hidden">
+          <div className="flex items-center justify-between pb-5 border-b border-white/[0.06]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-600/50 flex items-center justify-center text-amber-400">
+                <Cloud className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base">Cloudflare R2 Storage</h3>
+                <span className="text-[11px] text-gray-400 font-mono">
+                  {isR2Configured && isR2Connected
+                    ? 'Global S3-Compatible Video Vault'
+                    : isR2Configured
+                    ? 'Connecting to Bucket...'
+                    : 'Local Vault / Mock Fallback'}
+                </span>
+              </div>
+            </div>
+
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+                isR2Configured && isR2Connected
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                  : isR2Configured
+                  ? 'bg-amber-950 text-amber-300 border border-amber-700'
+                  : 'bg-zinc-900 text-zinc-400 border border-zinc-700'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isR2Configured && isR2Connected
+                    ? 'bg-emerald-400 animate-pulse'
+                    : isR2Configured
+                    ? 'bg-amber-400'
+                    : 'bg-zinc-500'
+                }`}
+              ></span>
+              {isR2Configured && isR2Connected
+                ? 'CONNECTED'
+                : isR2Configured
+                ? 'CONFIGURED'
+                : 'OFFLINE FALLBACK'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 py-5">
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Target Bucket
+              </span>
+              <span className="text-sm font-extrabold text-white font-mono mt-1 block truncate">
+                {r2Bucket}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">
+                {isR2Configured ? (r2AccountMasked ? `Acct: ${r2AccountMasked}` : 'Cloudflare R2') : 'Default bucket'}
+              </span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Edge Latency
+              </span>
+              <span className="text-xl font-extrabold text-amber-400 font-mono mt-1 block">
+                {isR2Connected ? `${r2LatencyMs} ms` : '—'}
+              </span>
+              <span className="text-[10px] text-emerald-400 font-medium">
+                {isR2Connected ? 'Zero Egress Fees' : 'Fallback active'}
+              </span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Public Streaming
+              </span>
+              <span className="text-sm font-extrabold text-white font-mono mt-1 block truncate">
+                {r2PublicDomain ? 'Custom / R2.dev' : 'Direct Stream'}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">HLS / MP4 CDN Delivery</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Upload Engine
+              </span>
+              <span className="text-sm font-extrabold text-emerald-400 font-mono mt-1 block">
+                AWS SDK S3
+              </span>
+              <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Signed Multipart
               </span>
             </div>
           </div>

@@ -1773,6 +1773,7 @@ export default function AdminDashboard() {
             <VideosVaultTab
               videos={videos}
               members={members}
+              healthData={healthData}
               onAddVideo={handleAddVideo}
               onDeleteVideo={handleDeleteVideo}
             />

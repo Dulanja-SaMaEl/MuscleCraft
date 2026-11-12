@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isR2Configured, uploadToR2 } from '@/lib/storage/cloudflare-r2';
+import { getR2Credentials, uploadToR2 } from '@/lib/storage/cloudflare-r2';
 import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
 import { AuthService } from '@/lib/services/auth-service';
 import fs from 'fs';
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
     let storageProvider = 'local_storage';
 
     // 1. Attempt Cloudflare R2 (Object Storage)
-    if (isR2Configured) {
+    const r2Config = getR2Credentials();
+    if (r2Config.isConfigured) {
       try {
         const r2Result = await uploadToR2({
           key: uniqueKey,
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
         storageProvider = 'local_storage';
       } catch (diskErr: any) {
         // If disk write is not permitted (e.g. serverless read-only), return sample URL with notification
-        uploadedUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+        uploadedUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
         storageProvider = 'demo_fallback';
       }
     }

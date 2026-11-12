@@ -7,6 +7,7 @@ import {
   supabaseUrl,
   supabaseKey,
 } from '@/lib/supabase/server';
+import { getR2Credentials, pingR2 } from '@/lib/storage/cloudflare-r2';
 
 export async function GET() {
   let isConnected = false;
@@ -82,6 +83,31 @@ export async function GET() {
     ? 'Publishable / Client (Standard Access)'
     : (supabaseKey ? 'Custom Supabase Key' : 'none');
 
+  // Cloudflare R2 Diagnostics
+  const r2Config = getR2Credentials();
+  let r2PingResult: any = null;
+  if (r2Config.isConfigured) {
+    try {
+      r2PingResult = await pingR2();
+    } catch (err: any) {
+      r2PingResult = {
+        ok: false,
+        latencyMs: 0,
+        bucket: r2Config.bucketName,
+        publicDomain: r2Config.publicDomain,
+        error: err.message || 'R2 connection probe failed',
+      };
+    }
+  } else {
+    r2PingResult = {
+      ok: false,
+      latencyMs: 0,
+      bucket: r2Config.bucketName,
+      publicDomain: r2Config.publicDomain,
+      error: 'Cloudflare R2 credentials (Account ID, Access Key ID, Secret Access Key) not detected in environment variables.',
+    };
+  }
+
   // Safely collect matching environment key names (NAMES ONLY, NEVER VALUES)
   const matchingKeyNames = Object.keys(process.env).filter(k => {
     const lower = k.toLowerCase();
@@ -93,7 +119,9 @@ export async function GET() {
       lower.includes('vercel') ||
       lower.includes('database') ||
       lower.includes('backend') ||
-      lower.includes('next_public')
+      lower.includes('next_public') ||
+      lower.includes('r2') ||
+      lower.includes('cloudflare')
     );
   });
 
@@ -133,6 +161,11 @@ export async function GET() {
     SUPABASE_ANON_KEY: Boolean(process.env.SUPABASE_ANON_KEY?.trim()),
     DATABASE_URL: Boolean(process.env.DATABASE_URL?.trim()),
     POSTGRES_URL: Boolean(process.env.POSTGRES_URL?.trim()),
+    R2_ACCOUNT_ID: Boolean(r2Config.accountId),
+    R2_ACCESS_KEY_ID: Boolean(r2Config.accessKeyId),
+    R2_SECRET_ACCESS_KEY: Boolean(r2Config.secretAccessKey),
+    R2_BUCKET_NAME: Boolean(r2Config.bucketName),
+    R2_PUBLIC_DOMAIN: Boolean(r2Config.publicDomain),
   };
 
   const actionGuidance = !isServerSupabaseConfigured
@@ -162,6 +195,25 @@ export async function GET() {
       ssl: 'Enforced TLSv1.3',
       error: errorMessage,
     },
+    storage: {
+      cloudflareR2: {
+        configured: r2Config.isConfigured,
+        connected: Boolean(r2PingResult?.ok),
+        latencyMs: r2PingResult?.latencyMs || 0,
+        bucket: r2Config.bucketName,
+        publicDomain: r2Config.publicDomain,
+        accountMasked: r2PingResult?.accountMasked || (r2Config.accountId ? `${r2Config.accountId.substring(0, 6)}****` : null),
+        accessKeyMasked: r2PingResult?.accessKeyMasked || (r2Config.accessKeyId ? `${r2Config.accessKeyId.substring(0, 6)}****` : null),
+        error: r2PingResult?.error || null,
+        checkedEnvVars: {
+          R2_ACCOUNT_ID: Boolean(r2Config.accountId),
+          R2_ACCESS_KEY_ID: Boolean(r2Config.accessKeyId),
+          R2_SECRET_ACCESS_KEY: Boolean(r2Config.secretAccessKey),
+          R2_BUCKET_NAME: Boolean(r2Config.bucketName),
+          R2_PUBLIC_DOMAIN: Boolean(r2Config.publicDomain),
+        },
+      },
+    },
     diagnostics: {
       supabaseConfigured: isServerSupabaseConfigured,
       supabaseConnected: isConnected,
@@ -170,6 +222,11 @@ export async function GET() {
       keyDetected: Boolean(supabaseKey),
       keyType,
       keyMasked: maskedKey,
+      r2Configured: r2Config.isConfigured,
+      r2Connected: Boolean(r2PingResult?.ok),
+      r2Bucket: r2Config.bucketName,
+      r2LatencyMs: r2PingResult?.latencyMs || 0,
+      r2Error: r2PingResult?.error || null,
       checkedEnvVars,
       actionGuidance,
       pingResult,
@@ -183,6 +240,7 @@ export async function GET() {
       paymentsLedger: 'operational',
       videoVaultWorker: 'operational',
       broadcastDispatcher: 'operational',
+      cloudflareR2Storage: r2Config.isConfigured && r2PingResult?.ok ? 'operational' : (r2Config.isConfigured ? 'degraded' : 'fallback_local'),
     },
   });
 }

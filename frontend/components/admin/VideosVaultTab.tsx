@@ -34,6 +34,7 @@ import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
 interface VideosVaultTabProps {
   videos: ExerciseVideo[];
   members: UserType[];
+  healthData?: any;
   onAddVideo: (videoData: any) => Promise<void>;
   onDeleteVideo: (videoId: string) => Promise<void>;
 }
@@ -41,6 +42,7 @@ interface VideosVaultTabProps {
 export default function VideosVaultTab({
   videos,
   members,
+  healthData,
   onAddVideo,
   onDeleteVideo,
 }: VideosVaultTabProps) {
@@ -76,7 +78,7 @@ export default function VideosVaultTab({
     duration: '08:30',
     targetScope: 'specific_client',
     targetClientId: members.find((m) => m.role === 'client')?.id || 'usr_client_90',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
     thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
     description: '',
   });
@@ -223,7 +225,7 @@ export default function VideosVaultTab({
         duration: '08:30',
         targetScope: 'specific_client',
         targetClientId: clientMembers[0]?.id || 'usr_client_90',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
         thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
         description: '',
       });
@@ -251,6 +253,23 @@ export default function VideosVaultTab({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {healthData?.storage?.cloudflareR2?.connected ? (
+            <div className="px-3.5 py-2 rounded-xl bg-emerald-950/70 border border-emerald-600/40 text-emerald-300 text-xs font-mono font-medium flex items-center gap-2 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>R2 Vault: {healthData.storage.cloudflareR2.bucket} ({healthData.storage.cloudflareR2.latencyMs}ms)</span>
+            </div>
+          ) : healthData?.storage?.cloudflareR2?.configured ? (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-950/70 border border-amber-600/40 text-amber-300 text-xs font-mono font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span>R2 Vault: Configured</span>
+            </div>
+          ) : (
+            <div className="px-3.5 py-2 rounded-xl bg-[#161620] border border-white/[0.08] text-gray-400 text-xs font-mono flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-zinc-500"></span>
+              <span>Vault: Local Engine</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => setShowR2GuideModal(true)}
