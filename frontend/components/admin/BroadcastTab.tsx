@@ -48,6 +48,25 @@ export default function BroadcastTab({
   const [previewMode, setPreviewMode] = useState<'in_app' | 'sms' | 'push'>('in_app');
 
   const clientMembers = members.filter((m) => m.role === 'client');
+  const allCount = clientMembers.length;
+  const vipCount = clientMembers.filter(
+    (m) =>
+      m.tier === 'coaching_90' ||
+      m.packageType === 'coaching' ||
+      m.packageName?.toLowerCase().includes('coaching')
+  ).length;
+  const soleCount = clientMembers.filter(
+    (m) =>
+      m.tier?.startsWith('sole') ||
+      m.packageType === 'sole' ||
+      m.packageName?.toLowerCase().includes('sole')
+  ).length;
+  const coupleCount = clientMembers.filter(
+    (m) =>
+      m.tier?.startsWith('couple') ||
+      m.packageType === 'couple' ||
+      m.packageName?.toLowerCase().includes('couple')
+  ).length;
 
   const toggleChannel = (channel: BroadcastChannel) => {
     if (channels.includes(channel)) {
@@ -60,12 +79,12 @@ export default function BroadcastTab({
   };
 
   const calculateRecipients = () => {
-    if (audience === 'all_members') return 84;
-    if (audience === 'coaching_90_vip') return 19;
-    if (audience === 'sole_members') return 42;
-    if (audience === 'couple_members') return 23;
+    if (audience === 'all_members') return allCount;
+    if (audience === 'coaching_90_vip') return vipCount;
+    if (audience === 'sole_members') return soleCount;
+    if (audience === 'couple_members') return coupleCount;
     if (audience === 'specific_client') return 1;
-    return 84;
+    return allCount;
   };
 
   const handleDispatch = async (e: React.FormEvent) => {
@@ -185,7 +204,10 @@ export default function BroadcastTab({
             Target Reach
           </span>
           <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2 block">
-            {recipientCount} Athletes
+            {recipientCount}{' '}
+            {audience === 'couple_members'
+              ? `Couple${recipientCount === 1 ? '' : 's'}`
+              : `Athlete${recipientCount === 1 ? '' : 's'}`}
           </span>
           <span className="text-[11px] text-crimson-400 font-semibold mt-1 block">
             Active in current audience
@@ -244,11 +266,36 @@ export default function BroadcastTab({
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {[
-                  { id: 'all_members', label: 'All Members', count: '84 Athletes', icon: Globe },
-                  { id: 'coaching_90_vip', label: '90-Day VIP', count: '19 Athletes', icon: Flame },
-                  { id: 'sole_members', label: 'Sole Members', count: '42 Athletes', icon: User },
-                  { id: 'couple_members', label: 'Couple Pairs', count: '23 Couples', icon: Users },
-                  { id: 'specific_client', label: 'Direct Member', count: '1 Athlete', icon: Sparkles },
+                  {
+                    id: 'all_members',
+                    label: 'All Members',
+                    count: `${allCount} Athlete${allCount === 1 ? '' : 's'}`,
+                    icon: Globe,
+                  },
+                  {
+                    id: 'coaching_90_vip',
+                    label: '90-Day VIP',
+                    count: `${vipCount} Athlete${vipCount === 1 ? '' : 's'}`,
+                    icon: Flame,
+                  },
+                  {
+                    id: 'sole_members',
+                    label: 'Sole Members',
+                    count: `${soleCount} Athlete${soleCount === 1 ? '' : 's'}`,
+                    icon: User,
+                  },
+                  {
+                    id: 'couple_members',
+                    label: 'Couple Pairs',
+                    count: `${coupleCount} Couple${coupleCount === 1 ? '' : 's'}`,
+                    icon: Users,
+                  },
+                  {
+                    id: 'specific_client',
+                    label: 'Direct Member',
+                    count: '1 Athlete',
+                    icon: Sparkles,
+                  },
                 ].map((aud) => {
                   const Icon = aud.icon;
                   const isSelected = audience === aud.id;
@@ -399,7 +446,11 @@ export default function BroadcastTab({
                 <span>
                   {isDispatching
                     ? 'Broadcasting...'
-                    : `Dispatch to ${recipientCount} Athletes`}
+                    : `Dispatch to ${recipientCount} ${
+                        audience === 'couple_members'
+                          ? `Couple${recipientCount === 1 ? '' : 's'}`
+                          : `Athlete${recipientCount === 1 ? '' : 's'}`
+                      }`}
                 </span>
               </button>
             </div>
@@ -594,48 +645,72 @@ export default function BroadcastTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {broadcastHistory.map((bc) => (
-                <tr key={bc.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3.5 px-4 font-mono text-gray-400 whitespace-nowrap">
-                    {new Date(bc.createdAt).toLocaleDateString()}{' '}
-                    <span className="text-[10px] block text-gray-500">
-                      {new Date(bc.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 max-w-sm">
-                    <span className="font-bold text-white block line-clamp-1">{bc.title}</span>
-                    <span className="text-gray-400 text-[11px] line-clamp-2 mt-0.5">
-                      {bc.body}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="px-2.5 py-0.5 rounded-full bg-crimson-950 text-crimson-300 border border-crimson-800 text-[10.5px] font-bold">
-                      {bc.audience.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      {bc.channels.map((ch: string) => (
-                        <span
-                          key={ch}
-                          className="px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10 text-[10px] font-mono font-bold uppercase"
-                        >
-                          {ch}
+              {broadcastHistory.map((bc) => {
+                const rawDate = bc.createdAt || bc.sentAt || bc.created_at;
+                const parsedDate = rawDate ? new Date(rawDate) : null;
+                const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+                const dateDisplay = isValidDate
+                  ? parsedDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'Recent';
+                const timeDisplay = isValidDate
+                  ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                const count = bc.recipientCount ?? bc.sentCount ?? bc.sent_count ?? 1;
+                const isCouple =
+                  bc.audience === 'couple_members' || bc.audience === 'couple';
+                const unitLabel = isCouple
+                  ? `Couple${count === 1 ? '' : 's'}`
+                  : `Athlete${count === 1 ? '' : 's'}`;
+
+                return (
+                  <tr key={bc.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-gray-400 whitespace-nowrap">
+                      {dateDisplay}
+                      {timeDisplay && (
+                        <span className="text-[10px] block text-gray-500">
+                          {timeDisplay}
                         </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
-                    {bc.recipientCount} Athletes
-                  </td>
-                  <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      100% Delivered
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 max-w-sm">
+                      <span className="font-bold text-white block line-clamp-1">{bc.title}</span>
+                      <span className="text-gray-400 text-[11px] line-clamp-2 mt-0.5">
+                        {bc.body}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className="px-2.5 py-0.5 rounded-full bg-crimson-950 text-crimson-300 border border-crimson-800 text-[10.5px] font-bold">
+                        {(bc.audience || 'all').replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1">
+                        {(bc.channels || ['in_app']).map((ch: string) => (
+                          <span
+                            key={ch}
+                            className="px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10 text-[10px] font-mono font-bold uppercase"
+                          >
+                            {ch}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
+                      {count} {unitLabel}
+                    </td>
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 text-[11px] font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        100% Delivered
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
