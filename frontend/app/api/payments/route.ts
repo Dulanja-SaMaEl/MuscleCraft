@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get('userId');
   const requestingUser = AuthService.getCurrentUser(userId) || { id: 'usr_admin_1', role: 'admin' } as any;
 
-  let payments = PaymentService.getPayments(requestingUser);
+  let payments: any[] = [];
 
   if (isServerSupabaseConfigured && supabaseServer) {
     try {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         query = query.eq('user_id', requestingUser.id);
       }
       const { data, error } = await query;
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         payments = data.map((p: any) => ({
           id: p.id,
           userId: p.user_id,
@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
     } catch (sbErr) {
       console.warn('Supabase payments fetch failed, using local ledger:', sbErr);
     }
+  } else {
+    payments = PaymentService.getPayments(requestingUser);
   }
 
   return NextResponse.json({

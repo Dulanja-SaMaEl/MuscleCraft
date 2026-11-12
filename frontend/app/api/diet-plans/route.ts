@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
 
-    let dietPlan = CoachingService.getDietPlan(caller, clientId || 'all');
+    let dietPlan: any = null;
 
     if (isServerSupabaseConfigured && supabaseServer && clientId) {
       try {
@@ -43,6 +43,11 @@ export async function GET(req: NextRequest) {
       } catch (err) {
         console.warn('Supabase diet plan fetch failed, using fallback:', err);
       }
+    }
+
+    // Only fallback to memory mock if Supabase is completely unconfigured
+    if (!isServerSupabaseConfigured && !dietPlan) {
+      dietPlan = CoachingService.getDietPlan(caller, clientId || 'all');
     }
 
     return NextResponse.json({

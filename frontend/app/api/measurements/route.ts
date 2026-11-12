@@ -51,8 +51,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Fallback to local memory mock only if no records found and clientId is a mock user
-    if (measurements.length === 0) {
+    // Fallback to local memory mock ONLY if Supabase is not configured
+    if (!isServerSupabaseConfigured && measurements.length === 0) {
       const isMockClient = clientId === 'usr_client_90' || !clientId || clientId === 'all';
       if (isMockClient) {
         const safeCaller: any = caller || { id: 'usr_admin_1', role: 'admin' };
@@ -85,22 +85,74 @@ export async function PATCH(req: NextRequest) {
       ({ id: 'usr_admin_1', role: 'admin' } as any);
 
     const body = await req.json();
-    const { measurementId, feedback } = body;
+    const {
+      measurementId,
+      feedback,
+      weightKg,
+      bodyFatPercentage,
+      waistCm,
+      chestCm,
+      armsCm,
+      notes,
+      date,
+      weekNumber,
+    } = body;
 
-    if (!measurementId || !feedback) {
-      return NextResponse.json({ error: 'Missing measurementId or feedback' }, { status: 400 });
+    if (!measurementId) {
+      return NextResponse.json({ error: 'Missing measurementId' }, { status: 400 });
     }
 
-    const updated = CoachingService.addCoachFeedback(caller, measurementId, feedback);
+    let updated: any = null;
+    if (feedback !== undefined) {
+      try {
+        updated = CoachingService.addCoachFeedback(caller, measurementId, feedback);
+      } catch (e) {}
+    }
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
-        await supabaseServer
+        const updateData: Record<string, any> = {};
+        if (feedback !== undefined) {
+          updateData.coach_feedback = feedback;
+          updateData.feedback_at = new Date().toISOString();
+        }
+        if (weightKg !== undefined && weightKg !== '') updateData.weight_kg = Number(weightKg);
+        if (bodyFatPercentage !== undefined && bodyFatPercentage !== '') {
+          updateData.body_fat_percentage = Number(bodyFatPercentage);
+        }
+        if (waistCm !== undefined && waistCm !== '') updateData.waist_cm = Number(waistCm);
+        if (chestCm !== undefined && chestCm !== '') updateData.chest_cm = Number(chestCm);
+        if (armsCm !== undefined && armsCm !== '') updateData.arms_cm = Number(armsCm);
+        if (notes !== undefined) updateData.notes = notes;
+        if (date) updateData.date = date;
+        if (weekNumber !== undefined && weekNumber !== '') updateData.week_number = Number(weekNumber);
+
+        const { data: sbUpdated, error: sbErr } = await supabaseServer
           .from('body_measurements')
-          .update({ coach_feedback: feedback, feedback_at: new Date().toISOString() })
-          .eq('id', measurementId);
+          .update(updateData)
+          .eq('id', measurementId)
+          .select()
+          .maybeSingle();
+
+        if (sbErr) {
+          console.warn('Supabase measurement update failed:', sbErr);
+        } else if (sbUpdated) {
+          updated = {
+            id: String(sbUpdated.id),
+            userId: sbUpdated.user_id,
+            weekNumber: sbUpdated.week_number,
+            date: sbUpdated.date,
+            weightKg: Number(sbUpdated.weight_kg),
+            bodyFatPercentage: sbUpdated.body_fat_percentage ? Number(sbUpdated.body_fat_percentage) : undefined,
+            chestCm: sbUpdated.chest_cm ? Number(sbUpdated.chest_cm) : undefined,
+            waistCm: sbUpdated.waist_cm ? Number(sbUpdated.waist_cm) : undefined,
+            armsCm: sbUpdated.arms_cm ? Number(sbUpdated.arms_cm) : undefined,
+            notes: sbUpdated.notes || '',
+            coachFeedback: sbUpdated.coach_feedback || '',
+          };
+        }
       } catch (err) {
-        console.warn('Supabase feedback update failed:', err);
+        console.warn('Supabase measurement update exception:', err);
       }
     }
 
@@ -148,6 +200,8 @@ export async function POST(req: NextRequest) {
             waist_cm: validated.waistCm || null,
             arms_cm: validated.armsCm || null,
             notes: validated.notes || '',
+            coach_feedback: body.coachFeedback || '',
+            feedback_at: body.coachFeedback ? new Date().toISOString() : null,
             created_at: new Date().toISOString(),
           })
           .select()

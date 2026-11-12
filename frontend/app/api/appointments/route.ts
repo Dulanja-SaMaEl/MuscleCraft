@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let appointments: any[] = CoachingService.getAppointments(caller);
+    let appointments: any[] = [];
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
         }
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           appointments = data.map((a: any) => ({
             id: String(a.id),
             title: a.title,
@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
       } catch (sbErr) {
         console.warn('Supabase appointments fetch failed, using cache:', sbErr);
       }
+    } else {
+      appointments = CoachingService.getAppointments(caller);
     }
 
     return NextResponse.json({ appointments, source: isServerSupabaseConfigured ? 'supabase' : 'cache' });

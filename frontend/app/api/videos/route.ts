@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get('userId');
     const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin', tier: 'sole_1y' } as any);
 
-    let videos = VideoService.getPermittedVideos(caller);
+    let videos: ExerciseVideo[] = [];
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
           query = query.or(`access_level.eq.common,target_client_id.eq.${caller.id}`);
         }
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           videos = data.map((v: any) => ({
             id: v.id,
             title: v.title,
@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
       } catch (sbErr) {
         console.warn('Supabase videos fetch failed, using local vault:', sbErr);
       }
+    } else {
+      videos = VideoService.getPermittedVideos(caller);
     }
 
     return NextResponse.json({

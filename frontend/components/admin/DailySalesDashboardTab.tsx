@@ -359,10 +359,10 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
         </div>
       </div>
 
-      {/* ── TOP THREE-COLUMN DASHBOARD LAYOUT (CRM CARD | SPREADSHEET TABLE | CHARTS) ── */}
+      {/* ── TOP TWO-COLUMN DASHBOARD LAYOUT (CRM CARD & CHARTS | SPREADSHEET TABLE) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* ── 1. CRM SUMMARY BLOCK (3 COLS) ── */}
-        <div className="xl:col-span-3 space-y-4">
+        {/* ── 1. CRM SUMMARY & CHARTS BLOCK (4 COLS) ── */}
+        <div className="xl:col-span-4 space-y-6">
           <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-4">
             {/* Header: Date + Brand Name */}
             <div className="bg-[#14141c] p-3.5 rounded-2xl border border-white/[0.08] flex items-center justify-between text-white shadow-sm">
@@ -497,10 +497,136 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
               </span>
             </div>
           </div>
+
+          {/* Visual Charts (MTD Sales & MTD Spend) */}
+          <div className="space-y-4">
+            {/* Chart 1: MTD SALES */}
+            <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-rose-400">
+                  MTD SALES
+                </h3>
+                <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 bg-red-500 rounded" /> Target
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 bg-emerald-500 rounded" /> Actual
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-36 w-full relative flex items-end pt-3 pb-2">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 300 120">
+                  <line x1="0" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(255,255,255,0.1)" />
+                  <line x1="0" y1="100" x2="300" y2="100" stroke="#ef4444" strokeWidth="2" />
+                  {summary.cumulativeSales > 0 ? (
+                    <path
+                      d={records
+                        .map((r, i) => {
+                          const x = (i / Math.max(records.length - 1, 1)) * 300;
+                          const y = 100 - ((r.actual || 0) / maxSales) * 80;
+                          return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                        })
+                        .join(' ')}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2.5"
+                    />
+                  ) : (
+                    <line x1="0" y1="100" x2="300" y2="100" stroke="#10b981" strokeWidth="2" strokeDasharray="2 2" />
+                  )}
+                </svg>
+              </div>
+
+              <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                <span>11/1/2026</span>
+                <span>11/15/2026</span>
+                <span>11/30/2026</span>
+              </div>
+              <div className="text-[11px] text-gray-400 text-center font-mono pt-1">
+                MTD Actual Sales: <strong className="text-white">Rs. {summary.cumulativeSales.toLocaleString()} LKR</strong>
+              </div>
+            </div>
+
+            {/* Chart 2: MTD SPEND */}
+            <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                  MTD SPEND
+                </h3>
+                <span className="text-[10px] text-amber-300 font-mono font-bold">
+                  Rs. {summary.cumulativeSpend.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="h-36 w-full relative flex items-end pt-3 pb-2">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 300 120">
+                  <line x1="0" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                  <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(255,255,255,0.1)" />
+
+                  <defs>
+                    <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  <path
+                    d={
+                      records
+                        .map((r, i) => {
+                          const x = (i / Math.max(records.length - 1, 1)) * 300;
+                          const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
+                          return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                        })
+                        .join(' ') + ' L 300 100 L 0 100 Z'
+                    }
+                    fill="url(#spendGrad)"
+                  />
+
+                  <path
+                    d={records
+                      .map((r, i) => {
+                        const x = (i / Math.max(records.length - 1, 1)) * 300;
+                        const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
+                        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                      })
+                      .join(' ')}
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="2.5"
+                  />
+
+                  {records
+                    .slice(0, 7)
+                    .filter((r) => r.spend > 0)
+                    .map((r, i) => {
+                      const x = (i / Math.max(records.length - 1, 1)) * 300;
+                      const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
+                      return <circle key={r.id || i} cx={x} cy={y} r="3" fill="#60a5fa" stroke="#111116" strokeWidth="1" />;
+                    })}
+                </svg>
+              </div>
+
+              <div className="flex justify-between text-[10px] text-gray-500 font-mono">
+                <span>11/1/2026</span>
+                <span>11/15/2026</span>
+                <span>11/30/2026</span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-[11px] text-blue-200 text-center font-mono">
+                Current CPR: <strong>Rs. {summary.cumulativeCpr.toFixed(2)}</strong> / lead
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* ── 2. DAILY SALES REVIEW TABLE (6 COLS) ── */}
-        <div className="xl:col-span-6 space-y-4">
+        {/* ── 2. DAILY SALES REVIEW TABLE (8 COLS) ── */}
+        <div className="xl:col-span-8 space-y-4">
           <div className="bg-[#111116] border border-white/[0.08] rounded-3xl shadow-xl overflow-hidden flex flex-col h-full">
             {/* Table Header Banner (Eyes-Friendly Dark Elevation) */}
             <div className="bg-gradient-to-r from-[#1c1218] via-[#14121a] to-[#111116] px-5 py-3.5 border-b border-white/[0.08] flex items-center justify-between">
@@ -633,143 +759,6 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   </tr>
                 </tfoot>
               </table>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 3. VISUAL CHARTS (MTD SALES & MTD SPEND) (3 COLS) ── */}
-        <div className="xl:col-span-3 space-y-6">
-          {/* Chart 1: MTD SALES (Matching Spreadsheet top graph) */}
-          <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-rose-400">
-                MTD SALES
-              </h3>
-              <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-0.5 bg-red-500 rounded" /> Target
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-2.5 h-0.5 bg-emerald-500 rounded" /> Actual
-                </span>
-              </div>
-            </div>
-
-            {/* Sales Chart SVG */}
-            <div className="h-44 w-full relative flex items-end pt-4 pb-2">
-              <svg className="w-full h-full overflow-visible" viewBox="0 0 300 120">
-                {/* Horizontal reference grid lines */}
-                <line x1="0" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(255,255,255,0.1)" />
-
-                {/* Target baseline line (red) */}
-                <line x1="0" y1="100" x2="300" y2="100" stroke="#ef4444" strokeWidth="2" />
-
-                {/* Actual sales line or points */}
-                {summary.cumulativeSales > 0 ? (
-                  <path
-                    d={records
-                      .map((r, i) => {
-                        const x = (i / Math.max(records.length - 1, 1)) * 300;
-                        const y = 100 - ((r.actual || 0) / maxSales) * 80;
-                        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                      })
-                      .join(' ')}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2.5"
-                  />
-                ) : (
-                  <line x1="0" y1="100" x2="300" y2="100" stroke="#10b981" strokeWidth="2" strokeDasharray="2 2" />
-                )}
-              </svg>
-            </div>
-
-            <div className="flex justify-between text-[10px] text-gray-500 font-mono">
-              <span>11/1/2026</span>
-              <span>11/15/2026</span>
-              <span>11/30/2026</span>
-            </div>
-            <div className="text-[11px] text-gray-400 text-center font-mono pt-1">
-              MTD Actual Sales: <strong className="text-white">Rs. {summary.cumulativeSales.toLocaleString()} LKR</strong>
-            </div>
-          </div>
-
-          {/* Chart 2: MTD SPEND (Matching Spreadsheet bottom graph with dropping curve) */}
-          <div className="bg-[#111116] border border-white/[0.08] rounded-3xl p-5 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400">
-                MTD SPEND
-              </h3>
-              <span className="text-[10px] text-amber-300 font-mono font-bold">
-                Rs. {summary.cumulativeSpend.toLocaleString()}
-              </span>
-            </div>
-
-            {/* Ad Spend Curve SVG */}
-            <div className="h-44 w-full relative flex items-end pt-4 pb-2">
-              <svg className="w-full h-full overflow-visible" viewBox="0 0 300 120">
-                {/* Reference Grid lines */}
-                <line x1="0" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                <line x1="0" y1="60" x2="300" y2="60" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                <line x1="0" y1="100" x2="300" y2="100" stroke="rgba(255,255,255,0.1)" />
-
-                {/* Spend Curve gradient area */}
-                <defs>
-                  <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Path calculation for spend */}
-                <path
-                  d={
-                    records
-                      .map((r, i) => {
-                        const x = (i / Math.max(records.length - 1, 1)) * 300;
-                        const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
-                        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                      })
-                      .join(' ') + ' L 300 100 L 0 100 Z'
-                  }
-                  fill="url(#spendGrad)"
-                />
-
-                <path
-                  d={records
-                    .map((r, i) => {
-                      const x = (i / Math.max(records.length - 1, 1)) * 300;
-                      const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
-                      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                    })
-                    .join(' ')}
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2.5"
-                />
-
-                {/* Points on days with spend */}
-                {records
-                  .slice(0, 7)
-                  .filter((r) => r.spend > 0)
-                  .map((r, i) => {
-                    const x = (i / Math.max(records.length - 1, 1)) * 300;
-                    const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
-                    return <circle key={r.id || i} cx={x} cy={y} r="3" fill="#60a5fa" stroke="#111116" strokeWidth="1" />;
-                  })}
-              </svg>
-            </div>
-
-            <div className="flex justify-between text-[10px] text-gray-500 font-mono">
-              <span>11/1/2026</span>
-              <span>11/15/2026</span>
-              <span>11/30/2026</span>
-            </div>
-
-            <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-[11px] text-blue-200 text-center font-mono">
-              Current CPR: <strong>Rs. {summary.cumulativeCpr.toFixed(2)}</strong> / lead
             </div>
           </div>
         </div>

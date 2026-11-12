@@ -48,9 +48,52 @@ import { User, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@
 import dynamic from 'next/dynamic';
 
 const TabLoadingState = ({ name }: { name: string }) => (
-  <div className="flex flex-col items-center justify-center p-16 text-center space-y-3 bg-[#111116] border border-white/[0.06] rounded-3xl min-h-[350px]">
-    <div className="w-8 h-8 border-2 border-crimson-500 border-t-transparent rounded-full animate-spin" />
-    <span className="text-xs text-gray-400 font-mono">Loading {name}...</span>
+  <div className="space-y-6 animate-pulse">
+    {/* Header Skeleton */}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-2">
+        <div className="h-6 w-64 bg-white/10 rounded-xl" />
+        <div className="h-3.5 w-80 bg-white/5 rounded-lg" />
+      </div>
+      <div className="h-10 w-36 bg-white/10 rounded-xl" />
+    </div>
+
+    {/* 4 KPI Cards Skeleton */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-[#111116] border border-white/[0.06] p-5 rounded-2xl space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="h-3 w-20 bg-white/10 rounded" />
+            <div className="w-5 h-5 bg-white/10 rounded-lg" />
+          </div>
+          <div className="h-7 w-28 bg-white/20 rounded-lg" />
+          <div className="h-3 w-32 bg-white/5 rounded" />
+        </div>
+      ))}
+    </div>
+
+    {/* Main Content Block Skeleton */}
+    <div className="bg-[#111116] border border-white/[0.06] p-6 rounded-3xl space-y-4">
+      <div className="flex justify-between items-center pb-4 border-b border-white/[0.04]">
+        <div className="h-4 w-44 bg-white/15 rounded" />
+        <div className="h-4 w-28 bg-white/10 rounded" />
+      </div>
+      <div className="space-y-3 pt-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-12 w-full bg-white/[0.03] rounded-xl flex items-center px-4 gap-4">
+            <div className="w-8 h-8 rounded-lg bg-white/10" />
+            <div className="h-3 w-40 bg-white/10 rounded" />
+            <div className="h-3 w-24 bg-white/5 rounded ml-auto" />
+            <div className="h-6 w-20 bg-white/10 rounded-lg" />
+          </div>
+        ))}
+      </div>
+      <div className="pt-2 text-center">
+        <span className="text-[11px] text-gray-500 font-mono tracking-wider">
+          SYNCHRONIZING {name.toUpperCase()} WITH SUPABASE...
+        </span>
+      </div>
+    </div>
   </div>
 );
 

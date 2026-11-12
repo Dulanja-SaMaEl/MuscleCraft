@@ -54,6 +54,7 @@ export default function ClientDashboard() {
 
   // Form states for logging measurement
   const [logModalOpen, setLogModalOpen] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [newWeight, setNewWeight] = useState('');
   const [newBodyFat, setNewBodyFat] = useState('');
   const [newWaist, setNewWaist] = useState('');
@@ -88,6 +89,7 @@ export default function ClientDashboard() {
 
   const loadClientData = async () => {
     if (!currentUser) return;
+    setIsDataLoading(true);
     try {
       // 1. Fetch Measurements
       const measRes = await fetch(`/api/measurements?userId=${currentUser.id}&clientId=${currentUser.id}`);
@@ -129,6 +131,8 @@ export default function ClientDashboard() {
       }
     } catch (err) {
       console.error('Error loading client data:', err);
+    } finally {
+      setIsDataLoading(false);
     }
   };
 
@@ -365,7 +369,7 @@ export default function ClientDashboard() {
                   }}
                   className="text-[24px] sm:text-[28px] text-white tracking-tight"
                 >
-                  {currentUser?.name || 'Marcus Vance'}
+                  {currentUser?.name || 'Athlete'}
                 </h1>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
@@ -374,7 +378,7 @@ export default function ClientDashboard() {
                       : 'bg-gray-800 text-gray-300 border-gray-700'
                   }`}
                 >
-                  {isCoachingVip ? '90-Day VIP Coaching' : 'Monthly Member'}
+                  {currentUser?.packageName || (isCoachingVip ? '90-Day VIP Coaching' : 'Monthly Member')}
                 </span>
                 <span className="text-[10px] bg-green-950/80 text-green-400 border border-green-700/60 px-2 py-0.5 rounded font-bold uppercase">
                   {currentUser?.status || 'Active'}
@@ -382,10 +386,10 @@ export default function ClientDashboard() {
               </div>
 
               <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400 mt-2">
-                <span>Email: {currentUser?.email}</span>
+                <span>Email: {currentUser?.email || 'N/A'}</span>
                 <span>•</span>
                 <span>
-                  Assigned Coach: <strong className="text-gray-200">{currentUser?.assignedInstructorName || 'Elena Rostova'}</strong>
+                  Assigned Coach: <strong className="text-gray-200">{currentUser?.assignedInstructorName || 'Adeesha Kumarasingha (Head Coach)'}</strong>
                 </span>
                 <span>•</span>
                 <span>
@@ -541,6 +545,23 @@ export default function ClientDashboard() {
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
+          isDataLoading ? (
+            <div className="space-y-8 animate-pulse">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-[#121215] border border-white/[0.08] p-5 rounded-lg space-y-3">
+                    <div className="h-3 w-24 bg-white/10 rounded" />
+                    <div className="h-8 w-28 bg-white/20 rounded" />
+                    <div className="h-3 w-32 bg-white/10 rounded" />
+                  </div>
+                ))}
+              </div>
+              <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg space-y-4">
+                <div className="h-4 w-52 bg-white/20 rounded" />
+                <div className="h-20 w-full bg-white/5 rounded-lg" />
+              </div>
+            </div>
+          ) : (
           <div className="space-y-8">
             {/* Quick KPI stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -726,10 +747,35 @@ export default function ClientDashboard() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* TAB 2: MEASUREMENTS TRACKER */}
         {activeTab === 'measurements' && (
+          isDataLoading ? (
+            <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg space-y-6 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <div className="h-5 w-64 bg-white/20 rounded" />
+                  <div className="h-3 w-80 bg-white/10 rounded" />
+                </div>
+                <div className="h-9 w-36 bg-white/10 rounded" />
+              </div>
+              <div className="h-60 w-full bg-[#0a0a0c] border border-white/[0.06] rounded-lg p-6 flex items-end justify-between gap-6">
+                {[35, 60, 50, 75].map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
+                    <div className="w-14 bg-white/10 rounded-t-lg" style={{ height: `${h}%` }} />
+                    <div className="h-3 w-8 bg-white/10 rounded" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 pt-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-10 w-full bg-white/[0.03] rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="space-y-8">
             <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-lg">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -785,7 +831,12 @@ export default function ClientDashboard() {
                     </button>
                   </div>
                 ) : (
-                  <div className="h-44 w-full flex items-end justify-between gap-4 pt-4 border-b border-white/[0.1] px-4">
+                  <div className="h-60 w-full flex items-stretch justify-between gap-3 sm:gap-6 pt-6 pb-2 border-b border-white/[0.1] px-2 sm:px-6 relative">
+                    {/* Subtle reference grid lines in background */}
+                    <div className="absolute inset-x-0 top-1/4 border-b border-white/[0.04] pointer-events-none" />
+                    <div className="absolute inset-x-0 top-2/4 border-b border-white/[0.04] pointer-events-none" />
+                    <div className="absolute inset-x-0 top-3/4 border-b border-white/[0.04] pointer-events-none" />
+
                     {(() => {
                       const weights = measurements.map((m) => m.weightKg);
                       const minW = Math.max(0, Math.floor(Math.min(...weights) - 2));
@@ -793,18 +844,34 @@ export default function ClientDashboard() {
                       const range = maxW - minW || 1;
 
                       return measurements.map((m) => {
-                        const heightPercent = Math.max(20, Math.min(100, Math.round(((m.weightKg - minW) / range) * 100)));
+                        const heightPercent = Math.max(25, Math.min(100, Math.round(((m.weightKg - minW) / range) * 100)));
                         return (
-                          <div key={m.id} className="flex-1 flex flex-col items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-gold">{m.weightKg}kg</span>
-                            <div
-                              style={{ height: `${heightPercent}%` }}
-                              className="w-full max-w-[48px] bg-gradient-to-t from-gold/30 to-gold rounded-t transition-all duration-500 hover:brightness-125"
-                              title={`Week ${m.weekNumber}: ${m.weightKg} kg on ${m.date}`}
-                            />
-                            <span className="text-[10px] text-gray-400 font-bold uppercase">
-                              Wk {m.weekNumber}
-                            </span>
+                          <div
+                            key={m.id}
+                            className="flex-1 h-full flex flex-col items-center justify-end group cursor-pointer z-10"
+                          >
+                            {/* Weight Pill Badge */}
+                            <div className="mb-2 text-center transition-transform group-hover:-translate-y-1 duration-200">
+                              <span className="text-[11px] sm:text-xs font-mono font-extrabold text-[#D4A359] block whitespace-nowrap bg-black/80 px-2 py-0.5 rounded border border-[#D4A359]/40 shadow-md">
+                                {m.weightKg} kg
+                              </span>
+                            </div>
+
+                            {/* Bar Column Track & Animated Fill */}
+                            <div className="w-full max-w-[54px] flex-1 flex items-end justify-center">
+                              <div
+                                style={{ height: `${heightPercent}%`, minHeight: '28px' }}
+                                className="w-full rounded-t-xl bg-gradient-to-t from-[#D4A359]/25 via-[#D4A359]/80 to-[#D4A359] border-t-2 border-x border-[#D4A359] shadow-[0_0_15px_rgba(212,163,89,0.35)] transition-all duration-500 group-hover:brightness-125 group-hover:shadow-[0_0_25px_rgba(212,163,89,0.7)]"
+                                title={`Week ${m.weekNumber}: ${m.weightKg} kg (${m.date})`}
+                              />
+                            </div>
+
+                            {/* Week Tag */}
+                            <div className="mt-2.5 text-center">
+                              <span className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase tracking-wider block group-hover:text-white transition-colors">
+                                Wk {m.weekNumber}
+                              </span>
+                            </div>
                           </div>
                         );
                       });
@@ -868,10 +935,35 @@ export default function ClientDashboard() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* TAB 3: PERSONALIZED DIET PLAN */}
         {activeTab === 'diet' && (
+          isDataLoading ? (
+            <div className="bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-lg space-y-6 animate-pulse">
+              <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
+                <div className="space-y-2">
+                  <div className="h-6 w-56 bg-white/15 rounded" />
+                  <div className="h-3 w-32 bg-white/10 rounded" />
+                </div>
+                <div className="h-4 w-28 bg-white/10 rounded" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="bg-[#18181d] p-4 rounded h-24 bg-white/5 space-y-2">
+                    <div className="h-3 w-16 bg-white/10 rounded" />
+                    <div className="h-6 w-20 bg-white/20 rounded" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3 pt-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 w-full bg-white/[0.03] rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="space-y-6">
             {dietPlan ? (
               <div className="bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-lg space-y-8">
@@ -981,10 +1073,28 @@ export default function ClientDashboard() {
               </div>
             )}
           </div>
+          )
         )}
 
         {/* TAB 4: VIDEO VAULT */}
         {activeTab === 'videos' && (
+          isDataLoading ? (
+            <div className="space-y-6 animate-pulse">
+              <div className="space-y-2">
+                <div className="h-6 w-64 bg-white/15 rounded" />
+                <div className="h-3 w-80 bg-white/10 rounded" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-[#121215] border border-white/[0.08] rounded-2xl overflow-hidden p-4 space-y-3">
+                    <div className="h-44 w-full bg-white/10 rounded-xl" />
+                    <div className="h-4 w-3/4 bg-white/15 rounded" />
+                    <div className="h-3 w-1/2 bg-white/5 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1073,10 +1183,27 @@ export default function ClientDashboard() {
               ))}
             </div>
           </div>
+          )
         )}
 
         {/* TAB 5: BILLING & MANUAL TRANSFER RECORDS */}
         {activeTab === 'billing' && (
+          isDataLoading ? (
+            <div className="bg-[#121215] border border-white/[0.08] p-6 rounded-2xl space-y-4 animate-pulse">
+              <div className="flex justify-between items-center pb-4 border-b border-white/[0.06]">
+                <div className="space-y-2">
+                  <div className="h-6 w-64 bg-white/15 rounded" />
+                  <div className="h-3 w-80 bg-white/10 rounded" />
+                </div>
+                <div className="h-10 w-36 bg-white/10 rounded-xl" />
+              </div>
+              <div className="space-y-3 pt-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-14 w-full bg-white/[0.03] rounded-xl" />
+                ))}
+              </div>
+            </div>
+          ) : (
           <div className="space-y-6">
             {slipStatusMessage && (
               <div
@@ -1217,6 +1344,7 @@ export default function ClientDashboard() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* LOG MEASUREMENT MODAL */}

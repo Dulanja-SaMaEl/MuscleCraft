@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Activity,
   Search,
-  Filter,
   CheckCircle2,
   Clock,
   MessageSquare,
@@ -15,44 +14,94 @@ import {
   Scale,
   Send,
   X,
-  ChevronRight,
   Sparkles,
   Flame,
-  Award,
+  Plus,
+  Edit3,
+  Calendar,
+  Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { BodyMeasurement, User as UserType } from '@/lib/types';
 
+type EnrichedMeasurement = BodyMeasurement & {
+  userName?: string;
+  userTier?: string;
+  userEmail?: string;
+  avatarUrl?: string;
+};
+
 interface BodyAnalyticsTabProps {
-  measurements: (BodyMeasurement & {
-    userName?: string;
-    userTier?: string;
-    userEmail?: string;
-    avatarUrl?: string;
-  })[];
+  measurements: EnrichedMeasurement[];
   members: UserType[];
   onSaveFeedback: (measurementId: string, feedback: string) => Promise<void>;
 }
 
 export default function BodyAnalyticsTab({
-  measurements,
+  measurements: initialMeasurements,
   members,
   onSaveFeedback,
 }: BodyAnalyticsTabProps) {
+  const [measurements, setMeasurements] = useState<EnrichedMeasurement[]>(initialMeasurements);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Feedback modal state
-  const [feedbackModalMeasurement, setFeedbackModalMeasurement] = useState<BodyMeasurement | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Keep local measurements synced with parent prop updates
+  useEffect(() => {
+    setMeasurements(initialMeasurements);
+  }, [initialMeasurements]);
 
-  // Clients with submissions
-  const clientsWithSubmissions = members.filter((m) =>
+  // All client members from the directory
+  const allClientMembers = members.filter((m) => m.role === 'client');
+
+  // Currently focused athlete for the trajectory progression chart
+  const [activeAthleteId, setActiveAthleteId] = useState<string>(() => {
+    return allClientMembers[0]?.id || initialMeasurements[0]?.userId || 'usr_client_90';
+  });
+
+  // Modal 1: Quick Coach Feedback Modal
+  const [feedbackModalMeasurement, setFeedbackModalMeasurement] = useState<EnrichedMeasurement | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+
+  // Modal 2: Log New Athlete Check-in (Coach or Admin logging on athlete's behalf)
+  const [logModalOpen, setLogModalOpen] = useState(false);
+  const [logForm, setLogForm] = useState({
+    athleteId: '',
+    weekNumber: 1,
+    date: new Date().toISOString().split('T')[0],
+    weightKg: '',
+    bodyFatPercentage: '',
+    waistCm: '',
+    chestCm: '',
+    armsCm: '',
+    notes: '',
+    coachFeedback: '',
+  });
+
+  // Modal 3: Edit Measurement Metrics Modal
+  const [editModalMeasurement, setEditModalMeasurement] = useState<EnrichedMeasurement | null>(null);
+  const [editForm, setEditForm] = useState({
+    weightKg: '',
+    bodyFatPercentage: '',
+    waistCm: '',
+    chestCm: '',
+    armsCm: '',
+    notes: '',
+    coachFeedback: '',
+    date: '',
+    weekNumber: 1,
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Clients with at least one submission
+  const clientsWithSubmissions = allClientMembers.filter((m) =>
     measurements.some((meas) => meas.userId === m.id)
   );
 
-  // Filtered submissions
+  // Filtered submissions list
   const filteredSubmissions = measurements.filter((m) => {
     const matchesClient = selectedClientFilter === 'all' || m.userId === selectedClientFilter;
     const matchesStatus =
@@ -65,7 +114,8 @@ export default function BodyAnalyticsTab({
     const matchesSearch =
       !searchQuery ||
       (m.userName && m.userName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (m.notes && m.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+      (m.notes && m.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (m.coachFeedback && m.coachFeedback.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return matchesClient && matchesStatus && matchesSearch;
   });
@@ -73,6 +123,167 @@ export default function BodyAnalyticsTab({
   const pendingCount = measurements.filter((m) => !m.coachFeedback).length;
   const reviewedCount = measurements.filter((m) => !!m.coachFeedback).length;
 
+  // Active athlete history for progression trajectory
+  const activeAthleteHistory = measurements
+    .filter((m) => m.userId === activeAthleteId)
+    .sort((a, b) => a.weekNumber - b.weekNumber);
+
+  const activeAthleteUser = members.find((m) => m.id === activeAthleteId);
+
+  // Open Log Modal handler
+  const handleOpenLogModal = (presetAthleteId?: string) => {
+    const athleteToUse = presetAthleteId || activeAthleteId || allClientMembers[0]?.id || '';
+    const athleteLogs = measurements.filter((m) => m.userId === athleteToUse);
+    const nextWeek = athleteLogs.length > 0 ? Math.max(...athleteLogs.map((m) => m.weekNumber)) + 1 : 1;
+
+    setLogForm({
+      athleteId: athleteToUse,
+      weekNumber: nextWeek,
+      date: new Date().toISOString().split('T')[0],
+      weightKg: '',
+      bodyFatPercentage: '',
+      waistCm: '',
+      chestCm: '',
+      armsCm: '',
+      notes: '',
+      coachFeedback: '',
+    });
+    setActionError(null);
+    setLogModalOpen(true);
+  };
+
+  // Submit New Log
+  const handleSaveNewCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!logForm.athleteId || !logForm.weightKg) {
+      setActionError('Please select an athlete and enter their weight in kg.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setActionError(null);
+
+    try {
+      const payload = {
+        userId: logForm.athleteId,
+        weekNumber: Number(logForm.weekNumber),
+        date: logForm.date,
+        weightKg: Number(logForm.weightKg),
+        bodyFatPercentage: logForm.bodyFatPercentage ? Number(logForm.bodyFatPercentage) : undefined,
+        waistCm: logForm.waistCm ? Number(logForm.waistCm) : undefined,
+        chestCm: logForm.chestCm ? Number(logForm.chestCm) : undefined,
+        armsCm: logForm.armsCm ? Number(logForm.armsCm) : undefined,
+        notes: logForm.notes || '',
+        coachFeedback: logForm.coachFeedback || '',
+      };
+
+      const res = await fetch('/api/measurements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save athlete check-in');
+      }
+
+      const athleteObj = members.find((m) => m.id === logForm.athleteId);
+      const newEntry = {
+        ...data.measurement,
+        userName: athleteObj?.name || 'Athlete',
+        userEmail: athleteObj?.email || '',
+        userTier: athleteObj?.tier || 'Member',
+      };
+
+      setMeasurements((prev) => [newEntry, ...prev]);
+      setActiveAthleteId(logForm.athleteId);
+      setLogModalOpen(false);
+    } catch (err: any) {
+      setActionError(err.message || 'Error recording check-in entry.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Open Edit Modal handler
+  const handleOpenEditModal = (m: BodyMeasurement) => {
+    setEditModalMeasurement(m);
+    setEditForm({
+      weightKg: String(m.weightKg || ''),
+      bodyFatPercentage: m.bodyFatPercentage ? String(m.bodyFatPercentage) : '',
+      waistCm: m.waistCm ? String(m.waistCm) : '',
+      chestCm: m.chestCm ? String(m.chestCm) : '',
+      armsCm: m.armsCm ? String(m.armsCm) : '',
+      notes: m.notes || '',
+      coachFeedback: m.coachFeedback || '',
+      date: m.date || '',
+      weekNumber: m.weekNumber || 1,
+    });
+    setActionError(null);
+  };
+
+  // Submit Edit
+  const handleSaveEditMeasurement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editModalMeasurement) return;
+
+    setIsSubmitting(true);
+    setActionError(null);
+
+    try {
+      const payload = {
+        measurementId: editModalMeasurement.id,
+        weightKg: Number(editForm.weightKg),
+        bodyFatPercentage: editForm.bodyFatPercentage ? Number(editForm.bodyFatPercentage) : null,
+        waistCm: editForm.waistCm ? Number(editForm.waistCm) : null,
+        chestCm: editForm.chestCm ? Number(editForm.chestCm) : null,
+        armsCm: editForm.armsCm ? Number(editForm.armsCm) : null,
+        notes: editForm.notes,
+        coachFeedback: editForm.coachFeedback,
+        date: editForm.date,
+        weekNumber: Number(editForm.weekNumber),
+      };
+
+      const res = await fetch('/api/measurements', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update measurement record.');
+      }
+
+      setMeasurements((prev) =>
+        prev.map((item) =>
+          item.id === editModalMeasurement.id
+            ? {
+                ...item,
+                weightKg: Number(editForm.weightKg),
+                bodyFatPercentage: editForm.bodyFatPercentage ? Number(editForm.bodyFatPercentage) : undefined,
+                waistCm: editForm.waistCm ? Number(editForm.waistCm) : undefined,
+                chestCm: editForm.chestCm ? Number(editForm.chestCm) : undefined,
+                armsCm: editForm.armsCm ? Number(editForm.armsCm) : undefined,
+                notes: editForm.notes,
+                coachFeedback: editForm.coachFeedback,
+                date: editForm.date,
+                weekNumber: Number(editForm.weekNumber),
+              }
+            : item
+        )
+      );
+
+      setEditModalMeasurement(null);
+    } catch (err: any) {
+      setActionError(err.message || 'Error updating measurement.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Quick feedback send
   const handleOpenFeedback = (m: BodyMeasurement) => {
     setFeedbackModalMeasurement(m);
     setFeedbackText(m.coachFeedback || '');
@@ -83,24 +294,19 @@ export default function BodyAnalyticsTab({
     setIsSubmitting(true);
     try {
       await onSaveFeedback(feedbackModalMeasurement.id, feedbackText.trim());
+      setMeasurements((prev) =>
+        prev.map((item) =>
+          item.id === feedbackModalMeasurement.id
+            ? { ...item, coachFeedback: feedbackText.trim() }
+            : item
+        )
+      );
       setFeedbackModalMeasurement(null);
       setFeedbackText('');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Trainee chart data for the selected client or first client
-  const activeChartClientId =
-    selectedClientFilter !== 'all'
-      ? selectedClientFilter
-      : clientsWithSubmissions[0]?.id || 'usr_client_90';
-
-  const clientHistory = measurements
-    .filter((m) => m.userId === activeChartClientId)
-    .sort((a, b) => a.weekNumber - b.weekNumber);
-
-  const activeClientUser = members.find((m) => m.id === activeChartClientId);
 
   return (
     <div className="space-y-8">
@@ -120,8 +326,16 @@ export default function BodyAnalyticsTab({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3.5 py-1.5 rounded-full bg-crimson-950/60 border border-crimson-800/50 text-crimson-300 text-xs font-mono font-bold flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => handleOpenLogModal()}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-crimson-600 to-crimson-700 hover:from-crimson-500 hover:to-crimson-600 text-white text-xs font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(186,26,26,0.4)] transition-all cursor-pointer min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Log Athlete Check-In</span>
+          </button>
+
+          <span className="px-3.5 py-2 rounded-xl bg-crimson-950/60 border border-crimson-800/50 text-crimson-300 text-xs font-mono font-bold flex items-center gap-1.5">
             <Flame className="w-3.5 h-3.5 text-crimson-400" />
             <span>{measurements.length} Total Submissions</span>
           </span>
@@ -138,7 +352,7 @@ export default function BodyAnalyticsTab({
           <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2">
             {measurements.length}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1.5">Across all enrolled members</div>
+          <div className="text-[11px] text-gray-400 mt-1.5">Across all enrolled athletes</div>
         </div>
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
@@ -165,73 +379,173 @@ export default function BodyAnalyticsTab({
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
           <div className="flex items-center justify-between text-gray-400 text-xs font-semibold uppercase tracking-wider">
-            <span>Active Tracking Cohort</span>
+            <span>All Enrolled Athletes</span>
             <User className="w-4 h-4 text-crimson-400" />
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2">
-            {clientsWithSubmissions.length || 4}
+            {allClientMembers.length || 1}
           </div>
-          <div className="text-[11px] text-gray-400 mt-1.5">VIP & Sole members checking in</div>
+          <div className="text-[11px] text-gray-400 mt-1.5">
+            {clientsWithSubmissions.length} active with check-ins
+          </div>
         </div>
       </div>
 
       {/* ───────────────────────────────────────────────────────────
-          2. SELECTED CLIENT PROGRESSION CHART
+          2. SELECTED ATHLETE PROGRESSION TRAJECTORY & CHART
           ─────────────────────────────────────────────────────────── */}
-      {clientHistory.length > 0 && (
-        <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-crimson-400">
-                  Progression Trajectory
-                </span>
-                <span className="text-gray-500">·</span>
-                <span className="text-xs text-gray-400">
-                  {activeClientUser?.name || 'Selected Athlete'}
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-white mt-1">
-                Weight (kg) & Body Fat (%) Evolution
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-crimson-950/60 border border-crimson-800/50 text-crimson-300 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-crimson-500"></span>
-                Weight (kg)
+      <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-xl space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-crimson-400">
+                Progression Trajectory
               </span>
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                Body Fat (%)
+              <span className="text-gray-500">·</span>
+              <span className="text-xs text-gray-300 font-medium">
+                {activeAthleteUser?.name || 'Selected Athlete'}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-crimson-950/80 text-crimson-300 border border-crimson-800">
+                {activeAthleteUser?.tier || 'Client'}
               </span>
             </div>
+            <h3 className="text-lg font-bold text-white">
+              Weight (kg) & Body Fat (%) Evolution
+            </h3>
           </div>
 
-          {/* SVG Progress Graph */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            {clientHistory.map((entry, idx) => {
-              const prev = idx > 0 ? clientHistory[idx - 1] : null;
-              const weightDiff = prev ? entry.weightKg - prev.weightKg : 0;
-              const bfDiff = prev && entry.bodyFatPercentage && prev.bodyFatPercentage
-                ? entry.bodyFatPercentage - prev.bodyFatPercentage
-                : 0;
-
-              return (
-                <div
-                  key={entry.id}
-                  className="bg-[#16161f] border border-white/[0.06] p-4 rounded-xl flex flex-col justify-between"
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Athlete Selector Dropdown */}
+            <div className="relative flex items-center gap-2">
+              <label htmlFor="athleteSelector" className="text-xs text-gray-400 font-semibold whitespace-nowrap">
+                Select Athlete:
+              </label>
+              <div className="relative">
+                <select
+                  id="athleteSelector"
+                  value={activeAthleteId}
+                  onChange={(e) => setActiveAthleteId(e.target.value)}
+                  className="bg-[#161622] border border-white/10 hover:border-crimson-500/50 text-white text-xs font-semibold rounded-xl pl-3 pr-8 py-2 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer appearance-none"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-crimson-400 uppercase tracking-wider">
-                      Week {entry.weekNumber}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-mono">{entry.date}</span>
-                  </div>
+                  {allClientMembers.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-[#14141d] text-white">
+                      {c.name} {c.email ? `(${c.email})` : ''}
+                    </option>
+                  ))}
+                  {allClientMembers.length === 0 && (
+                    <option value="usr_client_90" className="bg-[#14141d] text-white">
+                      Rohan Vidyaratne (rohan.v@gmail.com)
+                    </option>
+                  )}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
 
-                  <div className="mt-2.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xl font-extrabold text-white font-mono">
+            <button
+              onClick={() => handleOpenLogModal(activeAthleteId)}
+              className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-gray-200 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer min-h-[40px]"
+            >
+              <Plus className="w-3.5 h-3.5 text-crimson-400" />
+              <span>Record Check-In</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic Trajectory Display or Empty State */}
+        {activeAthleteHistory.length === 0 ? (
+          <div className="p-10 rounded-2xl bg-[#0d0d12] border border-dashed border-white/10 text-center space-y-3">
+            <Scale className="w-10 h-10 text-gray-600 mx-auto" />
+            <h4 className="text-white font-bold text-sm">
+              No Check-Ins Logged Yet for {activeAthleteUser?.name || 'this athlete'}
+            </h4>
+            <p className="text-xs text-gray-400 max-w-md mx-auto">
+              Coach Adeesha or the athlete can log weekly weigh-ins and tape measurements to chart progress over time.
+            </p>
+            <button
+              onClick={() => handleOpenLogModal(activeAthleteId)}
+              className="mt-2 px-4 py-2 bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer shadow-md"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Log First Entry for {activeAthleteUser?.name || 'Athlete'}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Visual Bar Progression Chart */}
+            <div className="h-64 w-full bg-[#0a0a0e] border border-white/[0.06] rounded-2xl p-4 sm:p-6 flex items-stretch justify-between gap-3 sm:gap-6 relative">
+              {/* Background Reference Lines */}
+              <div className="absolute inset-x-0 top-1/4 border-b border-white/[0.04] pointer-events-none" />
+              <div className="absolute inset-x-0 top-2/4 border-b border-white/[0.04] pointer-events-none" />
+              <div className="absolute inset-x-0 top-3/4 border-b border-white/[0.04] pointer-events-none" />
+
+              {(() => {
+                const weights = activeAthleteHistory.map((m) => m.weightKg);
+                const minW = Math.max(0, Math.floor(Math.min(...weights) - 2));
+                const maxW = Math.ceil(Math.max(...weights) + 2);
+                const range = maxW - minW || 1;
+
+                return activeAthleteHistory.map((m) => {
+                  const heightPercent = Math.max(25, Math.min(100, Math.round(((m.weightKg - minW) / range) * 100)));
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => handleOpenEditModal(m)}
+                      className="flex-1 h-full flex flex-col items-center justify-end group cursor-pointer z-10"
+                      title={`Click to edit Week ${m.weekNumber} (${m.weightKg} kg)`}
+                    >
+                      {/* Weight Tag */}
+                      <div className="mb-2 text-center transition-transform group-hover:-translate-y-1 duration-200">
+                        <span className="text-[11px] sm:text-xs font-mono font-extrabold text-[#D4A359] block whitespace-nowrap bg-black/80 px-2 py-0.5 rounded border border-[#D4A359]/40 shadow-md">
+                          {m.weightKg} kg
+                        </span>
+                      </div>
+
+                      {/* Bar Pillar */}
+                      <div className="w-full max-w-[54px] flex-1 flex items-end justify-center">
+                        <div
+                          style={{ height: `${heightPercent}%`, minHeight: '28px' }}
+                          className="w-full rounded-t-xl bg-gradient-to-t from-[#D4A359]/25 via-[#D4A359]/80 to-[#D4A359] border-t-2 border-x border-[#D4A359] shadow-[0_0_15px_rgba(212,163,89,0.35)] transition-all duration-500 group-hover:brightness-125 group-hover:shadow-[0_0_25px_rgba(212,163,89,0.7)]"
+                        />
+                      </div>
+
+                      {/* Week Label */}
+                      <div className="mt-2.5 text-center">
+                        <span className="text-[10px] sm:text-[11px] text-gray-400 font-bold uppercase tracking-wider block group-hover:text-white transition-colors">
+                          Wk {m.weekNumber}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Metric Evolution Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {activeAthleteHistory.map((entry, idx) => {
+                const prev = idx > 0 ? activeAthleteHistory[idx - 1] : null;
+                const weightDiff = prev ? entry.weightKg - prev.weightKg : 0;
+                const bfDiff =
+                  prev && entry.bodyFatPercentage && prev.bodyFatPercentage
+                    ? entry.bodyFatPercentage - prev.bodyFatPercentage
+                    : 0;
+
+                return (
+                  <div
+                    key={entry.id}
+                    onClick={() => handleOpenEditModal(entry)}
+                    className="bg-[#15151f] hover:bg-[#181824] border border-white/[0.06] hover:border-crimson-500/40 p-3.5 rounded-2xl transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <span className="font-bold text-white group-hover:text-crimson-400 transition-colors">
+                        Week {entry.weekNumber}
+                      </span>
+                      <span className="text-[10px] font-mono">{entry.date}</span>
+                    </div>
+
+                    <div className="mt-2 flex items-baseline justify-between">
+                      <span className="text-lg font-mono font-extrabold text-white">
                         {entry.weightKg} kg
                       </span>
                       {weightDiff !== 0 && (
@@ -241,16 +555,16 @@ export default function BodyAnalyticsTab({
                           }`}
                         >
                           {weightDiff < 0 ? (
-                            <TrendingDown className="w-3.5 h-3.5 mr-0.5" />
+                            <TrendingDown className="w-3 h-3 mr-0.5" />
                           ) : (
-                            <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
+                            <TrendingUp className="w-3 h-3 mr-0.5" />
                           )}
                           {weightDiff > 0 ? `+${weightDiff.toFixed(1)}` : weightDiff.toFixed(1)}kg
                         </span>
                       )}
                     </div>
 
-                    {entry.bodyFatPercentage && (
+                    {entry.bodyFatPercentage ? (
                       <div className="flex items-center justify-between text-xs text-gray-400 mt-1 font-mono">
                         <span>Body Fat: {entry.bodyFatPercentage}%</span>
                         {bfDiff !== 0 && (
@@ -259,14 +573,18 @@ export default function BodyAnalyticsTab({
                           </span>
                         )}
                       </div>
+                    ) : (
+                      <div className="text-[10px] text-gray-500 mt-1 font-mono">
+                        Tape: W {entry.waistCm || '—'}cm / C {entry.chestCm || '—'}cm
+                      </div>
                     )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ───────────────────────────────────────────────────────────
           3. FILTER & SEARCH CONTROLS
@@ -282,7 +600,7 @@ export default function BodyAnalyticsTab({
               aria-label="Filter by athlete"
             >
               <option value="all">👥 All Athletes ({measurements.length} logs)</option>
-              {clientsWithSubmissions.map((c) => (
+              {allClientMembers.map((c) => (
                 <option key={c.id} value={c.id}>
                   👤 {c.name}
                 </option>
@@ -294,7 +612,7 @@ export default function BodyAnalyticsTab({
           <div className="flex items-center bg-[#181822] p-1 rounded-xl border border-white/10">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] transition-colors cursor-pointer ${
                 statusFilter === 'all'
                   ? 'bg-crimson-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
@@ -304,7 +622,7 @@ export default function BodyAnalyticsTab({
             </button>
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] flex items-center gap-1.5 transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                 statusFilter === 'pending'
                   ? 'bg-amber-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
@@ -315,7 +633,7 @@ export default function BodyAnalyticsTab({
             </button>
             <button
               onClick={() => setStatusFilter('reviewed')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] flex items-center gap-1.5 transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold min-h-[36px] flex items-center gap-1.5 transition-colors cursor-pointer ${
                 statusFilter === 'reviewed'
                   ? 'bg-emerald-600 text-white shadow-md'
                   : 'text-gray-400 hover:text-white'
@@ -350,7 +668,7 @@ export default function BodyAnalyticsTab({
             <Activity className="w-10 h-10 text-gray-600 mx-auto mb-3" />
             <h4 className="text-white font-bold text-base">No analytics submissions found</h4>
             <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-              No check-ins match the selected filters. Change filter criteria or reset search.
+              No check-ins match the selected filters. Change filter criteria or log a new check-in.
             </p>
           </div>
         ) : (
@@ -395,8 +713,17 @@ export default function BodyAnalyticsTab({
                     </div>
                   </div>
 
-                  {/* Feedback Status Pill */}
+                  {/* Actions: Edit Metrics + Feedback */}
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleOpenEditModal(entry)}
+                      className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 hover:text-white text-xs font-semibold rounded-xl transition-all min-h-[44px] flex items-center gap-1.5 cursor-pointer"
+                      title="Edit check-in values and measurements"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Edit Metrics</span>
+                    </button>
+
                     {hasFeedback ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -497,7 +824,393 @@ export default function BodyAnalyticsTab({
       </div>
 
       {/* ───────────────────────────────────────────────────────────
-          5. COACH FEEDBACK MODAL
+          5. MODAL: LOG ATHLETE CHECK-IN (Coach Adeesha)
+          ─────────────────────────────────────────────────────────── */}
+      {logModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLogModalOpen(false);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden"
+        >
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-xl w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#14141d]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Record Athlete Check-In</h3>
+                  <p className="text-xs text-gray-400">
+                    Log new weekly weigh-in & measurements on athlete&apos;s behalf
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLogModalOpen(false)}
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewCheckIn} className="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {actionError && (
+                <div className="p-3 bg-rose-950/60 border border-rose-800 text-rose-300 text-xs rounded-xl">
+                  {actionError}
+                </div>
+              )}
+
+              {/* Athlete Selection */}
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1.5">
+                  Select Athlete:
+                </label>
+                <select
+                  value={logForm.athleteId}
+                  onChange={(e) => setLogForm({ ...logForm, athleteId: e.target.value })}
+                  className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-crimson-500 cursor-pointer"
+                >
+                  <option value="" disabled>Choose an athlete...</option>
+                  {allClientMembers.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-[#14141d]">
+                      {c.name} ({c.email || 'Client'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Week Number & Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Week Number:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    value={logForm.weekNumber}
+                    onChange={(e) => setLogForm({ ...logForm, weekNumber: Number(e.target.value) })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:ring-2 focus:ring-crimson-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Check-in Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={logForm.date}
+                    onChange={(e) => setLogForm({ ...logForm, date: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:ring-2 focus:ring-crimson-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Weight & Body Fat */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Weight (kg) <span className="text-crimson-400">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 84.5"
+                    value={logForm.weightKg}
+                    onChange={(e) => setLogForm({ ...logForm, weightKg: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:ring-2 focus:ring-crimson-500 font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Body Fat (% Optional)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 15.5"
+                    value={logForm.bodyFatPercentage}
+                    onChange={(e) => setLogForm({ ...logForm, bodyFatPercentage: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:ring-2 focus:ring-crimson-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Tape Measurements: Waist, Chest, Arms */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Waist (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g. 82.0"
+                    value={logForm.waistCm}
+                    onChange={(e) => setLogForm({ ...logForm, waistCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Chest (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g. 104.0"
+                    value={logForm.chestCm}
+                    onChange={(e) => setLogForm({ ...logForm, chestCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Arms (cm)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g. 38.5"
+                    value={logForm.armsCm}
+                    onChange={(e) => setLogForm({ ...logForm, armsCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Coach Feedback Cues */}
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Coach Adeesha&apos;s Review & Training Cues (Optional):
+                </label>
+                <textarea
+                  rows={3}
+                  value={logForm.coachFeedback}
+                  onChange={(e) => setLogForm({ ...logForm, coachFeedback: e.target.value })}
+                  placeholder="e.g. Outstanding progression on the waist. Maintain caloric deficit and increase hydration..."
+                  className="w-full bg-[#161622] border border-white/10 rounded-2xl p-3 text-xs text-white focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
+
+              <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 -mx-6 -mb-6 bg-[#0c0c11]">
+                <button
+                  type="button"
+                  onClick={() => setLogModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-lg min-h-[44px] flex items-center gap-2 cursor-pointer"
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span>{isSubmitting ? 'Recording...' : 'Save Athlete Check-In'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────
+          6. MODAL: EDIT MEASUREMENT METRICS
+          ─────────────────────────────────────────────────────────── */}
+      {editModalMeasurement && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditModalMeasurement(null);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden"
+        >
+          <div className="bg-[#111116] border border-white/20 rounded-3xl max-w-xl w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden">
+            <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#14141d]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Edit Check-In Metrics</h3>
+                  <p className="text-xs text-gray-400">
+                    Week {editModalMeasurement.weekNumber} for{' '}
+                    <span className="text-white font-semibold">{editModalMeasurement.userName || editModalMeasurement.userId}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModalMeasurement(null)}
+                className="text-gray-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditMeasurement} className="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
+              {actionError && (
+                <div className="p-3 bg-rose-950/60 border border-rose-800 text-rose-300 text-xs rounded-xl">
+                  {actionError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Week Number:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    value={editForm.weekNumber}
+                    onChange={(e) => setEditForm({ ...editForm, weekNumber: Number(e.target.value) })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Check-in Date:
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Weight (kg):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editForm.weightKg}
+                    onChange={(e) => setEditForm({ ...editForm, weightKg: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    Body Fat (%):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editForm.bodyFatPercentage}
+                    onChange={(e) => setEditForm({ ...editForm, bodyFatPercentage: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Waist (cm):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={editForm.waistCm}
+                    onChange={(e) => setEditForm({ ...editForm, waistCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Chest (cm):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={editForm.chestCm}
+                    onChange={(e) => setEditForm({ ...editForm, chestCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-300 block mb-1">
+                    Arms (cm):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={editForm.armsCm}
+                    onChange={(e) => setEditForm({ ...editForm, armsCm: e.target.value })}
+                    className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Coach Adeesha&apos;s Review & Training Cues:
+                </label>
+                <textarea
+                  rows={3}
+                  value={editForm.coachFeedback}
+                  onChange={(e) => setEditForm({ ...editForm, coachFeedback: e.target.value })}
+                  className="w-full bg-[#161622] border border-white/10 rounded-2xl p-3 text-xs text-white focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Athlete&apos;s Notes:
+                </label>
+                <textarea
+                  rows={2}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  className="w-full bg-[#161622] border border-white/10 rounded-2xl p-3 text-xs text-white focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
+
+              <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 -mx-6 -mb-6 bg-[#0c0c11]">
+                <button
+                  type="button"
+                  onClick={() => setEditModalMeasurement(null)}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold min-h-[44px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-lg min-h-[44px] flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>{isSubmitting ? 'Updating...' : 'Save Updated Metrics'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────
+          7. QUICK FEEDBACK MODAL
           ─────────────────────────────────────────────────────────── */}
       {feedbackModalMeasurement && (
         <div
@@ -509,7 +1222,6 @@ export default function BodyAnalyticsTab({
           className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden"
         >
           <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-xl w-full shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
-            {/* Pinned Header */}
             <div className="px-6 py-5 border-b border-white/[0.08] flex items-center justify-between flex-shrink-0 bg-[#14141d]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
@@ -520,7 +1232,7 @@ export default function BodyAnalyticsTab({
                   <p className="text-xs text-gray-400">
                     Week {feedbackModalMeasurement.weekNumber} Review for{' '}
                     <span className="text-white font-semibold">
-                      {feedbackModalMeasurement.userId}
+                      {feedbackModalMeasurement.userName || feedbackModalMeasurement.userId}
                     </span>
                   </p>
                 </div>
@@ -535,7 +1247,6 @@ export default function BodyAnalyticsTab({
               </button>
             </div>
 
-            {/* Scrollable Body */}
             <div className="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
               <div className="bg-[#161620] p-4 rounded-xl border border-white/[0.06] text-xs text-gray-300 space-y-1">
                 <div>
@@ -569,7 +1280,6 @@ export default function BodyAnalyticsTab({
               </div>
             </div>
 
-            {/* Pinned Footer */}
             <div className="px-6 py-4 border-t border-white/[0.08] flex items-center justify-end gap-3 flex-shrink-0 bg-[#0c0c11]">
               <button
                 type="button"

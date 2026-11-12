@@ -43,9 +43,9 @@ export async function GET(req: NextRequest) {
           totalMembers: totalMembersRes.count !== null ? totalMembersRes.count : stats.totalMembers,
           activeMembers: activeMembersRes.count !== null ? activeMembersRes.count : stats.activeMembers,
           pendingTransfers: pendingTransfersRes.count !== null ? pendingTransfersRes.count : stats.pendingTransfers,
-          totalRevenue: totalRevenue > 0 ? totalRevenue : stats.totalRevenue,
-          roas: roas > 0 ? roas : (stats as any).roas || 0,
-          cpr: cpr > 0 ? cpr : (stats as any).cpr || 0,
+          totalRevenue: totalRevenue,
+          roas: roas,
+          cpr: cpr,
         };
       } catch (sbErr) {
         console.warn('Supabase stats fetch error, falling back to cache:', sbErr);
