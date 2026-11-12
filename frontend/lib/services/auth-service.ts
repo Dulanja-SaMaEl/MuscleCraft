@@ -9,6 +9,7 @@ export class AuthService {
     ['marcus@musclecraft.lk', 'ClientPass2026!'],
     ['nuwan.silva@gmail.com', 'Nuwan2026!'],
     ['kanishka.perera@gmail.com', 'Kanishka2026!'],
+    ['rohan.v@gmail.com', 'Rohan2026!'],
   ]);
 
   // Get active session user by ID or default to client_90 for quick review
