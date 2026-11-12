@@ -863,6 +863,8 @@ export default function ClientDashboard() {
                     poster={selectedVideo.thumbnailUrl}
                     title={selectedVideo.title}
                     autoPlay
+                    dockedControls={true}
+                    initialPinned={true}
                   />
                 </div>
 

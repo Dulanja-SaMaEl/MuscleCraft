@@ -155,7 +155,7 @@ export async function DELETE(req: NextRequest) {
     let r2Deleted = false;
     let r2Key: string | null = null;
 
-    if (cfStreamId && cfStreamId.startsWith('vault_')) {
+    if (cfStreamId && (cfStreamId.startsWith('vault_') || !cfStreamId.startsWith('cf_stream_'))) {
       r2Key = cfStreamId;
     } else if (videoUrl) {
       if (videoUrl.includes('key=')) {
@@ -168,6 +168,11 @@ export async function DELETE(req: NextRequest) {
         const match = videoUrl.match(/vault_[a-zA-Z0-9_\-\.]+/);
         if (match) {
           r2Key = match[0];
+        } else if (videoUrl.includes('.r2.dev') || videoUrl.includes('.r2.cloudflarestorage.com')) {
+          try {
+            const parsed = new URL(videoUrl);
+            r2Key = parsed.pathname.replace(/^\/+/, '');
+          } catch (_) {}
         }
       }
     }

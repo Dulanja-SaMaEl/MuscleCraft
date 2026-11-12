@@ -116,6 +116,23 @@ export default function VideosVaultTab({
     setUploadError('');
     setUploadStatus('Requesting direct Cloudflare R2 upload pipeline...');
 
+    // Automatically detect video duration from the selected file
+    try {
+      const tempVideo = document.createElement('video');
+      tempVideo.preload = 'metadata';
+      tempVideo.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(tempVideo.src);
+        const sec = tempVideo.duration;
+        if (!isNaN(sec) && sec > 0) {
+          const mins = Math.floor(sec / 60);
+          const remSecs = Math.floor(sec % 60);
+          const formattedDuration = `${mins.toString().padStart(2, '0')}:${remSecs.toString().padStart(2, '0')}`;
+          setFormData((prev) => ({ ...prev, duration: formattedDuration }));
+        }
+      };
+      tempVideo.src = URL.createObjectURL(file);
+    } catch (_) {}
+
     const storedUid = typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
 
     // Step 1: Request presigned direct upload URL from Cloudflare R2
@@ -1021,11 +1038,19 @@ export default function VideosVaultTab({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || (sourceMode === 'upload' && (!formData.videoUrl || isUploading))}
                   className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(186,26,26,0.5)] min-h-[44px] flex items-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Publishing...' : 'Publish Session Video'}</span>
+                  <span>
+                    {isSubmitting
+                      ? 'Publishing...'
+                      : isUploading
+                      ? `Uploading Video (${uploadProgress}%)...`
+                      : sourceMode === 'upload' && !formData.videoUrl
+                      ? 'Upload Video File First'
+                      : 'Publish Session Video'}
+                  </span>
                 </button>
               </div>
             </form>
@@ -1065,13 +1090,15 @@ export default function VideosVaultTab({
             {/* Scrollable Modal Content */}
             <div className="flex-1 overflow-y-auto flex flex-col">
               {/* Video Player Section */}
-              <div className="relative w-full bg-black flex items-center justify-center max-h-[55vh] overflow-hidden flex-shrink-0">
-                <div className="w-full aspect-video max-h-[55vh]">
+              <div className="relative w-full bg-black flex flex-col items-center justify-center flex-shrink-0">
+                <div className="w-full">
                   <MuscleCraftVideoPlayer
                     src={activePlaybackVideo.videoUrl}
                     poster={activePlaybackVideo.thumbnailUrl}
                     title={activePlaybackVideo.title}
                     autoPlay
+                    dockedControls={true}
+                    initialPinned={true}
                   />
                 </div>
               </div>

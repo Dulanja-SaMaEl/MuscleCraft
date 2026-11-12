@@ -7,6 +7,7 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -91,10 +92,22 @@ export async function POST(req: NextRequest) {
         uploadedUrl = `/uploads/videos/${uniqueKey}`;
         storageProvider = 'local_storage';
       } catch (diskErr: any) {
-        // If disk write is not permitted (e.g. serverless read-only), return sample URL with notification
-        uploadedUrl = 'https://www.w3schools.com/html/mov_bbb.mp4';
-        storageProvider = 'demo_fallback';
+        console.error('Local disk write error:', diskErr);
+        return NextResponse.json(
+          {
+            error:
+              'Storage error: Local disk is read-only in this environment. Please ensure Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) and CORS are configured.',
+          },
+          { status: 500 }
+        );
       }
+    }
+
+    if (!uploadedUrl) {
+      return NextResponse.json(
+        { error: 'Failed to upload video to any available storage provider.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
