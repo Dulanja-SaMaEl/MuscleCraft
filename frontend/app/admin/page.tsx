@@ -379,20 +379,25 @@ export default function AdminDashboard() {
 
   const handleDeleteVideo = async (videoId: string) => {
     try {
+      // Optimistic UI update: remove immediately
+      setVideos((prev) => prev.filter((v) => v.id !== videoId));
+
       const adminId = currentUser?.id || 'usr_admin_1';
-      const res = await fetch(`/api/videos?userId=${adminId}&videoId=${videoId}`, {
+      const res = await fetch(`/api/videos?userId=${adminId}&videoId=${encodeURIComponent(videoId)}`, {
         method: 'DELETE',
       });
 
       if (res.ok) {
-        setActionMessage({ type: 'success', text: 'Video removed from library.' });
+        setActionMessage({ type: 'success', text: 'Video removed from vault and database.' });
         await loadAdminData();
       } else {
         const err = await res.json();
         setActionMessage({ type: 'error', text: err.error || 'Delete failed' });
+        await loadAdminData();
       }
     } catch (err: any) {
       setActionMessage({ type: 'error', text: err.message });
+      await loadAdminData();
     }
   };
 

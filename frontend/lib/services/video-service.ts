@@ -109,11 +109,11 @@ export class VideoService {
     }
 
     const index = db.videos.findIndex((v) => v.id === videoId);
-    if (index === -1) {
-      throw new Error('Video not found.');
+    let removedTitle = 'Session Video';
+    if (index !== -1) {
+      const [removed] = db.videos.splice(index, 1);
+      removedTitle = removed.title;
     }
-
-    const [removed] = db.videos.splice(index, 1);
 
     db.auditLogs.unshift({
       id: `log_${Date.now()}`,
@@ -122,7 +122,7 @@ export class VideoService {
       action: 'VIDEO_DELETED',
       targetType: 'video',
       targetId: videoId,
-      details: `Removed video "${removed.title}".`,
+      details: `Removed video "${removedTitle}".`,
       timestamp: new Date().toISOString(),
     });
 

@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, HeadBucketCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Helper to sanitize env values
 function cleanEnv(val?: string | null): string {
@@ -252,4 +253,44 @@ export async function uploadToR2(params: {
   }
 
   return { url: publicUrl, key: params.key };
+}
+
+/**
+ * Generates a presigned direct PUT upload URL for Cloudflare R2.
+ * Allows uploading files of any size (up to 5GB+) directly from browser to R2,
+ * bypassing Vercel serverless request body limits (4.5MB).
+ */
+export async function getPresignedR2UploadUrl(params: {
+  key: string;
+  contentType: string;
+  expiresInSeconds?: number;
+}): Promise<{ uploadUrl: string; publicUrl: string; key: string }> {
+  const config = getR2Credentials();
+  const client = getR2Client();
+
+  if (!client || !config.isConfigured) {
+    throw new Error('Cloudflare R2 storage credentials are not configured in environment variables.');
+  }
+
+  const command = new PutObjectCommand({
+    Bucket: config.bucketName,
+    Key: params.key,
+    ContentType: params.contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, {
+    expiresIn: params.expiresInSeconds || 3600,
+  });
+
+  // Construct public playback URL
+  let publicUrl = '';
+  if (config.publicDomain) {
+    const domain = config.publicDomain.replace(/\/+$/, '');
+    const cleanKey = params.key.replace(/^\/+/, '');
+    publicUrl = `${domain}/${cleanKey}`;
+  } else {
+    publicUrl = `https://${config.bucketName}.${config.accountId}.r2.cloudflarestorage.com/${params.key}`;
+  }
+
+  return { uploadUrl, publicUrl, key: params.key };
 }

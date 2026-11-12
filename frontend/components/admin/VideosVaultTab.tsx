@@ -27,6 +27,7 @@ import {
   HelpCircle,
   Loader2,
   Check,
+  Copy,
 } from 'lucide-react';
 import { ExerciseVideo, User as UserType, VideoTargetScope } from '@/lib/types';
 import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
@@ -93,19 +94,51 @@ export default function VideosVaultTab({
   const [uploadedBytes, setUploadedBytes] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
   const [showR2GuideModal, setShowR2GuideModal] = useState<boolean>(false);
+  const [copiedCors, setCopiedCors] = useState<boolean>(false);
 
-  const handleUploadFile = (file: File) => {
+  const copyCorsSnippet = () => {
+    const corsJson = `[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
+    "AllowedHeaders": ["*"]
+  }
+]`;
+    navigator.clipboard.writeText(corsJson);
+    setCopiedCors(true);
+    setTimeout(() => setCopiedCors(false), 2000);
+  };
+
+  const handleUploadFile = async (file: File) => {
     setSelectedFile(file);
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError('');
-    setUploadStatus('Initializing video stream upload...');
+    setUploadStatus('Requesting direct Cloudflare R2 upload pipeline...');
+
+    const storedUid = typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
+
+    // Step 1: Request presigned direct upload URL from Cloudflare R2
+    let directUploadData: any = null;
+    try {
+      const presignRes = await fetch(`/api/videos/upload-url?userId=${encodeURIComponent(storedUid)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || 'video/mp4',
+          size: file.size,
+        }),
+      });
+      if (presignRes.ok) {
+        directUploadData = await presignRes.json();
+      }
+    } catch (e) {
+      console.warn('Direct upload URL request skipped:', e);
+    }
 
     const startTime = Date.now();
     const xhr = new XMLHttpRequest();
-    const formDataObj = new FormData();
-    formDataObj.append('file', file);
-    formDataObj.append('title', formData.title || file.name);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -122,12 +155,45 @@ export default function VideosVaultTab({
         setUploadedBytes(`${loadedMB} MB / ${totalMB} MB`);
 
         if (percent < 100) {
-          setUploadStatus(`Uploading to Video Storage Vault... ${percent}%`);
+          setUploadStatus(`Direct Upload to Cloudflare R2 Vault... ${percent}%`);
         } else {
           setUploadStatus('Verifying & indexing video stream (100%)...');
         }
       }
     };
+
+    // Case A: Direct Presigned Upload (Bypasses Vercel 4.5MB limit completely)
+    if (directUploadData?.useDirectUpload && directUploadData?.uploadUrl) {
+      xhr.onload = () => {
+        setIsUploading(false);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setFormData((prev) => ({
+            ...prev,
+            videoUrl: directUploadData.publicUrl,
+            title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+          }));
+          setUploadProgress(100);
+          setUploadStatus('Upload Complete (100%) — Stored directly in Cloudflare R2 Bucket');
+        } else {
+          setUploadError(`Cloudflare R2 Direct Upload returned HTTP ${xhr.status}. Make sure CORS is enabled on your Cloudflare R2 bucket (Click "Cloudflare R2 Storage Guide" above).`);
+        }
+      };
+
+      xhr.onerror = () => {
+        setIsUploading(false);
+        setUploadError('Network error uploading to Cloudflare R2. Please ensure CORS is enabled on your bucket: Cloudflare Dashboard → R2 → musclecraft-videos → Settings → CORS Policy.');
+      };
+
+      xhr.open('PUT', directUploadData.uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+      xhr.send(file);
+      return;
+    }
+
+    // Case B: Fallback to Serverless Upload Route
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    formDataObj.append('title', formData.title || file.name);
 
     xhr.onload = () => {
       setIsUploading(false);
@@ -152,6 +218,8 @@ export default function VideosVaultTab({
         } catch (e) {
           setUploadError('Failed to parse upload response from server.');
         }
+      } else if (xhr.status === 413) {
+        setUploadError('File exceeds Vercel 4.5 MB limit. Please enable Cloudflare R2 Direct Upload to support files up to 5 GB.');
       } else {
         setUploadError(`Upload failed with status HTTP ${xhr.status}. Please check file format or size.`);
       }
@@ -162,7 +230,6 @@ export default function VideosVaultTab({
       setUploadError('Connection error while uploading video. Please check your network.');
     };
 
-    const storedUid = typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
     xhr.open('POST', `/api/videos/upload?userId=${encodeURIComponent(storedUid)}`);
     xhr.send(formDataObj);
   };
@@ -1061,6 +1128,35 @@ export default function VideosVaultTab({
                     <div>R2_BUCKET_NAME=musclecraft-videos</div>
                     <div>R2_PUBLIC_DOMAIN=https://pub-xxxxxxxxxxxx.r2.dev</div>
                   </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#161620] border border-amber-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-300 block text-xs">
+                      Step 5: Enable Bucket CORS (Required for Videos &gt; 4.5 MB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyCorsSnippet}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      {copiedCors ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedCors ? 'Copied' : 'Copy CORS Rule'}</span>
+                    </button>
+                  </div>
+                  <p className="text-gray-400 text-[11px]">
+                    To upload videos directly without hitting Vercel&apos;s 4.5 MB serverless limit:
+                    In your bucket (<strong className="text-white">musclecraft-videos</strong>) → <strong className="text-gray-200">Settings</strong> tab → scroll down to <strong className="text-white">CORS Policy</strong> → Click <strong className="text-amber-400">Add CORS Policy</strong> → Paste the rule below and click <strong>Save</strong>:
+                  </p>
+                  <pre className="p-2.5 rounded-lg bg-black/80 font-mono text-[10.5px] text-amber-200/90 border border-white/10 overflow-x-auto">
+{`[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "POST"],
+    "AllowedHeaders": ["*"]
+  }
+]`}
+                  </pre>
                 </div>
               </div>
             </div>

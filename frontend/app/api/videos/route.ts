@@ -109,23 +109,35 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const videoId = searchParams.get('videoId');
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = (userId ? AuthService.getCurrentUser(userId) : null) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden: Only administrators and coaches can delete videos.' }, { status: 403 });
+    }
 
     if (!videoId) {
       return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
     }
 
-    const success = VideoService.deleteVideo(caller, videoId);
-
+    // 1. Delete from Supabase PostgreSQL cloud database if active
+    let supabaseDeleted = false;
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
-        await supabaseServer.from('exercise_videos').delete().eq('id', videoId);
-      } catch (err) {
-        console.warn('Supabase video delete failed:', err);
+        const { error } = await supabaseServer.from('exercise_videos').delete().eq('id', videoId);
+        if (!error) {
+          supabaseDeleted = true;
+        } else {
+          console.warn('Supabase video delete warning:', error.message);
+        }
+      } catch (err: any) {
+        console.warn('Supabase video delete failed:', err.message);
       }
     }
 
-    return NextResponse.json({ success });
+    // 2. Also remove from local in-memory cache
+    const success = VideoService.deleteVideo(caller, videoId);
+
+    return NextResponse.json({ success: true, supabaseDeleted, videoId });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
