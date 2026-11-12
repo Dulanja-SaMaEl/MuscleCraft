@@ -79,7 +79,7 @@ export default function VideosVaultTab({
     duration: '08:30',
     targetScope: 'specific_client',
     targetClientId: members.find((m) => m.role === 'client')?.id || 'usr_client_90',
-    videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    videoUrl: '',
     thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
     description: '',
   });
@@ -167,13 +167,14 @@ export default function VideosVaultTab({
       xhr.onload = () => {
         setIsUploading(false);
         if (xhr.status >= 200 && xhr.status < 300) {
+          const finalUrl = directUploadData.publicUrl;
           setFormData((prev) => ({
             ...prev,
-            videoUrl: directUploadData.publicUrl,
-            title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+            videoUrl: finalUrl,
+            title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
           }));
           setUploadProgress(100);
-          setUploadStatus('Upload Complete (100%) — Stored directly in Cloudflare R2 Bucket');
+          setUploadStatus('Upload Complete (100%) — Video is ready to publish');
         } else {
           setUploadError(`Cloudflare R2 Direct Upload returned HTTP ${xhr.status}. Make sure CORS is enabled on your Cloudflare R2 bucket (Click "Cloudflare R2 Storage Guide" above).`);
         }
@@ -201,10 +202,11 @@ export default function VideosVaultTab({
         try {
           const res = JSON.parse(xhr.responseText);
           if (res.url) {
+            const finalUrl = res.url;
             setFormData((prev) => ({
               ...prev,
-              videoUrl: res.url,
-              title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+              videoUrl: finalUrl,
+              title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
             }));
             setUploadProgress(100);
             const providerName =
@@ -276,6 +278,11 @@ export default function VideosVaultTab({
     e.preventDefault();
     if (!formData.title.trim()) return;
 
+    if (!formData.videoUrl) {
+      setUploadError('Please select and upload a video file or provide a video URL before publishing.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const selectedClient = members.find((m) => m.id === formData.targetClientId);
@@ -288,13 +295,19 @@ export default function VideosVaultTab({
         accessLevel: formData.targetScope === 'coaching_90_vip' ? 'coaching_90' : 'common',
       });
       setShowAddModal(false);
+      setSelectedFile(null);
+      setUploadProgress(0);
+      setUploadStatus('');
+      setUploadedBytes('');
+      setUploadSpeed('');
+      setUploadError('');
       setFormData({
         title: '',
         category: 'Technique Review',
         duration: '08:30',
         targetScope: 'specific_client',
         targetClientId: clientMembers[0]?.id || 'usr_client_90',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        videoUrl: '',
         thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
         description: '',
       });
@@ -890,15 +903,44 @@ export default function VideosVaultTab({
                       </div>
                     )}
 
-                    {/* Current Uploaded Stream URL (read-only verification) */}
+                    {/* Instant Video Playback Preview right inside the modal */}
                     {formData.videoUrl && (
-                      <div className="p-2.5 rounded-xl bg-black/40 border border-emerald-900/40 text-[11px] font-mono text-emerald-400 flex items-center justify-between">
-                        <span className="line-clamp-1 truncate mr-2">
-                          ✓ Ready URL: {formData.videoUrl}
-                        </span>
-                        <span className="text-[10px] uppercase font-bold text-emerald-500 px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800 flex-shrink-0">
-                          Synced
-                        </span>
+                      <div className="p-3.5 rounded-2xl bg-black/60 border border-emerald-500/40 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <span>Uploaded Video Preview (Ready to Stream)</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              setUploadProgress(0);
+                              setUploadStatus('');
+                              setUploadedBytes('');
+                              setUploadSpeed('');
+                              setFormData((prev) => ({ ...prev, videoUrl: '' }));
+                            }}
+                            className="text-[11px] text-gray-400 hover:text-rose-400 cursor-pointer font-mono underline"
+                          >
+                            Replace Video
+                          </button>
+                        </div>
+                        <div className="rounded-xl overflow-hidden border border-white/10 max-h-48 bg-black">
+                          <video
+                            src={formData.videoUrl}
+                            controls
+                            className="w-full max-h-48 object-contain"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10.5px] font-mono text-gray-400">
+                          <span className="truncate max-w-[320px]">
+                            URL: <strong className="text-emerald-300">{formData.videoUrl}</strong>
+                          </span>
+                          <span className="text-emerald-400 font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800">
+                            Synced
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

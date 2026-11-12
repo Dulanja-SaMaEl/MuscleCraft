@@ -45,12 +45,39 @@ import {
   Database,
 } from 'lucide-react';
 import { User, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@/lib/types';
-import BodyAnalyticsTab from '@/components/admin/BodyAnalyticsTab';
-import VideosVaultTab from '@/components/admin/VideosVaultTab';
-import BroadcastTab from '@/components/admin/BroadcastTab';
-import DatabaseHealthTab from '@/components/admin/DatabaseHealthTab';
-import PackagesManagerTab from '@/components/admin/PackagesManagerTab';
-import DailySalesDashboardTab from '@/components/admin/DailySalesDashboardTab';
+import dynamic from 'next/dynamic';
+
+const TabLoadingState = ({ name }: { name: string }) => (
+  <div className="flex flex-col items-center justify-center p-16 text-center space-y-3 bg-[#111116] border border-white/[0.06] rounded-3xl min-h-[350px]">
+    <div className="w-8 h-8 border-2 border-crimson-500 border-t-transparent rounded-full animate-spin" />
+    <span className="text-xs text-gray-400 font-mono">Loading {name}...</span>
+  </div>
+);
+
+const BodyAnalyticsTab = dynamic(() => import('@/components/admin/BodyAnalyticsTab'), {
+  loading: () => <TabLoadingState name="Client Analytics & Care" />,
+  ssr: false,
+});
+const VideosVaultTab = dynamic(() => import('@/components/admin/VideosVaultTab'), {
+  loading: () => <TabLoadingState name="Session Videos Vault" />,
+  ssr: false,
+});
+const BroadcastTab = dynamic(() => import('@/components/admin/BroadcastTab'), {
+  loading: () => <TabLoadingState name="Message Broadcast Center" />,
+  ssr: false,
+});
+const DatabaseHealthTab = dynamic(() => import('@/components/admin/DatabaseHealthTab'), {
+  loading: () => <TabLoadingState name="Database & Backend Telemetry" />,
+  ssr: false,
+});
+const PackagesManagerTab = dynamic(() => import('@/components/admin/PackagesManagerTab'), {
+  loading: () => <TabLoadingState name="Gym Packages Master" />,
+  ssr: false,
+});
+const DailySalesDashboardTab = dynamic(() => import('@/components/admin/DailySalesDashboardTab'), {
+  loading: () => <TabLoadingState name="Daily Sales & Ad CRM" />,
+  ssr: false,
+});
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -61,8 +88,8 @@ export default function AdminDashboard() {
     router.push('/login');
   };
 
-  // Navigation State
-  const [activeTab, setActiveTab] = useState<
+  // Navigation State with URL deep-linking support
+  const [activeTab, _setActiveTab] = useState<
     | 'analytics'
     | 'daily_dashboard'
     | 'payments'
@@ -74,6 +101,39 @@ export default function AdminDashboard() {
     | 'database_health'
     | 'audit'
   >('analytics');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (
+        tab &&
+        [
+          'analytics',
+          'daily_dashboard',
+          'payments',
+          'members',
+          'analytics_submissions',
+          'videos',
+          'broadcast',
+          'packages',
+          'database_health',
+          'audit',
+        ].includes(tab)
+      ) {
+        _setActiveTab(tab as any);
+      }
+    }
+  }, []);
+
+  const setActiveTab = (tab: any) => {
+    _setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.pushState(null, '', url.toString());
+    }
+  };
 
   // Mobile Sidebar Drawer
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);

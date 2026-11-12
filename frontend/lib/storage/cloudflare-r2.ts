@@ -248,8 +248,8 @@ export async function uploadToR2(params: {
     const cleanKey = params.key.replace(/^\/+/, '');
     publicUrl = `${domain}/${cleanKey}`;
   } else {
-    // Standard R2 public bucket path format
-    publicUrl = `https://${config.bucketName}.${config.accountId}.r2.cloudflarestorage.com/${params.key}`;
+    // Universal playback proxy via server-signed URL
+    publicUrl = `/api/videos/stream?key=${encodeURIComponent(params.key)}`;
   }
 
   return { url: publicUrl, key: params.key };
@@ -289,7 +289,8 @@ export async function getPresignedR2UploadUrl(params: {
     const cleanKey = params.key.replace(/^\/+/, '');
     publicUrl = `${domain}/${cleanKey}`;
   } else {
-    publicUrl = `https://${config.bucketName}.${config.accountId}.r2.cloudflarestorage.com/${params.key}`;
+    // Universal playback proxy via server-signed URL
+    publicUrl = `/api/videos/stream?key=${encodeURIComponent(params.key)}`;
   }
 
   return { uploadUrl, publicUrl, key: params.key };
