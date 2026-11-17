@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { VideoService } from '@/lib/services/video-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { AddVideoSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  resolveServerUser,
+  isClientPortalActive,
+} from '@/lib/supabase/server';
 import { deleteFromR2 } from '@/lib/storage/cloudflare-r2';
 import { db } from '@/lib/db/mock-db';
 import fs from 'fs';
@@ -104,7 +109,18 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = await resolveCaller(userId);
+    const caller = await resolveServerUser(userId);
+
+    if (caller.role === 'client' && !isClientPortalActive(caller)) {
+      return NextResponse.json(
+        {
+          error: 'Active membership required to access the Exercise Video Vault.',
+          videos: [],
+          hasVipAccess: false,
+        },
+        { status: 403 }
+      );
+    }
 
     let videos: ExerciseVideo[] = [];
 

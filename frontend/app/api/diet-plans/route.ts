@@ -2,15 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CoachingService } from '@/lib/services/coaching-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { SaveDietPlanSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  resolveServerUser,
+  isClientPortalActive,
+} from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const clientId = searchParams.get('clientId') || userId;
+    const rawClientId = searchParams.get('clientId') || userId;
 
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveServerUser(userId);
+    if (caller.role === 'client' && !isClientPortalActive(caller)) {
+      return NextResponse.json(
+        { error: 'Active membership required to view nutrition plans.', dietPlan: null },
+        { status: 403 }
+      );
+    }
+
+    const clientId = caller.role === 'client' ? caller.id : rawClientId;
 
     let dietPlan: any = null;
 

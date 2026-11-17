@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CoachingService } from '@/lib/services/coaching-service';
 import { ScheduleAppointmentSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured, getSessionUser } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  getSessionUser,
+  enforceAndSyncUserStatus,
+  isClientPortalActive,
+} from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = await getSessionUser(userId);
+    const rawCaller = await getSessionUser(userId);
+    const caller = rawCaller ? await enforceAndSyncUserStatus(rawCaller) : null;
 
     if (!caller) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (caller.role === 'client' && !isClientPortalActive(caller)) {
+      return NextResponse.json(
+        { error: 'Active membership required to view coaching sessions.', appointments: [] },
+        { status: 403 }
+      );
     }
 
     let appointments: any[] = [];

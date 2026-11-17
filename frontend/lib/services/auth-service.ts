@@ -87,18 +87,22 @@ export class AuthService {
   }
 
   static registerUser(data: {
+    id?: string;
     name: string;
     email: string;
     password: string;
     phone?: string;
+    role?: UserRole;
     tier?: string;
     packageId?: string;
     packageName?: string;
     packageType?: 'sole' | 'couple' | 'coaching';
+    status?: User['status'];
+    membershipExpiresAt?: string;
   }): User {
     const cleanEmail = data.email.toLowerCase().trim();
     const existing = this.getUserByEmail(cleanEmail);
-    if (existing) {
+    if (existing && !data.id) {
       throw new Error('An account with this email address already exists. Please sign in instead.');
     }
 
@@ -107,23 +111,29 @@ export class AuthService {
     }
 
     const newUser: User = {
-      id: `usr_${Date.now()}`,
+      id: data.id || `usr_${Date.now()}`,
       email: cleanEmail,
       name: data.name.trim(),
       phone: data.phone?.trim(),
-      role: 'client',
-      tier: data.tier || 'sole_1m',
-      packageId: data.packageId || data.tier || 'sole_1m',
-      packageName: data.packageName || 'Sole - 1 Month',
+      role: data.role || 'client',
+      tier: data.tier || 'none',
+      packageId: data.packageId || (data.tier && data.tier !== 'none' ? data.tier : undefined),
+      packageName: data.packageName || 'No Active Plan',
       packageType: data.packageType || 'sole',
-      status: 'active',
+      status: data.status || 'pending',
       avatarUrl: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
       joinedAt: new Date().toISOString(),
-      membershipExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      membershipExpiresAt: data.membershipExpiresAt,
     };
 
+    if (existing) {
+      Object.assign(existing, newUser);
+      this.credentials.set(cleanEmail, data.password);
+      return existing;
+    }
+
     db.users.push(newUser);
-    this.setPassword(cleanEmail, data.password);
+    this.credentials.set(cleanEmail, data.password);
     return newUser;
   }
 

@@ -28,6 +28,8 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reason = searchParams.get('reason');
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') ? redirectParam : null;
   const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'login';
   const { login, register } = useAuth();
 
@@ -76,11 +78,15 @@ function LoginContent() {
           localStorage.setItem('musclecraft_remember_email', email.trim());
         }
 
-        // Role-based destination routing
-        if (res.user.role === 'admin') {
+        // Destination routing: honor safe internal redirect or route by role/status
+        if (safeRedirect) {
+          router.push(safeRedirect);
+        } else if (res.user.role === 'admin') {
           router.push('/admin');
         } else if (res.user.role === 'instructor') {
           router.push('/instructor');
+        } else if (res.user.status === 'pending' || !res.user.tier || res.user.tier === 'none') {
+          router.push('/pricing?welcome=1');
         } else {
           router.push('/client');
         }
@@ -135,7 +141,7 @@ function LoginContent() {
       });
 
       if (res.success && res.user) {
-        setSuccessMsg('Account created successfully! Redirecting to your athlete portal...');
+        setSuccessMsg('Account created! Redirecting to Pricing to select your package & upload your payment slip...');
         if (typeof window !== 'undefined') {
           localStorage.setItem('musclecraft_remember_email', email.trim());
         }
@@ -143,10 +149,12 @@ function LoginContent() {
         setTimeout(() => {
           if (res.user?.role === 'admin') {
             router.push('/admin');
+          } else if (safeRedirect) {
+            router.push(safeRedirect);
           } else {
-            router.push('/client');
+            router.push(`/pricing?welcome=1&tier=${encodeURIComponent(tier)}`);
           }
-        }, 1200);
+        }, 900);
       } else {
         setErrorMsg(res.error || 'Failed to create your account. Please try again.');
         setLoading(false);

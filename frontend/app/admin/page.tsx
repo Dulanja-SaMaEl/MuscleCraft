@@ -44,6 +44,9 @@ import {
   Smartphone,
   Cpu,
   Database,
+  FileBarChart2,
+  Ban,
+  ShieldCheck,
 } from 'lucide-react';
 import { User, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@/lib/types';
 import dynamic from 'next/dynamic';
@@ -239,6 +242,10 @@ const BankApprovalsTab = dynamic(() => import('@/components/admin/BankApprovalsT
   loading: () => <TabLoadingState name="Bank Transfer Slips & Approvals" />,
   ssr: false,
 });
+const ReportsTab = dynamic(() => import('@/components/admin/ReportsTab'), {
+  loading: () => <TabLoadingState name="Executive Reports & Analytics" />,
+  ssr: false,
+});
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -259,11 +266,26 @@ export default function AdminDashboard() {
     | 'videos'
     | 'broadcast'
     | 'packages'
+    | 'reports'
     | 'database_health'
     | 'audit'
   >('analytics');
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Admin Create Member Modal State
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [isCreatingMember, setIsCreatingMember] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'client' as 'client' | 'instructor' | 'admin',
+    tier: 'sole_1m',
+    status: 'active' as 'active' | 'pending',
+    durationDays: 30,
+  });
 
   useEffect(() => {
     const onScroll = () => {
@@ -289,6 +311,7 @@ export default function AdminDashboard() {
           'videos',
           'broadcast',
           'packages',
+          'reports',
           'database_health',
           'audit',
         ].includes(tab)
@@ -520,7 +543,14 @@ export default function AdminDashboard() {
   };
 
   const handleToggleMemberStatus = async (member: User) => {
-    const newStatus = member.status === 'active' ? 'suspended' : 'active';
+    const isCurrentlyBannedOrInactive = member.status === 'suspended' || member.status === 'expired' || member.status === 'pending';
+    const action = isCurrentlyBannedOrInactive ? 'unban' : 'ban';
+    const newStatus = isCurrentlyBannedOrInactive ? 'active' : 'suspended';
+
+    if (action === 'ban' && !confirm(`Ban / Suspend "${member.name}" (${member.email})? They will immediately lose access to the portal.`)) {
+      return;
+    }
+
     try {
       const adminId = currentUser?.id || 'usr_admin_1';
       const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
@@ -528,20 +558,66 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memberId: member.id,
+          action,
           status: newStatus,
-          reason: `Admin toggle status to ${newStatus}`,
+          reason: action === 'ban' ? 'Banned/Suspended by Administrator' : 'Unbanned & Activated by Administrator',
         }),
       });
 
       if (res.ok) {
         setActionMessage({
           type: 'success',
-          text: `Member ${member.name} status updated to ${newStatus}.`,
+          text:
+            action === 'ban'
+              ? `Member ${member.name} has been banned & locked out of the portal.`
+              : `Member ${member.name} has been unbanned & activated.`,
         });
         await loadAdminData();
+      } else {
+        const err = await res.json();
+        setActionMessage({ type: 'error', text: err.error || 'Failed to update member status' });
       }
     } catch (err: any) {
       setActionMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleCreateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingMember(true);
+    setActionMessage(null);
+    try {
+      const adminId = currentUser?.id || 'usr_admin_1';
+      const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMemberForm),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add member.');
+      }
+
+      setActionMessage({
+        type: 'success',
+        text: data.message || `Member ${newMemberForm.name} added successfully with portal login access!`,
+      });
+      setShowAddMemberModal(false);
+      setNewMemberForm({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        role: 'client',
+        tier: 'sole_1m',
+        status: 'active',
+        durationDays: 30,
+      });
+      await loadAdminData();
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message || 'Error adding member.' });
+    } finally {
+      setIsCreatingMember(false);
     }
   };
 
@@ -819,6 +895,7 @@ export default function AdminDashboard() {
     },
     { id: 'broadcast', label: 'Broadcast Center', icon: Radio },
     { id: 'packages', label: 'Gym Packages Master', icon: DollarSign },
+    { id: 'reports', label: 'Reports Center', icon: FileBarChart2 },
     { id: 'database_health', label: 'Database & Backend', icon: Server, statusDot: 'green' },
     { id: 'audit', label: 'Audit Trail', icon: History },
   ];
@@ -1775,24 +1852,35 @@ export default function AdminDashboard() {
                     Members Directory & Roster
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Manage active member lifecycle, renewals, and package designations
+                    Add members, manage package renewals, ban/unban access, and track 90-day expirations
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[#181822] p-1 rounded-xl border border-white/5 text-xs">
-                  {(['all', 'sole', 'couple', 'coaching'] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setMemberFilterType(type)}
-                      className={`px-3 py-1.5 rounded-lg font-semibold uppercase text-[11px] transition-all cursor-pointer ${
-                        memberFilterType === type
-                          ? 'bg-crimson-600 text-white font-bold shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex items-center gap-1.5 bg-[#181822] p-1 rounded-xl border border-white/5 text-xs">
+                    {(['all', 'sole', 'couple', 'coaching'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setMemberFilterType(type)}
+                        className={`px-3 py-1.5 rounded-lg font-semibold uppercase text-[11px] transition-all cursor-pointer ${
+                          memberFilterType === type
+                            ? 'bg-crimson-600 text-white font-bold shadow'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMemberModal(true)}
+                    className="px-4 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(186,26,26,0.4)] flex items-center gap-1.5 min-h-[40px] cursor-pointer transition-all"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ Add Member</span>
+                  </button>
                 </div>
               </div>
 
@@ -1817,9 +1905,9 @@ export default function AdminDashboard() {
                   <option value="all">All Statuses</option>
                   <option value="active">Active Members</option>
                   <option value="expiring_soon">⚡ Expiring Soon (≤ 7 Days)</option>
-                  <option value="expired">🚨 Expired Memberships</option>
-                  <option value="pending">Pending Approval</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="expired">🚨 Expired (Auto-Deactivated)</option>
+                  <option value="pending">Pending Package / Slip</option>
+                  <option value="suspended">⛔ Banned / Suspended</option>
                 </select>
               </div>
 
@@ -1870,9 +1958,13 @@ export default function AdminDashboard() {
                               </span>
                             </td>
                             <td className="py-4 px-4 whitespace-nowrap">
-                              {isExpired ? (
+                              {m.status === 'suspended' ? (
+                                <span className="text-[11px] font-bold text-rose-300 bg-rose-950/90 px-2.5 py-1 rounded-full border border-rose-600/70 inline-flex items-center gap-1">
+                                  <Ban className="w-3 h-3" /> Banned
+                                </span>
+                              ) : isExpired ? (
                                 <span className="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/60 shadow-sm">
-                                  Expired
+                                  Expired (Inactive)
                                 </span>
                               ) : isExpiringSoon ? (
                                 <span className="text-[11px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-600/50">
@@ -1882,13 +1974,9 @@ export default function AdminDashboard() {
                                 <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
                                   Active
                                 </span>
-                              ) : m.status === 'pending' ? (
-                                <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50">
-                                  Pending Slip
-                                </span>
                               ) : (
-                                <span className="text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/50">
-                                  Suspended
+                                <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50">
+                                  Pending Package
                                 </span>
                               )}
                             </td>
@@ -1949,16 +2037,29 @@ export default function AdminDashboard() {
                                     +30d
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => handleToggleMemberStatus(m)}
-                                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                                    m.status === 'active'
-                                      ? 'bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30'
-                                      : 'bg-emerald-950/50 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-500/30'
-                                  }`}
-                                >
-                                  {m.status === 'active' ? 'Suspend' : 'Activate'}
-                                </button>
+                                {m.role !== 'admin' && (
+                                  <button
+                                    onClick={() => handleToggleMemberStatus(m)}
+                                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                                      m.status === 'active'
+                                        ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
+                                        : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                                    }`}
+                                    title={m.status === 'active' ? 'Ban / Suspend user portal access' : 'Unban & activate member portal'}
+                                  >
+                                    {m.status === 'active' ? (
+                                      <>
+                                        <Ban className="w-3.5 h-3.5" />
+                                        <span>Ban</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2017,6 +2118,13 @@ export default function AdminDashboard() {
             <PackagesManagerTab
               onNotify={(type, text) => setActionMessage({ type, text })}
             />
+          )}
+
+          {/* ───────────────────────────────────────────────────────────
+              TAB: EXECUTIVE REPORTS CENTER
+              ─────────────────────────────────────────────────────────── */}
+          {activeTab === 'reports' && (
+            <ReportsTab adminId={currentUser?.id || 'usr_admin_1'} />
           )}
 
 
@@ -2098,6 +2206,184 @@ export default function AdminDashboard() {
           <span>Authorized Personnel Only · All Actions Recorded & Synced</span>
         </footer>
       </div>
+
+      {/* Add Member & Login Access Modal */}
+      {showAddMemberModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddMemberModal(false);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e]">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <UserPlus className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white">Add New Member & Portal Access</h3>
+                  <p className="text-xs text-gray-400">Creates login credentials & provisions package access immediately</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddMemberModal(false)}
+                aria-label="Close modal"
+                className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/[0.06] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMember} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newMemberForm.name}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, name: e.target.value })}
+                    placeholder="e.g. Kasun Perera"
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    value={newMemberForm.email}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, email: e.target.value })}
+                    placeholder="kasun@example.com"
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Login Password * (min 6)</label>
+                  <input
+                    type="text"
+                    required
+                    minLength={6}
+                    value={newMemberForm.password}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, password: e.target.value })}
+                    placeholder="MemberPassword123!"
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Phone / WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={newMemberForm.phone}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, phone: e.target.value })}
+                    placeholder="+94 77 123 4567"
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Account Role</label>
+                  <select
+                    value={newMemberForm.role}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, role: e.target.value as any })}
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  >
+                    <option value="client">Athlete / Client</option>
+                    <option value="instructor">Coach / Instructor</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Initial Portal Status</label>
+                  <select
+                    value={newMemberForm.status}
+                    onChange={(e) => setNewMemberForm({ ...newMemberForm, status: e.target.value as any })}
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  >
+                    <option value="active">Active (Immediate Portal Access)</option>
+                    <option value="pending">Pending (Must Buy Package First)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Assigned Package</label>
+                  <select
+                    value={newMemberForm.tier}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      const autoDays =
+                        t === 'sole_1y' || t === 'couple_1y'
+                          ? 365
+                          : t === 'sole_6m' || t === 'couple_6m'
+                          ? 180
+                          : t === 'sole_3m' || t === 'couple_3m' || t === 'coaching_90'
+                          ? 90
+                          : 30;
+                      setNewMemberForm({ ...newMemberForm, tier: t, durationDays: autoDays });
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  >
+                    <option value="sole_1m">Sole - 1 Month (30d)</option>
+                    <option value="sole_3m">Sole - 3 Months (90d)</option>
+                    <option value="sole_6m">Sole - 6 Months (180d)</option>
+                    <option value="sole_1y">Sole - 1 Year (365d)</option>
+                    <option value="couple_1m">Couple - 1 Month (30d)</option>
+                    <option value="couple_3m">Couple - 3 Months (90d)</option>
+                    <option value="couple_6m">Couple - 6 Months (180d)</option>
+                    <option value="couple_1y">Couple - 1 Year (365d)</option>
+                    <option value="coaching_90">90 Days Better Me VIP (90d)</option>
+                    <option value="burnzone">MuscleCraft BurnZone (30d)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">Access Duration (Days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1095}
+                    value={newMemberForm.durationDays}
+                    onChange={(e) =>
+                      setNewMemberForm({ ...newMemberForm, durationDays: Number(e.target.value) || 30 })
+                    }
+                    className="w-full px-3.5 py-2.5 bg-[#161620] border border-white/10 rounded-xl text-xs text-white font-mono focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingMember}
+                  className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-crimson-glow flex items-center gap-2 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>{isCreatingMember ? 'Creating Account...' : 'Create Member & Grant Access'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,31 +4,17 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { useAuth } from '@/lib/context/auth-context';
-import { Check, Copy, ArrowRight, ShieldCheck, AlertCircle, Building, CheckCircle2, User, Users, Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { GYM_PACKAGES } from '@/lib/types';
+import PackageTransferForm from '@/components/payments/PackageTransferForm';
+import { User, Users, Sparkles, Copy, Building } from 'lucide-react';
 import { PaymentService } from '@/lib/services/payment-service';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { currentUser } = useAuth();
 
   const [selectedCategory, setSelectedCategory] = useState<'sole' | 'couple' | 'coaching'>('sole');
   const [selectedTier, setSelectedTier] = useState<string>('sole_3m');
   const [referenceCode, setReferenceCode] = useState('');
-  const [bankName, setBankName] = useState('Commercial Bank of Ceylon (Online Transfer / Deposit)');
-  const [senderAccountName, setSenderAccountName] = useState(currentUser?.name || '');
-  const [userEmail, setUserEmail] = useState(currentUser?.email || '');
-  const [userPassword, setUserPassword] = useState('');
-  const [showUserPassword, setShowUserPassword] = useState(false);
-  const [userPhone, setUserPhone] = useState(currentUser?.phone || '');
-  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
-  const [receiptNotes, setReceiptNotes] = useState('');
   const [copied, setCopied] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [successSubmission, setSuccessSubmission] = useState<any | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
   const [dbPackages, setDbPackages] = useState<any[]>([]);
 
   useEffect(() => {
@@ -86,78 +72,6 @@ function CheckoutContent() {
       }
     : PaymentService.getTierPrice(selectedTier);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrorMsg('');
-
-    try {
-      let activeUserId = currentUser ? currentUser.id : null;
-
-      // If guest user, create athlete account with their chosen password
-      if (!currentUser) {
-        if (!userEmail.trim() || !userEmail.includes('@')) {
-          throw new Error('Please enter a valid email address for your athlete account.');
-        }
-        if (!userPassword || userPassword.length < 6) {
-          throw new Error('Please create a password of at least 6 characters for your account.');
-        }
-
-        const regRes = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: senderAccountName.trim(),
-            email: userEmail.trim(),
-            password: userPassword,
-            phone: userPhone.trim() || undefined,
-            tier: selectedTier,
-            packageName: priceDetails.name,
-            packageType: selectedCategory,
-          }),
-        });
-
-        const regData = await regRes.json();
-        if (!regRes.ok || !regData.user) {
-          throw new Error(regData.error || 'Failed to create your athlete account.');
-        }
-
-        activeUserId = regData.user.id;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('musclecraft_user_id', regData.user.id);
-        }
-      }
-
-      const res = await fetch(`/api/payments?userId=${activeUserId || 'usr_client_pending'}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tier: selectedTier,
-          referenceCode,
-          bankName,
-          transferDate,
-          senderAccountName,
-          receiptNotes: receiptNotes
-            ? `${receiptNotes}${userEmail ? ` | Email: ${userEmail}` : ''}`
-            : userEmail
-            ? `Email: ${userEmail}`
-            : '',
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit bank transfer');
-      }
-
-      setSuccessSubmission(data.payment);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error processing transfer.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
       <Navbar />
@@ -182,74 +96,7 @@ function CheckoutContent() {
           </p>
         </div>
 
-        {successSubmission ? (
-          <div className="bg-[#121215] border border-crimson-600/50 rounded-2xl p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-crimson-glow">
-            <div className="w-16 h-16 rounded-full bg-crimson-950/50 border border-crimson-500 flex items-center justify-center text-crimson-400 mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
-
-            <h2
-              style={{
-                fontFamily: '"Plus Jakarta Sans", "Inter", sans-serif',
-                fontWeight: 600,
-                letterSpacing: '-0.02em',
-              }}
-              className="text-[24px] sm:text-[28px] text-white mb-2"
-            >
-              Transfer Submitted for Verification!
-            </h2>
-            <p className="text-gray-300 text-sm mb-6">
-              Your transfer reference <span className="font-mono font-bold text-crimson-400">{successSubmission.referenceCode}</span> has been logged into the MuscleCraft administrative queue.
-            </p>
-
-            <div className="bg-[#18181d] border border-white/[0.08] rounded-xl p-5 text-left text-xs space-y-2.5 mb-8">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Membership Package:</span>
-                <span className="text-white font-semibold">{successSubmission.packageName || successSubmission.tier}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Package Fee:</span>
-                <span className="text-gray-200">Rs. {(successSubmission.packageAmount || successSubmission.amount).toLocaleString()} LKR</span>
-              </div>
-              {successSubmission.admissionFee > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Admission Fee (One-Time):</span>
-                  <span className="text-gray-200">Rs. {successSubmission.admissionFee.toLocaleString()} LKR</span>
-                </div>
-              )}
-              <div className="flex justify-between border-t border-white/10 pt-2 font-bold">
-                <span className="text-white">Total Amount Due:</span>
-                <span className="text-crimson-400 font-mono text-sm">Rs. {successSubmission.amount.toLocaleString()} LKR</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Bank & Reference:</span>
-                <span className="text-white">{successSubmission.bankName}</span>
-              </div>
-              <div className="flex justify-between pt-1">
-                <span className="text-gray-400">Status:</span>
-                <span className="text-amber-400 font-bold uppercase bg-amber-950/60 px-2 py-0.5 rounded border border-amber-600/40">
-                  Pending Administrative Approval
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => router.push('/admin')}
-                className="px-6 py-3 bg-crimson-950 text-crimson-200 border border-crimson-700 font-semibold text-[13px] sm:text-[14px] rounded-full hover:bg-crimson-900 transition-colors"
-              >
-                Switch to Admin Desk (Approve Now)
-              </button>
-              <button
-                onClick={() => router.push('/client')}
-                className="px-6 py-3 bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-[13px] sm:text-[14px] uppercase tracking-wide rounded-full transition-colors shadow-crimson-glow"
-              >
-                Go to Client Dashboard
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Plan Selection & Transfer Details */}
             <div className="lg:col-span-5 space-y-6">
               {/* Category & Tier Selector */}
@@ -464,206 +311,24 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Right Column: Submission Form */}
+            {/* Right Column: Authenticated Transfer & Receipt Upload Form */}
             <div className="lg:col-span-7 bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-2xl">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
-                2. Confirm Bank Transfer Details
+                2. Authenticate, Confirm Transfer & Upload Receipt
               </h3>
               <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-                Execute the transfer in your banking app (Commercial Bank, Sampath Vishwa, HNB, BOC, etc.) inserting the unique reference code in the remarks field, then submit this confirmation.
+                Sign in or create your account, complete the bank transfer, and upload your receipt slip directly below.
               </p>
 
-              {errorMsg && (
-                <div className="mb-6 p-4 rounded-xl bg-red-950/50 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {errorMsg}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Selected Package
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`${priceDetails.name} — Rs. ${priceDetails.amount.toLocaleString()} LKR`}
-                    className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white font-medium text-xs opacity-80"
-                  />
-                </div>
-
-                {/* Athlete Account / Login Credentials Section */}
-                {!currentUser ? (
-                  <div className="p-4 rounded-2xl bg-[#14141c] border border-white/[0.08] space-y-3">
-                    <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-crimson-400" />
-                        Create Your Athlete Login Password
-                      </span>
-                      <span className="text-[10px] text-gray-400">For portal & video workouts</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                          Account Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="athlete@example.com"
-                          value={userEmail}
-                          onChange={(e) => setUserEmail(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                          Phone / WhatsApp (Optional)
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="+94 77 123 4567"
-                          value={userPhone}
-                          onChange={(e) => setUserPhone(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1">
-                        Create Your Password * <span className="text-[10px] text-gray-400 lowercase">(min. 6 characters)</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showUserPassword ? 'text' : 'password'}
-                          required
-                          placeholder="Create a password for your account"
-                          value={userPassword}
-                          onChange={(e) => setUserPassword(e.target.value)}
-                          className="w-full px-3.5 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowUserPassword(!showUserPassword)}
-                          aria-label={showUserPassword ? 'Hide password' : 'Show password'}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
-                        >
-                          {showUserPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-gray-300">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      Enrolling as: <strong className="text-white">{currentUser.name}</strong> ({currentUser.email})
-                    </span>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                      Signed In
-                    </span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                      Bank Used *
-                    </label>
-                    <select
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none"
-                    >
-                      <option value="Commercial Bank of Ceylon (Online Transfer / Deposit)">Commercial Bank of Ceylon</option>
-                      <option value="Sampath Bank Vishwa / Slip Deposit">Sampath Bank (Vishwa)</option>
-                      <option value="Hatton National Bank (HNB)">Hatton National Bank (HNB)</option>
-                      <option value="Bank of Ceylon (BOC SmartPay / Slip)">Bank of Ceylon (BOC)</option>
-                      <option value="Nations Trust Bank (NTB) / FriMi">Nations Trust Bank / FriMi</option>
-                      <option value="Other Bank Direct Deposit">Other Bank Deposit</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                      Sender Account / Depositor Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dulanja Abeysinghe"
-                      value={senderAccountName}
-                      onChange={(e) => setSenderAccountName(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                      Transfer Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={transferDate}
-                      onChange={(e) => setTransferDate(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                      Audit Reference Code
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={referenceCode}
-                      className="w-full px-4 py-2.5 bg-[#18181d] border border-crimson-700/50 rounded-xl text-crimson-400 font-mono font-bold text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">
-                    Receipt / Transaction Notes (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Enter transaction sequence number, branch details, or paste mobile slip reference details..."
-                    value={receiptNotes}
-                    onChange={(e) => setReceiptNotes(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#18181d] border border-white/10 rounded-xl text-white text-xs placeholder:text-gray-600 focus:border-crimson-500 focus:outline-none"
-                  />
-                </div>
-
-                <div className="p-4 rounded-xl bg-crimson-950/20 border border-crimson-900/40 text-gray-300 text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 text-crimson-400 font-semibold">
-                    <ShieldCheck className="w-4 h-4" />
-                    Instant Reconciliation by Owner
-                  </div>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    Once submitted, Coach Adeesha receives real-time notification to verify your slip and activate your biometric membership credentials immediately.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-4 bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-crimson-glow hover:shadow-[0_0_25px_rgba(186,26,26,0.6)] cursor-pointer disabled:opacity-50 mt-4"
-                >
-                  {submitting ? 'Submitting Transfer Record...' : `Submit Transfer for Rs. ${priceDetails.amount.toLocaleString()} LKR`}
-                </button>
-              </form>
+              <PackageTransferForm
+                selectedTier={selectedTier}
+                packageName={priceDetails.name}
+                packagePrice={priceDetails.packagePrice}
+                admissionFee={priceDetails.admissionFee}
+                redirectBackPath={`/checkout?tier=${encodeURIComponent(selectedTier)}`}
+              />
             </div>
           </div>
-        )}
       </main>
 
       <Footer />

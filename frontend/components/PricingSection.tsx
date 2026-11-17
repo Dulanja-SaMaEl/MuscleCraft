@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Check, Star, Flame, Users, User, Sparkles, ShieldCheck } from 'lucide-react';
+import React, { useRef, useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Check, Star, Flame, Users, User, Sparkles, ShieldCheck, X } from 'lucide-react';
 import Card3DTilt from './3d/Card3DTilt';
 import SectionHeader from './motion/SectionHeader';
+import PackageTransferForm from './payments/PackageTransferForm';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -12,8 +13,43 @@ import { revealOnScroll } from './motion/scrollReveal';
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
+interface PricingTierItem {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  admission: string;
+  totalFirstMonth: string;
+  monthlyBreakdown?: string;
+  badge: string;
+  featured: boolean;
+  popularTag?: string;
+  features: string[];
+  ctaText: string;
+  href: string;
+  rawPrice?: number;
+  rawAdmission?: number;
+}
+
+function TierQueryOpener({ onOpenTier }: { onOpenTier: (tierId: string) => void }) {
+  const searchParams = useSearchParams();
+  const openedRef = useRef<string | null>(null);
+  const cbRef = useRef(onOpenTier);
+  cbRef.current = onOpenTier;
+
+  useEffect(() => {
+    const tierParam = searchParams.get('tier');
+    if (tierParam && openedRef.current !== tierParam) {
+      openedRef.current = tierParam;
+      cbRef.current(tierParam);
+    }
+  }, [searchParams]);
+  return null;
+}
+
 export default function PricingSection() {
   const [activeCategory, setActiveCategory] = useState<'sole' | 'couple' | 'signature'>('sole');
+  const [enrollModalTier, setEnrollModalTier] = useState<PricingTierItem | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
@@ -34,22 +70,6 @@ export default function PricingSection() {
     },
     { scope: sectionRef, dependencies: [activeCategory] }
   );
-
-  interface PricingTierItem {
-    id: string;
-    name: string;
-    price: string;
-    period: string;
-    admission: string;
-    totalFirstMonth: string;
-    monthlyBreakdown?: string;
-    badge: string;
-    featured: boolean;
-    popularTag?: string;
-    features: string[];
-    ctaText: string;
-    href: string;
-  }
 
   const initialSolePackages: PricingTierItem[] = [
     {
@@ -500,17 +520,18 @@ export default function PricingSection() {
                   </ul>
                 </div>
 
-                {/* Call to action */}
-                <Link
-                  href={tier.href}
-                  className={`w-full py-3.5 px-4 rounded-xl text-center text-xs sm:text-sm font-bold uppercase tracking-wider transition-all block ${
+                {/* Call to action — opens Direct Transfer & Receipt Upload right on Pricing */}
+                <button
+                  type="button"
+                  onClick={() => setEnrollModalTier(tier)}
+                  className={`w-full py-3.5 px-4 rounded-xl text-center text-xs sm:text-sm font-bold uppercase tracking-wider transition-all block cursor-pointer ${
                     tier.featured
                       ? 'bg-crimson-600 hover:bg-crimson-500 text-white shadow-crimson-glow hover:shadow-[0_0_25px_rgba(186,26,26,0.7)]'
                       : 'bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-white/30'
                   }`}
                 >
                   {tier.ctaText}
-                </Link>
+                </button>
               </div>
             );
 
@@ -530,10 +551,69 @@ export default function PricingSection() {
         <div className="mt-14 text-center">
           <p className="text-xs sm:text-sm text-gray-400">
             All payments are processed via verified domestic Sri Lankan bank transfer or cash deposit.
-            Official reference code generated upon checkout for instant reconciliation.
+            Sign in or register, submit your transfer, and upload your deposit slip directly from this page.
           </p>
         </div>
       </div>
+
+      {/* Auto-open modal when navigated with ?tier= */}
+      <Suspense fallback={null}>
+        <TierQueryOpener
+          onOpenTier={(tierId) => {
+            const allTiers = [...solePackages, ...couplePackages, ...signaturePackages];
+            const found = allTiers.find((t) => t.id === tierId);
+            if (found) {
+              if (tierId.startsWith('couple')) setActiveCategory('couple');
+              else if (tierId === 'coaching_90' || tierId === 'burnzone') setActiveCategory('signature');
+              else setActiveCategory('sole');
+              setEnrollModalTier(found);
+            }
+          }}
+        />
+      </Suspense>
+
+      {/* Direct Package Transfer & Receipt Upload Modal */}
+      {enrollModalTier && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEnrollModalTier(null);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+        >
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-2xl w-full shadow-2xl relative overflow-hidden my-auto max-h-[92vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e] shrink-0">
+              <div>
+                <span className="text-[10.5px] font-mono uppercase tracking-widest text-crimson-400 block">
+                  Package Enrollment & Slip Upload
+                </span>
+                <h3 className="text-lg font-bold text-white">{enrollModalTier.name}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnrollModalTier(null)}
+                aria-label="Close enrollment modal"
+                className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/[0.06] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 overflow-y-auto">
+              <PackageTransferForm
+                selectedTier={enrollModalTier.id}
+                packageName={enrollModalTier.name}
+                packagePrice={enrollModalTier.rawPrice}
+                admissionFee={enrollModalTier.rawAdmission}
+                redirectBackPath={`/pricing?tier=${encodeURIComponent(enrollModalTier.id)}`}
+                onClose={() => setEnrollModalTier(null)}
+                compact
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

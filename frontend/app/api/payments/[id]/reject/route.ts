@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaymentService } from '@/lib/services/payment-service';
-import { AuthService } from '@/lib/services/auth-service';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  resolveServerUser,
+} from '@/lib/supabase/server';
+import { db } from '@/lib/db/mock-db';
 
 export async function POST(
   req: NextRequest,
@@ -10,26 +14,53 @@ export async function POST(
   try {
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId') || 'usr_admin_1';
-    const adminUser = AuthService.getCurrentUser(adminId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const adminUser = await resolveServerUser(adminId);
+
+    if (adminUser.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized: Administrator role required.' }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => ({}));
     const reason = body.reason || 'Invalid deposit slip reference';
-
-    const updatedPayment = PaymentService.rejectPayment(adminUser, params.id, reason);
+    let updatedPayment: any = null;
 
     if (isServerSupabaseConfigured && supabaseServer) {
+      let validReviewerId: string | null = null;
       try {
-        await supabaseServer
-          .from('payments')
-          .update({
-            status: 'rejected',
-            admin_notes: reason,
-            reviewed_at: new Date().toISOString(),
-          })
-          .or(`id.eq.${params.id},reference_code.eq.${params.id}`);
-      } catch (err) {
-        console.warn('Supabase rejection update failed:', err);
+        const { data: revProf } = await supabaseServer
+          .from('profiles')
+          .select('id')
+          .eq('id', adminUser.id)
+          .maybeSingle();
+        validReviewerId = revProf?.id || null;
+      } catch (_) {}
+
+      const { data: updPay, error } = await supabaseServer
+        .from('payments')
+        .update({
+          status: 'rejected',
+          admin_notes: reason,
+          reviewed_by: validReviewerId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .or(`id.eq.${params.id},reference_code.eq.${params.id}`)
+        .select('*')
+        .maybeSingle();
+
+      if (!error && updPay) {
+        updatedPayment = updPay;
       }
+    }
+
+    try {
+      const localPay = db.payments.find((p) => p.id === params.id || p.referenceCode === params.id);
+      if (localPay) {
+        updatedPayment = PaymentService.rejectPayment(adminUser, localPay.id, reason);
+      } else if (!updatedPayment) {
+        updatedPayment = PaymentService.rejectPayment(adminUser, params.id, reason);
+      }
+    } catch (localErr) {
+      if (!updatedPayment) throw localErr;
     }
 
     return NextResponse.json({ success: true, payment: updatedPayment });

@@ -285,3 +285,77 @@ export async function getSessionUser(userIdOrEmail?: string | null): Promise<Use
 
   return found || null;
 }
+
+/**
+ * Checks if a client account has an active, paid, unexpired membership.
+ * Returns true for staff roles (admin / instructor).
+ */
+export function isClientPortalActive(user: User | null | undefined): boolean {
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'instructor') return true;
+  if (user.status !== 'active') return false;
+  if (!user.tier || user.tier === 'none') return false;
+  if (user.membershipExpiresAt) {
+    const expiry = new Date(user.membershipExpiresAt).getTime();
+    if (!Number.isNaN(expiry) && expiry <= Date.now()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Enforces automatic deactivation when a client's fixed-term / 90-day plan expires,
+ * syncing `status = 'expired'` to both Supabase profiles and local cache.
+ */
+export async function enforceAndSyncUserStatus(user: User | null): Promise<User | null> {
+  if (!user || user.role !== 'client') return user;
+
+  if (user.membershipExpiresAt && user.status === 'active') {
+    const expiryTime = new Date(user.membershipExpiresAt).getTime();
+    if (!Number.isNaN(expiryTime) && expiryTime <= Date.now()) {
+      user.status = 'expired';
+      const localMatch = db.users.find((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+      if (localMatch) {
+        localMatch.status = 'expired';
+      }
+
+      if (isServerSupabaseConfigured && supabaseServer) {
+        try {
+          await supabaseServer
+            .from('profiles')
+            .update({ status: 'expired', updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+        } catch (err) {
+          console.warn('Could not persist automatic expiration status:', err);
+        }
+      }
+    }
+  }
+
+  return user;
+}
+
+/**
+ * Resolves the caller from Supabase profiles or local AuthService,
+ * failing closed to least privilege (never escalating unknown callers to admin).
+ */
+export async function resolveServerUser(userId?: string | null): Promise<User> {
+  if (userId && userId.trim()) {
+    const clean = userId.trim();
+    const resolved = await getSessionUser(clean);
+    if (resolved) {
+      return (await enforceAndSyncUserStatus(resolved)) || resolved;
+    }
+  }
+
+  return {
+    id: userId?.trim() || 'anon_client',
+    email: '',
+    name: '',
+    role: 'client',
+    tier: 'none',
+    status: 'pending',
+    joinedAt: new Date().toISOString(),
+  };
+}

@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = name.trim();
-    const selectedTier = tier || 'sole_1m';
+    // Newly registered clients start in 'pending' status with no active package until payment is approved
+    const selectedTier = 'none';
 
     let registeredUser = null;
     let authUserId = `usr_${Date.now()}`;
@@ -66,8 +67,7 @@ export async function POST(req: NextRequest) {
           authUserId = authData.user.id;
         }
 
-        // B. Upsert into public.profiles table
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        // B. Upsert into public.profiles table (portal locked until package is purchased & verified)
         const profilePayload = {
           id: authUserId,
           email: cleanEmail,
@@ -75,12 +75,12 @@ export async function POST(req: NextRequest) {
           phone: phone ? phone.trim() : null,
           role: 'client',
           tier: selectedTier,
-          package_id: selectedTier,
-          package_name: packageName || 'Sole - 1 Month',
+          package_id: null,
+          package_name: 'No Active Package (Purchase Required)',
           package_type: packageType || 'sole',
-          status: 'active',
+          status: 'pending',
           avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-          membership_expires_at: expiresAt,
+          membership_expires_at: null,
           joined_at: new Date().toISOString(),
         };
 
@@ -96,13 +96,13 @@ export async function POST(req: NextRequest) {
             email: profileData.email,
             name: profileData.name,
             role: profileData.role,
-            tier: profileData.tier || selectedTier,
-            packageId: profileData.package_id || selectedTier,
-            packageName: profileData.package_name || 'Sole - 1 Month',
+            tier: profileData.tier || 'none',
+            packageId: profileData.package_id || undefined,
+            packageName: profileData.package_name || 'No Active Package',
             packageType: profileData.package_type || 'sole',
-            status: profileData.status || 'active',
+            status: profileData.status || 'pending',
             avatarUrl: profileData.avatar_url,
-            membershipExpiresAt: profileData.membership_expires_at,
+            membershipExpiresAt: profileData.membership_expires_at || undefined,
             joinedAt: profileData.joined_at,
             phone: profileData.phone,
           };
@@ -115,13 +115,15 @@ export async function POST(req: NextRequest) {
     // 3. Fallback / Synchronize with AuthService & Mock DB
     try {
       const localUser = AuthService.registerUser({
+        id: authUserId,
         name: cleanName,
         email: cleanEmail,
         password: password,
         phone: phone ? phone.trim() : undefined,
-        tier: selectedTier,
-        packageName: packageName || 'Sole - 1 Month',
+        tier: 'none',
+        packageName: 'No Active Package (Purchase Required)',
         packageType: packageType || 'sole',
+        status: 'pending',
       });
       if (!registeredUser) {
         registeredUser = localUser;
@@ -139,8 +141,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
+        requiresPurchase: true,
+        intendedTier: tier || 'sole_3m',
         user: registeredUser,
-        message: 'Account created successfully! Welcome to MuscleCraft.',
+        message: 'Account created! Please select a membership package and complete your transfer to unlock your portal.',
       },
       { status: 201 }
     );

@@ -80,17 +80,49 @@ export default function ClientDashboard() {
   const [slipStatusMessage, setSlipStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    if (currentUser) {
-      setSlipSenderName(currentUser.name || '');
-      setSlipPackageTier(currentUser.tier || 'sole_1m');
-      loadClientData();
+    if (authLoading) return;
+    if (!currentUser) {
+      router.replace('/login?redirect=/client');
+      return;
     }
-  }, [currentUser]);
+    setSlipSenderName(currentUser.name || '');
+    setSlipPackageTier(
+      currentUser.tier && currentUser.tier !== 'none' ? currentUser.tier : 'sole_3m'
+    );
+    loadClientData();
+  }, [currentUser, authLoading]);
 
   const loadClientData = async () => {
     if (!currentUser) return;
     setIsDataLoading(true);
     try {
+      const clientIsLocked =
+        currentUser.role === 'client' &&
+        (currentUser.status !== 'active' ||
+          !currentUser.tier ||
+          currentUser.tier === 'none' ||
+          (currentUser.membershipExpiresAt &&
+            new Date(currentUser.membershipExpiresAt).getTime() <= Date.now()));
+
+      // Always fetch user's own payments (except when banned) so pending/expired members can track slip status
+      if (currentUser.status !== 'suspended') {
+        const payRes = await fetch(`/api/payments?userId=${currentUser.id}`);
+        if (payRes.ok) {
+          const d = await payRes.json();
+          const ownedPayments = (d.payments || []).filter((p: PaymentRecord) => p.userId === currentUser.id);
+          setPayments(ownedPayments);
+          if (d.referenceCodeProposal) {
+            setProposedRefCode(d.referenceCodeProposal);
+            if (!slipRefCode) setSlipRefCode(d.referenceCodeProposal);
+          }
+        }
+      }
+
+      if (clientIsLocked) {
+        setIsDataLoading(false);
+        return;
+      }
+
       // 1. Fetch Measurements
       const measRes = await fetch(`/api/measurements?userId=${currentUser.id}&clientId=${currentUser.id}`);
       if (measRes.ok) {
@@ -117,17 +149,6 @@ export default function ClientDashboard() {
       if (vidRes.ok) {
         const d = await vidRes.json();
         setVideos(d.videos || []);
-      }
-
-      // 5. Fetch Payments
-      const payRes = await fetch(`/api/payments?userId=${currentUser.id}`);
-      if (payRes.ok) {
-        const d = await payRes.json();
-        setPayments(d.payments || []);
-        if (d.referenceCodeProposal) {
-          setProposedRefCode(d.referenceCodeProposal);
-          if (!slipRefCode) setSlipRefCode(d.referenceCodeProposal);
-        }
       }
     } catch (err) {
       console.error('Error loading client data:', err);
@@ -291,37 +312,14 @@ export default function ClientDashboard() {
   const expiryDate = currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt) : null;
   const now = Date.now();
   const daysLeft = expiryDate ? Math.ceil((expiryDate.getTime() - now) / (1000 * 60 * 60 * 24)) : null;
-  const isExpired = (expiryDate ? expiryDate.getTime() < now : false) || currentUser?.status === 'expired';
+  const isExpired = (expiryDate ? expiryDate.getTime() <= now : false) || currentUser?.status === 'expired';
   const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
-
-  // Auto-logout state for expired 90-day coaching clients
-  const [show90DayExitModal, setShow90DayExitModal] = useState(false);
-  const [autoLogoutSeconds, setAutoLogoutSeconds] = useState(5);
-
-  useEffect(() => {
-    if (!currentUser || authLoading) return;
-
-    if (is90DayClient && isExpired) {
-      setShow90DayExitModal(true);
-      const interval = setInterval(() => {
-        setAutoLogoutSeconds((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            logout();
-            router.push('/login?reason=expired_90day');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [currentUser, authLoading, is90DayClient, isExpired, logout, router]);
-
-  const handleManual90DayExit = () => {
-    logout();
-    router.push('/login?reason=expired_90day');
-  };
+  const isSuspended = currentUser?.status === 'suspended';
+  const isPendingPackage =
+    currentUser?.role === 'client' &&
+    !isSuspended &&
+    !isExpired &&
+    (currentUser?.status === 'pending' || !currentUser?.tier || currentUser?.tier === 'none');
 
   const latestMeas = measurements.length > 0 ? measurements[measurements.length - 1] : null;
   const initialMeas = measurements.length > 0 ? measurements[0] : null;
@@ -345,6 +343,145 @@ export default function ClientDashboard() {
     latestMeas?.armsCm && initialMeas?.armsCm && measurements.length > 1
       ? Number((latestMeas.armsCm - initialMeas.armsCm).toFixed(1))
       : null;
+
+  // Loading auth state
+  if (authLoading || !currentUser) {
+    return (
+      <div className="flex flex-col min-h-screen bg-[#080809]">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center pt-28 pb-16 px-4">
+          <div className="w-full max-w-md bg-[#121215] border border-white/[0.08] rounded-2xl p-8 text-center space-y-3 animate-pulse">
+            <div className="w-12 h-12 rounded-full bg-white/10 mx-auto" />
+            <div className="h-4 w-48 bg-white/15 rounded mx-auto" />
+            <div className="h-3 w-64 bg-white/5 rounded mx-auto" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Portal Access Enforcement Gate (Banned / Expired 90-Day Plan / New Member Awaiting Package)
+  if (currentUser.role === 'client' && (isSuspended || isExpired || isPendingPackage)) {
+    const pendingSlips = payments.filter((p) => p.status === 'pending');
+
+    return (
+      <div className="flex flex-col min-h-screen bg-[#080809]">
+        <Navbar />
+        <main className="flex-grow max-w-3xl mx-auto px-4 sm:px-6 pt-32 sm:pt-36 pb-16 w-full flex items-center">
+          <div
+            data-testid="portal-access-gate"
+            className="w-full bg-[#121216] border border-crimson-700/50 rounded-3xl p-6 sm:p-10 shadow-2xl space-y-6"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-white/[0.08] pb-6">
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${
+                  isSuspended
+                    ? 'bg-rose-950/80 border-rose-500/50 text-rose-400'
+                    : isExpired
+                    ? 'bg-amber-950/80 border-amber-500/50 text-amber-400'
+                    : 'bg-crimson-950/80 border-crimson-500/50 text-crimson-400'
+                }`}
+              >
+                <ShieldAlert className="w-7 h-7" />
+              </div>
+
+              <div>
+                <span
+                  className={`text-[10.5px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                    isSuspended
+                      ? 'bg-rose-950/60 text-rose-300 border-rose-600/40'
+                      : isExpired
+                      ? 'bg-amber-950/60 text-amber-300 border-amber-600/40'
+                      : 'bg-crimson-950/60 text-crimson-300 border-crimson-600/40'
+                  }`}
+                >
+                  {isSuspended
+                    ? 'Account Suspended / Banned'
+                    : isExpired
+                    ? 'Plan Expired — Portal Deactivated'
+                    : 'Package Purchase Required'}
+                </span>
+
+                <h1 className="text-xl sm:text-2xl font-bold text-white mt-2">
+                  {isSuspended
+                    ? 'Your Portal Access Has Been Suspended'
+                    : isExpired
+                    ? is90DayClient
+                      ? 'Your 90-Day Coaching Plan Has Concluded'
+                      : 'Your Membership Period Has Expired'
+                    : `Welcome, ${currentUser.name} — Complete Enrollment to Unlock Portal`}
+                </h1>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+              {isSuspended
+                ? 'An administrator has temporarily suspended or banned this account. Training programs, video vault, and analytics cannot be accessed until an administrator unbans your profile.'
+                : isExpired
+                ? 'In accordance with MuscleCraft cohort rules, your account automatically becomes inactive once your plan duration ends. Renew your membership package or contact Coach Adeesha to restore portal access.'
+                : 'New accounts remain locked until a membership package is purchased on the Pricing page and your bank transfer receipt is verified by Coach Adeesha.'}
+            </p>
+
+            {/* Show own pending slip verification status if the member already submitted a transfer */}
+            {!isSuspended && pendingSlips.length > 0 && (
+              <div className="p-4 rounded-2xl bg-[#16161f] border border-amber-500/30 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-amber-300 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Pending Transfer Awaiting Admin Verification
+                  </span>
+                  <span className="font-mono text-[11px] text-amber-300">
+                    {pendingSlips[0].referenceCode}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-300 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Package: <strong className="text-white">{pendingSlips[0].tier}</strong> · Rs.{' '}
+                    {Number(pendingSlips[0].amount || 0).toLocaleString()} LKR
+                  </span>
+                  {pendingSlips[0].receiptUrl ? (
+                    <a
+                      href={pendingSlips[0].receiptUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-400 font-semibold hover:underline flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View Uploaded Receipt
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">No slip file attached yet</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-white/[0.08]">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-gray-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+
+              {!isSuspended && (
+                <Link
+                  href="/pricing"
+                  className="px-6 py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-crimson-glow min-h-[44px]"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span>{isExpired ? 'Renew Package on Pricing' : 'Choose Package & Pay on Pricing'}</span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
@@ -1478,63 +1615,6 @@ export default function ClientDashboard() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {/* ── 90-DAY COACHING EXPIRED AUTO-LOGOUT MODAL ── */}
-        {show90DayExitModal && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300"
-          >
-            <div className="bg-[#111116] border-2 border-amber-500/70 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center space-y-5">
-              <div className="w-16 h-16 rounded-3xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 mx-auto shadow-[0_0_25px_rgba(245,158,11,0.3)]">
-                <ShieldAlert className="w-8 h-8" />
-              </div>
-
-              <div>
-                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-block mb-2">
-                  Cohort Concluded
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  90-Day VIP Coaching Access Ended
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-300 mt-2 leading-relaxed">
-                  Your structured 12-week <strong className="text-white">90 Days Better Me</strong> transformation cycle concluded on{' '}
-                  <strong className="text-amber-300">
-                    {currentUser?.membershipExpiresAt ? new Date(currentUser.membershipExpiresAt).toLocaleDateString() : 'N/A'}
-                  </strong>
-                  . As per cohort guidelines, coaching dashboard access has concluded.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/30 text-xs text-amber-200">
-                <span>Automatically ending session and redirecting in </span>
-                <strong className="text-amber-400 font-mono text-sm">{autoLogoutSeconds}s</strong>
-                <span>...</span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleManual90DayExit}
-                  className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer"
-                >
-                  Exit to Login Now
-                </button>
-                <a
-                  href={`https://wa.me/94771234567?text=${encodeURIComponent(
-                    `Hi Coach Adeesha, my 90-Day coaching cycle has ended. I would like to review my transformation report and discuss renewal options.`
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  WhatsApp Coach
-                </a>
-              </div>
             </div>
           </div>
         )}

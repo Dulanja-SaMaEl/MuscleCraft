@@ -2,21 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CoachingService } from '@/lib/services/coaching-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { AddMeasurementSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured, getSessionUser } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  getSessionUser,
+  resolveServerUser,
+  isClientPortalActive,
+} from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const clientId = searchParams.get('clientId') || userId;
+    const rawClientId = searchParams.get('clientId') || userId;
 
-    let caller = await getSessionUser(userId);
-    if (!caller) {
-      caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveServerUser(userId);
+    if (caller.role === 'client' && !isClientPortalActive(caller)) {
+      return NextResponse.json(
+        { error: 'Active membership required to view body analytics.', measurements: [] },
+        { status: 403 }
+      );
     }
 
     let measurements: any[] = [];
+    const clientId = caller.role === 'client' ? caller.id : rawClientId;
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {

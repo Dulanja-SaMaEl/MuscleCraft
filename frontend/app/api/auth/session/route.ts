@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/services/auth-service';
 import { db } from '@/lib/db/mock-db';
-import { supabaseServer, isServerSupabaseConfigured, getSessionUser } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, getSessionUser, enforceAndSyncUserStatus } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get('userId');
 
   let user = userId ? await getSessionUser(userId) : null;
+  if (user) {
+    user = await enforceAndSyncUserStatus(user);
+  }
 
   // Available personas: load real profiles from Supabase if configured
   let availablePersonas: any[] = [];
@@ -82,7 +85,8 @@ export async function POST(req: NextRequest) {
             { status: 401 }
           );
         }
-        user = db.users.find((u) => u.role === 'admin') || null;
+        // Prefer live Supabase profile so admin ID matches PostgreSQL FK references
+        user = (await getSessionUser('adeesha@musclecraft.lk')) || db.users.find((u) => u.role === 'admin') || null;
       }
 
       // 1. Check Supabase Auth & profiles table
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2. Fallback to AuthService (for demo / seeded accounts)
+      // 2. Fallback to AuthService (for demo / seeded / locally registered accounts)
       if (!user) {
         const authRes = AuthService.authenticate(cleanEmail, password);
         if (authRes.error) {
@@ -155,41 +159,25 @@ export async function POST(req: NextRequest) {
           user = authRes.user;
         }
       }
-
-      // 3. Universal Pass-Through: admit new or unconstrained accounts
-      if (!user) {
-        const isStaff =
-          cleanEmail.includes('admin') ||
-          cleanEmail.includes('owner') ||
-          cleanEmail.includes('coach') ||
-          cleanEmail.includes('adeesha');
-        const displayName = cleanEmail.includes('@')
-          ? cleanEmail
-              .split('@')[0]
-              .replace(/[._-]/g, ' ')
-              .replace(/\b\w/g, (c: string) => c.toUpperCase())
-          : cleanEmail.charAt(0).toUpperCase() + cleanEmail.slice(1);
-
-        user = {
-          id: `usr_${Date.now()}`,
-          email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@musclecraft.lk`,
-          name: displayName || 'MuscleCraft Athlete',
-          role: isStaff ? 'admin' : 'client',
-          tier: isStaff ? 'sole_1y' : 'coaching_90',
-          packageName: isStaff ? 'Sole - 1 Year (Admin)' : '90-Day VIP Athletic Transformation',
-          packageType: isStaff ? 'sole' : 'coaching',
-          status: 'active',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          joinedAt: new Date().toISOString(),
-          membershipExpiresAt: '2028-12-31T23:59:59Z',
-        };
-      }
     }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'No account found matching this email. Please check your credentials or contact Coach Adeesha on WhatsApp.' },
+        { error: 'No account found matching this email. Please register an account first or check your credentials.' },
         { status: 401 }
+      );
+    }
+
+    user = await enforceAndSyncUserStatus(user);
+
+    // Block banned/suspended users immediately at authentication boundary
+    if (user && user.status === 'suspended') {
+      return NextResponse.json(
+        {
+          error: 'Your MuscleCraft account has been suspended/banned by the administrator. Please contact Coach Adeesha for assistance.',
+          code: 'ACCOUNT_SUSPENDED',
+        },
+        { status: 403 }
       );
     }
 
