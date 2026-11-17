@@ -9,20 +9,30 @@ export class VideoService {
       return db.videos;
     }
 
-    // Clients get videos targeted to them personally, or broadcast to all members
+    // Clients get ONLY videos assigned to them specifically, OR broadcast to their permitted tier
     return db.videos.filter((v) => {
-      // 1. Direct client-specific assignment
-      if (v.targetClientId === caller.id) {
-        return true;
+      const isPrivateClientVideo =
+        v.accessLevel === 'client_specific' ||
+        v.targetScope === 'specific_client' ||
+        Boolean(v.targetClientId);
+
+      // 1. Strictly isolate private client-specific videos so other clients NEVER see them
+      if (isPrivateClientVideo) {
+        return Boolean(v.targetClientId && v.targetClientId === caller.id);
       }
 
-      // 2. 90-Day VIP content
+      // Defensive guard for legacy rows with targetClientName but missing targetClientId
+      if (v.targetClientName) {
+        return Boolean(caller.name && v.targetClientName.toLowerCase() === caller.name.toLowerCase());
+      }
+
+      // 2. 90-Day VIP broadcast content
       if (v.accessLevel === 'coaching_90' || v.targetScope === 'coaching_90_vip') {
         return caller.tier === 'coaching_90';
       }
 
-      // 3. Common / all members library
-      return v.accessLevel === 'common' || v.targetScope === 'all_members';
+      // 3. Common / all-members broadcast library
+      return v.accessLevel === 'common';
     });
   }
 
@@ -41,7 +51,7 @@ export class VideoService {
       title: string;
       category: 'Warmup' | 'Hypertrophy' | 'Powerlifting' | 'Mobility' | 'Coaching Clinic' | 'Technique Review' | 'Personalized Session';
       duration: string;
-      accessLevel?: 'common' | 'coaching_90';
+      accessLevel?: 'common' | 'coaching_90' | 'client_specific';
       targetScope?: VideoTargetScope;
       targetClientId?: string;
       targetClientName?: string;
@@ -55,9 +65,27 @@ export class VideoService {
       throw new Error('Forbidden: Only instructors and administrators can upload session videos.');
     }
 
+    // Determine strict target scope and access level
+    const isClientSpecific =
+      data.targetScope === 'specific_client' ||
+      data.accessLevel === 'client_specific' ||
+      Boolean(data.targetClientId);
+
+    const normalizedScope: VideoTargetScope = isClientSpecific
+      ? 'specific_client'
+      : data.targetScope === 'coaching_90_vip' || data.accessLevel === 'coaching_90'
+      ? 'coaching_90_vip'
+      : 'all_members';
+
+    const normalizedAccessLevel: 'common' | 'coaching_90' | 'client_specific' = isClientSpecific
+      ? 'client_specific'
+      : normalizedScope === 'coaching_90_vip'
+      ? 'coaching_90'
+      : 'common';
+
     // Lookup client name if clientId is supplied
-    let clientName = data.targetClientName;
-    if (data.targetClientId && !clientName) {
+    let clientName = isClientSpecific ? data.targetClientName : undefined;
+    if (isClientSpecific && data.targetClientId && !clientName) {
       const foundUser = db.users.find((u) => u.id === data.targetClientId);
       clientName = foundUser ? foundUser.name : 'Targeted Client';
     }
@@ -67,9 +95,9 @@ export class VideoService {
       title: data.title,
       category: data.category,
       duration: data.duration,
-      accessLevel: data.accessLevel || 'common',
-      targetScope: data.targetScope || (data.targetClientId ? 'specific_client' : 'all_members'),
-      targetClientId: data.targetClientId,
+      accessLevel: normalizedAccessLevel,
+      targetScope: normalizedScope,
+      targetClientId: isClientSpecific ? data.targetClientId : undefined,
       targetClientName: clientName,
       cfStreamId: data.cfStreamId || 'cf_stream_local',
       videoUrl:

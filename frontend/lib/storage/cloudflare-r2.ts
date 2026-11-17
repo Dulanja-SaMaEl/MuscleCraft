@@ -464,21 +464,23 @@ export async function getR2StorageStats(): Promise<R2StorageStats> {
   const localObjects: R2StorageObjectSummary[] = [];
 
   try {
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'videos');
-    if (fs.existsSync(uploadDir)) {
-      const entries = fs.readdirSync(uploadDir);
-      for (const name of entries) {
-        if (name.startsWith('.')) continue;
-        const fullPath = path.join(uploadDir, name);
-        const stat = fs.statSync(fullPath);
-        if (stat.isFile()) {
-          localUsedBytes += stat.size;
-          localCount += 1;
-          localObjects.push({
-            key: name,
-            sizeBytes: stat.size,
-            lastModified: stat.mtime.toISOString(),
-          });
+    for (const folder of ['videos', 'thumbnails']) {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
+      if (fs.existsSync(uploadDir)) {
+        const entries = fs.readdirSync(uploadDir);
+        for (const name of entries) {
+          if (name.startsWith('.')) continue;
+          const fullPath = path.join(uploadDir, name);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile()) {
+            localUsedBytes += stat.size;
+            localCount += 1;
+            localObjects.push({
+              key: name,
+              sizeBytes: stat.size,
+              lastModified: stat.mtime.toISOString(),
+            });
+          }
         }
       }
     }

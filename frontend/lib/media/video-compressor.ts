@@ -332,3 +332,54 @@ export async function compressVideoForVault(
     } catch (_) {}
   }
 }
+
+export const SUPPORTED_THUMBNAIL_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif';
+
+/**
+ * Compresses & resizes uploaded thumbnail images client-side (max 1280px wide, WebP/JPEG)
+ * to keep storage overhead minimal while looking sharp in video cards.
+ */
+export async function optimizeThumbnailImage(file: File): Promise<File> {
+  if (typeof window === 'undefined' || !file.type.startsWith('image/')) {
+    return file;
+  }
+  // Skip tiny already-optimized images
+  if (file.size <= 150 * 1024 && (file.type === 'image/webp' || file.type === 'image/avif')) {
+    return file;
+  }
+
+  try {
+    const imgUrl = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = imgUrl;
+    });
+    URL.revokeObjectURL(imgUrl);
+
+    const maxWidth = 1280;
+    const scale = img.naturalWidth > maxWidth ? maxWidth / img.naturalWidth : 1;
+    const targetW = Math.max(2, Math.round(img.naturalWidth * scale));
+    const targetH = Math.max(2, Math.round(img.naturalHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, targetW, targetH);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/webp', 0.86);
+    });
+    if (!blob || blob.size === 0 || blob.size >= file.size) {
+      return file;
+    }
+
+    const baseName = file.name.replace(/\.[^/.]+$/, '');
+    return new File([blob], `${baseName}.webp`, { type: 'image/webp', lastModified: Date.now() });
+  } catch {
+    return file;
+  }
+}

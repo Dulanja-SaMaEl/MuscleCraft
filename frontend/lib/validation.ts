@@ -73,13 +73,19 @@ export const AddVideoSchema = z.object({
     'Personalized Session',
   ]),
   duration: z.string().min(1).max(20).default('08:30'),
-  accessLevel: z.enum(['common', 'coaching_90']).default('common'),
+  accessLevel: z.enum(['common', 'coaching_90', 'client_specific']).default('common'),
   targetScope: z.enum(['all_members', 'specific_client', 'coaching_90_vip']).default('all_members'),
   targetClientId: z.string().optional(),
   targetClientName: z.string().optional(),
   cfStreamId: z.string().default('cf_stream_local'),
   videoUrl: z.string().min(1).optional(),
-  thumbnailUrl: z.string().min(1).optional().default('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80'),
+  thumbnailUrl: z.preprocess(
+    (val) =>
+      typeof val === 'string' && val.trim()
+        ? val.trim()
+        : 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
+    z.string().min(1)
+  ),
   description: z.preprocess(
     (val) => (typeof val === 'string' && val.trim() ? val.trim() : 'Personalized coaching session video.'),
     z.string().max(1000)

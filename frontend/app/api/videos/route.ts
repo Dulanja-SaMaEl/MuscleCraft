@@ -7,13 +7,104 @@ import { deleteFromR2 } from '@/lib/storage/cloudflare-r2';
 import { db } from '@/lib/db/mock-db';
 import fs from 'fs';
 import path from 'path';
-import { ExerciseVideo } from '@/lib/types';
+import { ExerciseVideo, User } from '@/lib/types';
+
+async function resolveCaller(userId?: string | null): Promise<User> {
+  if (userId) {
+    const localUser = AuthService.getCurrentUser(userId);
+    if (localUser) return localUser;
+
+    if (isServerSupabaseConfigured && supabaseServer) {
+      try {
+        const { data: profile } = await supabaseServer
+          .from('profiles')
+          .select('id, email, name, role, tier, status, joined_at')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profile) {
+          return {
+            id: profile.id,
+            email: profile.email || '',
+            name: profile.name || 'Athlete',
+            role: (profile.role as User['role']) || 'client',
+            tier: profile.tier || 'none',
+            status: (profile.status as User['status']) || 'active',
+            joinedAt: profile.joined_at || new Date().toISOString(),
+          };
+        }
+      } catch (err) {
+        console.warn('Supabase caller profile lookup failed:', err);
+      }
+    }
+  }
+
+  // Fail closed to least privilege — never escalate unknown callers to admin
+  return {
+    id: userId || 'anon_client',
+    email: '',
+    name: '',
+    role: 'client',
+    tier: 'none',
+    status: 'active',
+    joinedAt: new Date().toISOString(),
+  };
+}
+
+function isVideoVisibleToClient(v: ExerciseVideo, caller: User): boolean {
+  const isPrivateClientVideo =
+    v.accessLevel === 'client_specific' ||
+    v.targetScope === 'specific_client' ||
+    Boolean(v.targetClientId);
+
+  if (isPrivateClientVideo) {
+    return Boolean(v.targetClientId && v.targetClientId === caller.id);
+  }
+
+  // Defensive guard for any historical rows that saved target_client_name with null target_client_id
+  if (v.targetClientName && !v.targetClientId) {
+    return Boolean(caller.name && v.targetClientName.toLowerCase().trim() === caller.name.toLowerCase().trim());
+  }
+
+  if (v.accessLevel === 'coaching_90' || v.targetScope === 'coaching_90_vip') {
+    return caller.tier === 'coaching_90';
+  }
+
+  return v.accessLevel === 'common';
+}
+
+function extractStorageKey(urlOrKey?: string | null, prefix?: 'vault_' | 'thumb_'): string | null {
+  if (!urlOrKey) return null;
+  if (prefix && urlOrKey.startsWith(prefix)) return urlOrKey;
+
+  if (urlOrKey.includes('key=')) {
+    try {
+      const u = new URL(urlOrKey, 'http://localhost');
+      const k = u.searchParams.get('key');
+      if (k && (!prefix || k.startsWith(prefix))) return k;
+    } catch (_) {}
+  }
+
+  const regex = prefix ? new RegExp(`${prefix}[a-zA-Z0-9_\\-\\.]+`) : /vault_[a-zA-Z0-9_\-\.]+/;
+  const match = urlOrKey.match(regex);
+  if (match) return match[0];
+
+  if (urlOrKey.includes('.r2.dev') || urlOrKey.includes('.r2.cloudflarestorage.com')) {
+    try {
+      const parsed = new URL(urlOrKey);
+      const pathnameKey = parsed.pathname.replace(/^\/+/, '');
+      if (pathnameKey && (!prefix || pathnameKey.startsWith(prefix))) return pathnameKey;
+    } catch (_) {}
+  }
+
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin', tier: 'sole_1y' } as any);
+    const caller = await resolveCaller(userId);
 
     let videos: ExerciseVideo[] = [];
 
@@ -21,26 +112,40 @@ export async function GET(req: NextRequest) {
       try {
         let query = supabaseServer.from('exercise_videos').select('*').order('created_at', { ascending: false });
         if (caller.role === 'client') {
-          query = query.or(`access_level.eq.common,target_client_id.eq.${caller.id}`);
+          query = query.or(
+            `target_client_id.eq.${caller.id},and(target_client_id.is.null,access_level.in.(common,coaching_90))`
+          );
         }
         const { data, error } = await query;
         if (!error && data) {
-          videos = data.map((v: any) => ({
-            id: v.id,
-            title: v.title,
-            category: v.category,
-            duration: v.duration,
-            accessLevel: v.access_level,
-            targetClientId: v.target_client_id,
-            targetClientName: v.target_client_name,
-            cfStreamId: v.cf_stream_id || 'stream_default',
-            videoUrl: v.video_url,
-            thumbnailUrl: v.thumbnail_url,
-            description: v.description,
-            instructorId: v.instructor_id,
-            instructorName: v.instructor_name,
-            createdAt: v.created_at,
-          }));
+          const mapped: ExerciseVideo[] = data.map((v: any) => {
+            const accessLevel = v.access_level as ExerciseVideo['accessLevel'];
+            const targetScope =
+              accessLevel === 'client_specific' || Boolean(v.target_client_id)
+                ? 'specific_client'
+                : accessLevel === 'coaching_90'
+                ? 'coaching_90_vip'
+                : 'all_members';
+
+            return {
+              id: v.id,
+              title: v.title,
+              category: v.category,
+              duration: v.duration,
+              accessLevel,
+              targetScope,
+              targetClientId: v.target_client_id || undefined,
+              targetClientName: v.target_client_name || undefined,
+              cfStreamId: v.cf_stream_id || 'stream_default',
+              videoUrl: v.video_url,
+              thumbnailUrl: v.thumbnail_url,
+              description: v.description,
+              instructorName: v.instructor_name || 'Coach Adeesha',
+              createdAt: v.created_at,
+            };
+          });
+
+          videos = caller.role === 'client' ? mapped.filter((v) => isVideoVisibleToClient(v, caller)) : mapped;
         }
       } catch (sbErr) {
         console.warn('Supabase videos fetch failed, using local vault:', sbErr);
@@ -64,32 +169,76 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveCaller(userId);
+
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only coaches and administrators can publish session videos.' },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json();
     const validated = AddVideoSchema.parse(body);
 
-    const video = VideoService.addVideo(caller, validated);
+    if (validated.targetScope === 'specific_client' && !validated.targetClientId) {
+      return NextResponse.json(
+        { error: 'Please select a specific athlete before publishing a client-specific video.' },
+        { status: 400 }
+      );
+    }
+
+    // Resolve client details from Supabase if targetClientId isn't in local mock cache
+    let resolvedClientName = validated.targetClientName;
+    if (validated.targetClientId && !resolvedClientName && isServerSupabaseConfigured && supabaseServer) {
+      try {
+        const { data: targetProfile } = await supabaseServer
+          .from('profiles')
+          .select('name')
+          .eq('id', validated.targetClientId)
+          .maybeSingle();
+        if (targetProfile?.name) resolvedClientName = targetProfile.name;
+      } catch (_) {}
+    }
+
+    const video = VideoService.addVideo(caller, {
+      ...validated,
+      targetClientName: resolvedClientName,
+    });
 
     if (isServerSupabaseConfigured && supabaseServer) {
-      try {
-        await supabaseServer.from('exercise_videos').insert({
-          title: video.title,
-          category: video.category,
-          duration: video.duration,
-          access_level: video.accessLevel,
-          target_client_id: video.targetClientId && video.targetClientId.includes('-') ? video.targetClientId : null,
-          target_client_name: video.targetClientName,
-          cf_stream_id: video.cfStreamId,
-          video_url: video.videoUrl,
-          thumbnail_url: video.thumbnailUrl,
-          description: video.description,
-          instructor_id: caller.id && caller.id.includes('-') ? caller.id : null,
-          instructor_name: caller.name,
-          created_at: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.warn('Supabase video insert failed, cached locally:', err);
+      const insertPayload = {
+        title: video.title,
+        category: video.category,
+        duration: video.duration,
+        access_level: video.accessLevel,
+        target_client_id: video.targetClientId || null,
+        target_client_name: video.targetClientName || null,
+        cf_stream_id: video.cfStreamId,
+        video_url: video.videoUrl,
+        thumbnail_url: video.thumbnailUrl,
+        description: video.description,
+        instructor_id: caller.id || null,
+        instructor_name: caller.name,
+        created_at: new Date().toISOString(),
+      };
+
+      const { data: insertedRow, error: insertErr } = await supabaseServer
+        .from('exercise_videos')
+        .insert(insertPayload)
+        .select('*')
+        .maybeSingle();
+
+      if (insertErr) {
+        console.error('Supabase video insert failed:', insertErr);
+        return NextResponse.json(
+          { error: `Failed to save video to database: ${insertErr.message}` },
+          { status: 400 }
+        );
+      }
+
+      if (insertedRow) {
+        video.id = insertedRow.id;
       }
     }
 
@@ -115,7 +264,7 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const videoId = searchParams.get('videoId');
-    const caller = (userId ? AuthService.getCurrentUser(userId) : null) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveCaller(userId);
 
     if (caller.role !== 'admin' && caller.role !== 'instructor') {
       return NextResponse.json({ error: 'Forbidden: Only administrators and coaches can delete videos.' }, { status: 403 });
@@ -125,19 +274,21 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
     }
 
-    // 1. Locate video metadata before deleting to identify R2 object key
+    // 1. Locate video metadata before deleting to identify R2 video & custom thumbnail keys
     let videoUrl: string | undefined = undefined;
+    let thumbnailUrl: string | undefined = undefined;
     let cfStreamId: string | undefined = undefined;
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
         const { data: sbRow } = await supabaseServer
           .from('exercise_videos')
-          .select('video_url, cf_stream_id')
+          .select('video_url, thumbnail_url, cf_stream_id')
           .eq('id', videoId)
           .maybeSingle();
         if (sbRow) {
           videoUrl = sbRow.video_url;
+          thumbnailUrl = sbRow.thumbnail_url;
           cfStreamId = sbRow.cf_stream_id;
         }
       } catch (findErr) {
@@ -149,37 +300,22 @@ export async function DELETE(req: NextRequest) {
       const localVid = db.videos.find((v) => v.id === videoId);
       if (localVid) {
         videoUrl = localVid.videoUrl;
+        thumbnailUrl = localVid.thumbnailUrl;
         cfStreamId = localVid.cfStreamId;
       }
     }
 
-    // 2. Extract Cloudflare R2 object key (e.g. vault_179..._name.mp4)
+    // 2. Extract Cloudflare R2 video object key (e.g. vault_179..._name.mp4)
     let r2Deleted = false;
     let r2Key: string | null = null;
 
     if (cfStreamId && (cfStreamId.startsWith('vault_') || !cfStreamId.startsWith('cf_stream_'))) {
       r2Key = cfStreamId;
-    } else if (videoUrl) {
-      if (videoUrl.includes('key=')) {
-        try {
-          const u = new URL(videoUrl, 'http://localhost');
-          r2Key = u.searchParams.get('key');
-        } catch (_) {}
-      }
-      if (!r2Key) {
-        const match = videoUrl.match(/vault_[a-zA-Z0-9_\-\.]+/);
-        if (match) {
-          r2Key = match[0];
-        } else if (videoUrl.includes('.r2.dev') || videoUrl.includes('.r2.cloudflarestorage.com')) {
-          try {
-            const parsed = new URL(videoUrl);
-            r2Key = parsed.pathname.replace(/^\/+/, '');
-          } catch (_) {}
-        }
-      }
+    } else {
+      r2Key = extractStorageKey(videoUrl);
     }
 
-    // 3. Delete physical object file from Cloudflare R2 bucket
+    // 3. Delete physical video object from Cloudflare R2 & local filesystem
     if (r2Key) {
       try {
         const r2Res = await deleteFromR2(r2Key);
@@ -188,11 +324,24 @@ export async function DELETE(req: NextRequest) {
         console.warn('[Cloudflare R2] Deletion failed:', r2DelErr);
       }
 
-      // Also clean up local file if stored on server filesystem
       try {
         const localPath = path.join(process.cwd(), 'public', 'uploads', 'videos', r2Key);
         if (fs.existsSync(localPath)) {
           fs.unlinkSync(localPath);
+        }
+      } catch (_) {}
+    }
+
+    // Also delete custom uploaded thumbnail if it belongs to our R2 / local thumbnails folder
+    const thumbKey = extractStorageKey(thumbnailUrl, 'thumb_');
+    if (thumbKey) {
+      try {
+        await deleteFromR2(thumbKey);
+      } catch (_) {}
+      try {
+        const localThumbPath = path.join(process.cwd(), 'public', 'uploads', 'thumbnails', thumbKey);
+        if (fs.existsSync(localThumbPath)) {
+          fs.unlinkSync(localThumbPath);
         }
       } catch (_) {}
     }
@@ -213,7 +362,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // 5. Also remove from local in-memory cache
-    const success = VideoService.deleteVideo(caller, videoId);
+    VideoService.deleteVideo(caller, videoId);
 
     return NextResponse.json({
       success: true,

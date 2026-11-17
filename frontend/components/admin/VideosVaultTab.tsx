@@ -31,13 +31,16 @@ import {
   RefreshCw,
   Zap,
   Database,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { ExerciseVideo, User as UserType, VideoTargetScope } from '@/lib/types';
 import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
 import {
   compressVideoForVault,
+  optimizeThumbnailImage,
   formatBytes,
   SUPPORTED_VIDEO_ACCEPT,
+  SUPPORTED_THUMBNAIL_ACCEPT,
   CompressionPreset,
 } from '@/lib/media/video-compressor';
 
@@ -177,6 +180,54 @@ export default function VideosVaultTab({
   const [uploadError, setUploadError] = useState<string>('');
   const [showR2GuideModal, setShowR2GuideModal] = useState<boolean>(false);
   const [copiedCors, setCopiedCors] = useState<boolean>(false);
+
+  // Thumbnail Image / URL State
+  const DEFAULT_THUMBNAIL_URL =
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80';
+  const [thumbnailMode, setThumbnailMode] = useState<'url' | 'upload'>('upload');
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState<boolean>(false);
+  const [thumbnailFileName, setThumbnailFileName] = useState<string>('');
+  const [thumbnailError, setThumbnailError] = useState<string>('');
+
+  // Keep targetClientId synced to a valid loaded client whenever members list changes
+  useEffect(() => {
+    const clients = members.filter((m) => m.role === 'client');
+    if (clients.length > 0 && !clients.some((c) => c.id === formData.targetClientId)) {
+      setFormData((prev) => ({ ...prev, targetClientId: clients[0].id }));
+    }
+  }, [members, formData.targetClientId]);
+
+  const handleUploadThumbnail = async (rawImage: File) => {
+    setThumbnailError('');
+    setIsUploadingThumbnail(true);
+    setThumbnailFileName(rawImage.name);
+    try {
+      const optimized = await optimizeThumbnailImage(rawImage);
+      const storedUid =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1'
+          : 'usr_admin_1';
+      const fd = new FormData();
+      fd.append('file', optimized);
+
+      const res = await fetch(`/api/videos/upload-thumbnail?userId=${encodeURIComponent(storedUid)}`, {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || 'Thumbnail upload failed.');
+      }
+
+      setFormData((prev) => ({ ...prev, thumbnailUrl: data.url }));
+      setThumbnailFileName(`${optimized.name} (${formatBytes(optimized.size)})`);
+      fetchStorageStats();
+    } catch (err: any) {
+      setThumbnailError(err?.message || 'Failed to upload thumbnail image.');
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
+  };
 
   const copyCorsSnippet = () => {
     const corsJson = `[
@@ -451,7 +502,12 @@ export default function VideosVaultTab({
         description: safeDescription,
         targetClientName: formData.targetScope === 'specific_client' ? selectedClient?.name : undefined,
         targetClientId: formData.targetScope === 'specific_client' ? formData.targetClientId : undefined,
-        accessLevel: formData.targetScope === 'coaching_90_vip' ? 'coaching_90' : 'common',
+        accessLevel:
+          formData.targetScope === 'specific_client'
+            ? 'client_specific'
+            : formData.targetScope === 'coaching_90_vip'
+            ? 'coaching_90'
+            : 'common',
       });
       setShowAddModal(false);
       setSelectedFile(null);
@@ -463,6 +519,8 @@ export default function VideosVaultTab({
       setCompressionProgress(0);
       setCompressionStage('');
       setCompressionSummary(null);
+      setThumbnailFileName('');
+      setThumbnailError('');
       fetchStorageStats();
       setFormData({
         title: '',
@@ -852,9 +910,10 @@ export default function VideosVaultTab({
                   {/* Thumbnail Container */}
                   <div className="relative aspect-video w-full bg-black overflow-hidden">
                     <Image
-                      src={video.thumbnailUrl}
+                      src={video.thumbnailUrl || DEFAULT_THUMBNAIL_URL}
                       alt={video.title}
                       fill
+                      unoptimized
                       className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
@@ -1401,20 +1460,120 @@ export default function VideosVaultTab({
                   </div>
                 )}
 
-                {/* Thumbnail URL */}
-                <div>
-                  <label htmlFor="thumbnailUrl" className="text-xs font-bold text-gray-300 block mb-1.5">
-                    Thumbnail Image URL:
-                  </label>
-                  <input
-                    id="thumbnailUrl"
-                    type="url"
-                    required
-                    placeholder="https://images.unsplash.com/..."
-                    value={formData.thumbnailUrl}
-                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                    className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
-                  />
+                {/* Thumbnail: Image Upload or Link */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-300">
+                      Thumbnail Cover (Upload Image or Paste Link):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, thumbnailUrl: DEFAULT_THUMBNAIL_URL }));
+                        setThumbnailFileName('');
+                        setThumbnailError('');
+                      }}
+                      className="text-[11px] font-semibold text-gray-400 hover:text-white cursor-pointer"
+                    >
+                      Use Default Cover
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-[#111116] border border-white/10 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setThumbnailMode('upload')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        thumbnailMode === 'upload'
+                          ? 'bg-crimson-600 text-white shadow-[0_0_12px_rgba(186,26,26,0.35)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Upload Image</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setThumbnailMode('url')}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        thumbnailMode === 'url'
+                          ? 'bg-crimson-600 text-white shadow-[0_0_12px_rgba(186,26,26,0.35)]'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                      <span>Paste Image Link</span>
+                    </button>
+                  </div>
+
+                  {thumbnailMode === 'upload' ? (
+                    <div className="space-y-2">
+                      <div className="relative border border-dashed border-white/15 hover:border-crimson-500/60 rounded-xl p-3.5 bg-[#14141c]/80 transition-all flex items-center gap-3">
+                        <input
+                          id="thumbnailFileInput"
+                          type="file"
+                          accept={SUPPORTED_THUMBNAIL_ACCEPT}
+                          disabled={isUploadingThumbnail}
+                          onChange={(e) => {
+                            const imgFile = e.target.files?.[0];
+                            if (imgFile) handleUploadThumbnail(imgFile);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                        />
+                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-black border border-white/10 shrink-0 flex items-center justify-center">
+                          {formData.thumbnailUrl ? (
+                            <img
+                              src={formData.thumbnailUrl}
+                              alt="Thumbnail preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 text-gray-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1 pointer-events-none">
+                          <span className="text-xs font-bold text-white block truncate">
+                            {isUploadingThumbnail
+                              ? 'Optimizing & Uploading Thumbnail...'
+                              : thumbnailFileName || 'Click or Drop Thumbnail Image'}
+                          </span>
+                          <span className="text-[10.5px] text-gray-400 block">
+                            Supports JPG, PNG, WebP, AVIF (Auto-optimized to WebP)
+                          </span>
+                        </div>
+                      </div>
+                      {thumbnailError && (
+                        <div className="p-2.5 rounded-xl bg-rose-950/70 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{thumbnailError}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        id="thumbnailUrl"
+                        type="text"
+                        required
+                        placeholder="https://images.unsplash.com/... or /uploads/thumbnails/..."
+                        value={formData.thumbnailUrl}
+                        onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                        className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 min-h-[44px] font-mono text-[11px]"
+                      />
+                      {formData.thumbnailUrl && (
+                        <div className="flex items-center gap-3 p-2 rounded-xl bg-[#14141c] border border-white/[0.06]">
+                          <img
+                            src={formData.thumbnailUrl}
+                            alt="Thumbnail link preview"
+                            className="w-16 h-10 object-cover rounded-lg border border-white/10 bg-black"
+                          />
+                          <span className="text-[11px] font-mono text-gray-400 truncate flex-1">
+                            {formData.thumbnailUrl}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Description / Coach Instructions */}

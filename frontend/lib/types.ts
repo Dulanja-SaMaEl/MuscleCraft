@@ -323,7 +323,7 @@ export interface Appointment {
   notes?: string;
 }
 
-export type VideoAccessLevel = 'common' | 'coaching_90';
+export type VideoAccessLevel = 'common' | 'coaching_90' | 'client_specific';
 export type VideoTargetScope = 'all_members' | 'specific_client' | 'coaching_90_vip';
 
 export interface ExerciseVideo {
