@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import {
   Video,
@@ -28,9 +28,36 @@ import {
   Loader2,
   Check,
   Copy,
+  RefreshCw,
+  Zap,
+  Database,
 } from 'lucide-react';
 import { ExerciseVideo, User as UserType, VideoTargetScope } from '@/lib/types';
 import MuscleCraftVideoPlayer from '@/components/video/MuscleCraftVideoPlayer';
+import {
+  compressVideoForVault,
+  formatBytes,
+  SUPPORTED_VIDEO_ACCEPT,
+  CompressionPreset,
+} from '@/lib/media/video-compressor';
+
+interface StorageStats {
+  provider: 'cloudflare_r2' | 'local_storage';
+  configured: boolean;
+  connected: boolean;
+  bucket: string;
+  quotaGb: number;
+  quotaBytes: number;
+  usedBytes: number;
+  remainingBytes: number;
+  percentUsed: number;
+  objectCount: number;
+  quotaFormatted: string;
+  usedFormatted: string;
+  remainingFormatted: string;
+  checkedAt?: string;
+  error?: string;
+}
 
 interface VideosVaultTabProps {
   videos: ExerciseVideo[];
@@ -86,8 +113,61 @@ export default function VideosVaultTab({
     description: '',
   });
 
-  // Video Upload & Percentage Progress State
+  // Storage Quota Telemetry State
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(
+    healthData?.storage?.cloudflareR2?.stats || null
+  );
+  const [isLoadingStorage, setIsLoadingStorage] = useState<boolean>(false);
+
+  const fetchStorageStats = useCallback(async () => {
+    setIsLoadingStorage(true);
+    try {
+      const uid =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1'
+          : 'usr_admin_1';
+      const res = await fetch(`/api/videos/storage?userId=${encodeURIComponent(uid)}`, {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.stats) {
+          setStorageStats(data.stats);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not refresh storage quota:', err);
+    } finally {
+      setIsLoadingStorage(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (healthData?.storage?.cloudflareR2?.stats) {
+      setStorageStats(healthData.storage.cloudflareR2.stats);
+    }
+  }, [healthData]);
+
+  useEffect(() => {
+    fetchStorageStats();
+  }, [fetchStorageStats]);
+
+  // Video Compression & Upload Progress State
   const [sourceMode, setSourceMode] = useState<'upload' | 'url'>('upload');
+  const [autoCompress, setAutoCompress] = useState<boolean>(true);
+  const [compressionPreset, setCompressionPreset] = useState<CompressionPreset>('visually_lossless');
+  const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [compressionProgress, setCompressionProgress] = useState<number>(0);
+  const [compressionStage, setCompressionStage] = useState<string>('');
+  const [compressionSummary, setCompressionSummary] = useState<{
+    compressed: boolean;
+    originalSize: number;
+    finalSize: number;
+    savedPercent: number;
+    resolution?: string;
+    note?: string;
+  } | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -111,12 +191,15 @@ export default function VideosVaultTab({
     setTimeout(() => setCopiedCors(false), 2000);
   };
 
-  const handleUploadFile = async (file: File) => {
-    setSelectedFile(file);
-    setIsUploading(true);
+  const handleUploadFile = async (rawFile: File) => {
+    setSelectedFile(rawFile);
     setUploadProgress(0);
     setUploadError('');
-    setUploadStatus('Requesting direct Cloudflare R2 upload pipeline...');
+    setUploadSpeed('');
+    setUploadedBytes('');
+    setCompressionProgress(0);
+    setCompressionStage('');
+    setCompressionSummary(null);
 
     // Automatically detect video duration from the selected file
     try {
@@ -132,21 +215,70 @@ export default function VideosVaultTab({
           setFormData((prev) => ({ ...prev, duration: formattedDuration }));
         }
       };
-      tempVideo.src = URL.createObjectURL(file);
+      tempVideo.src = URL.createObjectURL(rawFile);
     } catch (_) {}
 
-    const storedUid = typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
+    // Phase 1: Visually Lossless Browser-Side H.264 MP4 Compression
+    let uploadTargetFile = rawFile;
+    if (autoCompress) {
+      setIsCompressing(true);
+      setCompressionStage('Analyzing video quality & preparing lossless optimizer...');
+      setTimeout(() => {
+        document.getElementById('compressionProgressSection')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        });
+      }, 60);
+      const compResult = await compressVideoForVault(rawFile, {
+        preset: compressionPreset,
+        onProgress: (pct, stage) => {
+          setCompressionProgress(pct);
+          setCompressionStage(stage);
+        },
+      });
+      setIsCompressing(false);
+      uploadTargetFile = compResult.file;
+      setSelectedFile(uploadTargetFile);
+      setCompressionSummary({
+        compressed: compResult.compressed,
+        originalSize: compResult.originalSize,
+        finalSize: compResult.finalSize,
+        savedPercent: compResult.savedPercent,
+        resolution: compResult.resolution,
+        note: compResult.skippedReason,
+      });
+    }
 
-    // Step 1: Request presigned direct upload URL from Cloudflare R2
+    // Quota Check against remaining vault storage
+    if (
+      storageStats &&
+      storageStats.quotaBytes > 0 &&
+      storageStats.remainingBytes > 0 &&
+      uploadTargetFile.size > storageStats.remainingBytes
+    ) {
+      setUploadError(
+        `Insufficient storage remaining: video requires ${formatBytes(uploadTargetFile.size)}, but only ${storageStats.remainingFormatted} is left of your ${storageStats.quotaFormatted} quota.`
+      );
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus('Requesting direct Cloudflare R2 upload pipeline...');
+
+    const storedUid =
+      typeof window !== 'undefined' ? localStorage.getItem('musclecraft_user_id') || 'usr_admin_1' : 'usr_admin_1';
+
+    // Step 2: Request presigned direct upload URL from Cloudflare R2
     let directUploadData: any = null;
     try {
       const presignRes = await fetch(`/api/videos/upload-url?userId=${encodeURIComponent(storedUid)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || 'video/mp4',
-          size: file.size,
+          filename: uploadTargetFile.name,
+          contentType: uploadTargetFile.type || 'video/mp4',
+          size: uploadTargetFile.size,
         }),
       });
       if (presignRes.ok) {
@@ -190,30 +322,35 @@ export default function VideosVaultTab({
           setFormData((prev) => ({
             ...prev,
             videoUrl: finalUrl,
-            title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+            title: prev.title || rawFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
           }));
           setUploadProgress(100);
           setUploadStatus('Upload Complete (100%) — Video is ready to publish');
+          fetchStorageStats();
         } else {
-          setUploadError(`Cloudflare R2 Direct Upload returned HTTP ${xhr.status}. Make sure CORS is enabled on your Cloudflare R2 bucket (Click "Cloudflare R2 Storage Guide" above).`);
+          setUploadError(
+            `Cloudflare R2 Direct Upload returned HTTP ${xhr.status}. Make sure CORS is enabled on your Cloudflare R2 bucket (Click "Cloudflare R2 Storage Guide" above).`
+          );
         }
       };
 
       xhr.onerror = () => {
         setIsUploading(false);
-        setUploadError('Network error uploading to Cloudflare R2. Please ensure CORS is enabled on your bucket: Cloudflare Dashboard → R2 → musclecraft-videos → Settings → CORS Policy.');
+        setUploadError(
+          'Network error uploading to Cloudflare R2. Please ensure CORS is enabled on your bucket: Cloudflare Dashboard → R2 → musclecraft-videos → Settings → CORS Policy.'
+        );
       };
 
       xhr.open('PUT', directUploadData.uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
-      xhr.send(file);
+      xhr.setRequestHeader('Content-Type', uploadTargetFile.type || 'video/mp4');
+      xhr.send(uploadTargetFile);
       return;
     }
 
     // Case B: Fallback to Serverless Upload Route
     const formDataObj = new FormData();
-    formDataObj.append('file', file);
-    formDataObj.append('title', formData.title || file.name);
+    formDataObj.append('file', uploadTargetFile);
+    formDataObj.append('title', formData.title || rawFile.name);
 
     xhr.onload = () => {
       setIsUploading(false);
@@ -225,7 +362,7 @@ export default function VideosVaultTab({
             setFormData((prev) => ({
               ...prev,
               videoUrl: finalUrl,
-              title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+              title: prev.title || rawFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
             }));
             setUploadProgress(100);
             const providerName =
@@ -235,12 +372,15 @@ export default function VideosVaultTab({
                 ? 'Supabase Storage'
                 : 'MuscleCraft Local Vault';
             setUploadStatus(`Upload Complete (100%) — Stored in ${providerName}`);
+            fetchStorageStats();
           }
         } catch (e) {
           setUploadError('Failed to parse upload response from server.');
         }
       } else if (xhr.status === 413) {
-        setUploadError('File exceeds Vercel 4.5 MB limit. Please enable Cloudflare R2 Direct Upload to support files up to 5 GB.');
+        setUploadError(
+          'File exceeds Vercel 4.5 MB limit. Please enable Cloudflare R2 Direct Upload to support files up to 5 GB.'
+        );
       } else {
         setUploadError(`Upload failed with status HTTP ${xhr.status}. Please check file format or size.`);
       }
@@ -320,6 +460,10 @@ export default function VideosVaultTab({
       setUploadedBytes('');
       setUploadSpeed('');
       setUploadError('');
+      setCompressionProgress(0);
+      setCompressionStage('');
+      setCompressionSummary(null);
+      fetchStorageStats();
       setFormData({
         title: '',
         category: 'Technique Review',
@@ -483,13 +627,113 @@ export default function VideosVaultTab({
         </div>
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
-          <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
-            Stream Bandwidth
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
+              Storage Remaining
+            </span>
+            <button
+              type="button"
+              onClick={fetchStorageStats}
+              disabled={isLoadingStorage}
+              title="Refresh bucket storage usage"
+              aria-label="Refresh bucket storage usage"
+              className="p-1 text-gray-400 hover:text-white rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStorage ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          <span
+            className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 block ${
+              (storageStats?.percentUsed ?? 0) >= 90
+                ? 'text-crimson-400'
+                : (storageStats?.percentUsed ?? 0) >= 70
+                ? 'text-amber-400'
+                : 'text-emerald-400'
+            }`}
+          >
+            {storageStats ? storageStats.remainingFormatted : isLoadingStorage ? '...' : '10.0 GB'}
           </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2 block">
-            99.9%
+          <span className="text-[11px] text-gray-400 mt-1 block">
+            {storageStats
+              ? `${storageStats.usedFormatted} of ${storageStats.quotaFormatted} used`
+              : 'Loading bucket quota...'}
           </span>
-          <span className="text-[11px] text-gray-400 mt-1 block">Cloudflare adaptive bitrate</span>
+        </div>
+      </div>
+
+      {/* Live Cloudflare R2 Storage Left Quota Bar */}
+      <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-950/70 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  {storageStats?.provider === 'cloudflare_r2'
+                    ? `Cloudflare R2 Storage Quota (${storageStats.bucket})`
+                    : 'Local Video Vault Storage Quota'}
+                </h3>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10.5px] font-mono font-bold border ${
+                    (storageStats?.percentUsed ?? 0) >= 90
+                      ? 'bg-crimson-950/80 text-crimson-300 border-crimson-600/50'
+                      : (storageStats?.percentUsed ?? 0) >= 70
+                      ? 'bg-amber-950/80 text-amber-300 border-amber-600/50'
+                      : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/50'
+                  }`}
+                >
+                  {storageStats ? `${storageStats.percentUsed}% Used` : 'Checking...'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {storageStats
+                  ? `${storageStats.objectCount} stored file${storageStats.objectCount === 1 ? '' : 's'} · ${storageStats.usedFormatted} used · ${storageStats.remainingFormatted} remaining out of ${storageStats.quotaFormatted}`
+                  : 'Calculating real-time Cloudflare R2 bucket utilization...'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-start sm:self-center">
+            <div className="px-3 py-1.5 rounded-xl bg-[#161620] border border-white/[0.08] text-xs font-mono">
+              <span className="text-gray-400">Free Left: </span>
+              <strong
+                className={
+                  (storageStats?.percentUsed ?? 0) >= 90
+                    ? 'text-crimson-400'
+                    : (storageStats?.percentUsed ?? 0) >= 70
+                    ? 'text-amber-300'
+                    : 'text-emerald-400'
+                }
+              >
+                {storageStats?.remainingFormatted || '—'}
+              </strong>
+            </div>
+            <button
+              type="button"
+              onClick={fetchStorageStats}
+              disabled={isLoadingStorage}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-gray-200 flex items-center gap-1.5 min-h-[36px] cursor-pointer transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingStorage ? 'animate-spin' : ''}`} />
+              <span>Sync</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Quota Progress Track */}
+        <div className="w-full h-3 bg-black/70 rounded-full overflow-hidden p-0.5 border border-white/[0.08]">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              (storageStats?.percentUsed ?? 0) >= 90
+                ? 'bg-gradient-to-r from-crimson-600 to-rose-400'
+                : (storageStats?.percentUsed ?? 0) >= 70
+                ? 'bg-gradient-to-r from-amber-600 to-yellow-400'
+                : 'bg-gradient-to-r from-emerald-600 to-teal-400'
+            }`}
+            style={{ width: `${Math.min(100, Math.max(storageStats?.usedBytes ? 2 : 0, storageStats?.percentUsed ?? 0))}%` }}
+          />
         </div>
       </div>
 
@@ -677,9 +921,10 @@ export default function VideosVaultTab({
                       <span>Watch</span>
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (confirm(`Are you sure you want to delete "${video.title}"?`)) {
-                          onDeleteVideo(video.id);
+                          await onDeleteVideo(video.id);
+                          await fetchStorageStats();
                         }
                       }}
                       className="p-2 text-gray-400 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
@@ -896,25 +1141,82 @@ export default function VideosVaultTab({
                   </div>
                 </div>
 
-                {/* Source Mode 1: File Upload with Progress Percentage */}
+                {/* Source Mode 1: File Upload with Visually Lossless Compression & Percentage Progress */}
                 {sourceMode === 'upload' && (
                   <div className="space-y-3">
+                    {/* Lossless Compression Controls + Storage Left Pill */}
+                    <div className="p-3.5 rounded-2xl bg-[#14141d] border border-white/[0.08] space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={autoCompress}
+                            disabled={isCompressing || isUploading}
+                            onChange={(e) => setAutoCompress(e.target.checked)}
+                            className="w-4 h-4 accent-crimson-600 rounded cursor-pointer"
+                          />
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Auto-Compress Before Upload (Save Storage, Keep Quality)</span>
+                          </span>
+                        </label>
+
+                        {storageStats && (
+                          <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-emerald-950/70 border border-emerald-600/40 text-emerald-300">
+                            {storageStats.remainingFormatted} Free Left
+                          </span>
+                        )}
+                      </div>
+
+                      {autoCompress && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            disabled={isCompressing || isUploading}
+                            onClick={() => setCompressionPreset('visually_lossless')}
+                            className={`text-left px-3 py-2 rounded-xl border text-[11px] transition-all cursor-pointer ${
+                              compressionPreset === 'visually_lossless'
+                                ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-200'
+                                : 'bg-[#0f0f15] border-white/[0.06] text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="font-bold block text-white">Lossless HD (1080p) • Recommended</span>
+                            <span>H.264 MP4 faststart • ~50–75% smaller</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={isCompressing || isUploading}
+                            onClick={() => setCompressionPreset('balanced')}
+                            className={`text-left px-3 py-2 rounded-xl border text-[11px] transition-all cursor-pointer ${
+                              compressionPreset === 'balanced'
+                                ? 'bg-amber-950/50 border-amber-500/60 text-amber-200'
+                                : 'bg-[#0f0f15] border-white/[0.06] text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="font-bold block text-white">Max Space Saver (720p)</span>
+                            <span>H.264 MP4 compact • ~65–85% smaller</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="relative border-2 border-dashed border-white/15 hover:border-crimson-500/60 rounded-2xl p-5 text-center bg-[#14141c]/80 transition-all">
                       <input
                         type="file"
-                        accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv"
+                        accept={SUPPORTED_VIDEO_ACCEPT}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) handleUploadFile(file);
                         }}
-                        disabled={isUploading}
+                        disabled={isCompressing || isUploading}
                         id="videoFileInput"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
                       />
 
                       <div className="flex flex-col items-center pointer-events-none">
                         <div className="w-12 h-12 rounded-2xl bg-crimson-950/80 border border-crimson-700/60 text-crimson-400 flex items-center justify-center mb-2.5 shadow-[0_0_20px_rgba(186,26,26,0.3)]">
-                          {isUploading ? (
+                          {isCompressing || isUploading ? (
                             <Loader2 className="w-6 h-6 animate-spin text-crimson-400" />
                           ) : (
                             <UploadCloud className="w-6 h-6 text-crimson-400" />
@@ -927,23 +1229,73 @@ export default function VideosVaultTab({
                               {selectedFile.name}
                             </span>
                             <span className="text-[11px] font-mono text-gray-400 block">
-                              {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB • {selectedFile.type || 'Video file'}
+                              {formatBytes(selectedFile.size)} • {selectedFile.type || 'Video file'}
                             </span>
                           </div>
                         ) : (
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             <span className="text-white font-bold text-xs block">
-                              Click or Drag & Drop Video File to Upload
+                              Click or Drag & Drop Video File to Optimize & Upload
                             </span>
                             <span className="text-[11px] text-gray-400 block">
-                              Supports MP4, MOV, WebM, MKV (Stored in Cloudflare R2 / Storage Vault)
+                              Supported: <strong className="text-gray-200">.MP4, .MOV, .M4V, .WebM, .MKV, .OGV, .TS</strong>
+                            </span>
+                            <span className="text-[10.5px] text-emerald-400/90 block">
+                              {autoCompress
+                                ? 'Auto-converts all formats to universal faststart H.264 MP4 before saving to R2'
+                                : 'Direct raw upload enabled (Best universal compatibility: .MP4 / .M4V / .MOV / .WebM)'}
                             </span>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Progress Bar & Percentage Section */}
+                    {/* Phase 1: Browser Compression Progress Section */}
+                    {(isCompressing || compressionSummary) && (
+                      <div
+                        id="compressionProgressSection"
+                        className="p-3.5 rounded-2xl bg-[#0e1514] border border-emerald-500/30 space-y-2"
+                      >
+                        <div className="flex items-center justify-between text-xs gap-2">
+                          <span className="text-emerald-300 font-bold flex items-center gap-2">
+                            {isCompressing ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-emerald-400 shrink-0" />
+                            ) : (
+                              <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+                            )}
+                            <span>
+                              {isCompressing
+                                ? compressionStage || 'Compressing video...'
+                                : compressionSummary?.compressed
+                                ? `Storage Saved: -${compressionSummary.savedPercent}% (${formatBytes(compressionSummary.originalSize)} → ${formatBytes(compressionSummary.finalSize)})`
+                                : compressionSummary?.note || 'Optimization check complete'}
+                            </span>
+                          </span>
+                          {isCompressing && (
+                            <span className="font-mono font-bold text-xs text-emerald-300 bg-emerald-950 px-2.5 py-0.5 rounded-lg border border-emerald-700">
+                              {compressionProgress}%
+                            </span>
+                          )}
+                        </div>
+
+                        {isCompressing && (
+                          <div className="w-full h-2.5 bg-black/80 rounded-full overflow-hidden p-0.5 border border-white/10">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-600 to-teal-400 rounded-full transition-all duration-150"
+                              style={{ width: `${compressionProgress}%` }}
+                            />
+                          </div>
+                        )}
+
+                        {!isCompressing && compressionSummary?.resolution && (
+                          <span className="text-[10.5px] font-mono text-gray-400 block">
+                            Output: H.264 MP4 ({compressionSummary.resolution}, faststart)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Phase 2: Upload Progress Bar & Percentage Section */}
                     {(isUploading || uploadProgress > 0) && (
                       <div id="uploadProgressSection" className="p-4 rounded-2xl bg-[#0f0f15] border border-white/10 space-y-2.5">
                         <div className="flex items-center justify-between text-xs">
@@ -998,6 +1350,9 @@ export default function VideosVaultTab({
                               setUploadStatus('');
                               setUploadedBytes('');
                               setUploadSpeed('');
+                              setCompressionProgress(0);
+                              setCompressionStage('');
+                              setCompressionSummary(null);
                               setFormData((prev) => ({ ...prev, videoUrl: '' }));
                             }}
                             className="text-[11px] text-gray-400 hover:text-rose-400 cursor-pointer font-mono underline"
@@ -1089,13 +1444,15 @@ export default function VideosVaultTab({
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || (sourceMode === 'upload' && (!formData.videoUrl || isUploading))}
+                  disabled={isSubmitting || (sourceMode === 'upload' && (!formData.videoUrl || isUploading || isCompressing))}
                   className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(186,26,26,0.5)] min-h-[44px] flex items-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>
                     {isSubmitting
                       ? 'Publishing...'
+                      : isCompressing
+                      ? `Optimizing Video (${compressionProgress}%)...`
                       : isUploading
                       ? `Uploading Video (${uploadProgress}%)...`
                       : sourceMode === 'upload' && !formData.videoUrl

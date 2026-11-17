@@ -7,7 +7,7 @@ import {
   supabaseUrl,
   supabaseKey,
 } from '@/lib/supabase/server';
-import { getR2Credentials, pingR2 } from '@/lib/storage/cloudflare-r2';
+import { getR2Credentials, pingR2, getR2StorageStats } from '@/lib/storage/cloudflare-r2';
 
 export async function GET() {
   let isConnected = false;
@@ -83,12 +83,13 @@ export async function GET() {
     ? 'Publishable / Client (Standard Access)'
     : (supabaseKey ? 'Custom Supabase Key' : 'none');
 
-  // Cloudflare R2 Diagnostics
+  // Cloudflare R2 Diagnostics & Storage Quota Stats
   const r2Config = getR2Credentials();
   let r2PingResult: any = null;
+  let r2StorageStats: any = null;
   if (r2Config.isConfigured) {
     try {
-      r2PingResult = await pingR2();
+      [r2PingResult, r2StorageStats] = await Promise.all([pingR2(), getR2StorageStats()]);
     } catch (err: any) {
       r2PingResult = {
         ok: false,
@@ -106,6 +107,9 @@ export async function GET() {
       publicDomain: r2Config.publicDomain,
       error: 'Cloudflare R2 credentials (Account ID, Access Key ID, Secret Access Key) not detected in environment variables.',
     };
+    try {
+      r2StorageStats = await getR2StorageStats();
+    } catch (_) {}
   }
 
   // Safely collect matching environment key names (NAMES ONLY, NEVER VALUES)
@@ -205,6 +209,7 @@ export async function GET() {
         accountMasked: r2PingResult?.accountMasked || (r2Config.accountId ? `${r2Config.accountId.substring(0, 6)}****` : null),
         accessKeyMasked: r2PingResult?.accessKeyMasked || (r2Config.accessKeyId ? `${r2Config.accessKeyId.substring(0, 6)}****` : null),
         error: r2PingResult?.error || null,
+        stats: r2StorageStats,
         checkedEnvVars: {
           R2_ACCOUNT_ID: Boolean(r2Config.accountId),
           R2_ACCESS_KEY_ID: Boolean(r2Config.accessKeyId),

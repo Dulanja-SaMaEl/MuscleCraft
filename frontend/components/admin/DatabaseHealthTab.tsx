@@ -79,6 +79,7 @@ export default function DatabaseHealthTab({
   const r2Bucket = r2Storage?.bucket || diag?.r2Bucket || 'musclecraft-videos';
   const r2PublicDomain = r2Storage?.publicDomain || diag?.r2PublicDomain || '';
   const r2AccountMasked = r2Storage?.accountMasked || null;
+  const r2Stats = r2Storage?.stats || null;
   const r2CheckedVars = r2Storage?.checkedEnvVars || diag?.checkedEnvVars || {};
 
   const copyEnvSnippet = () => {
@@ -749,6 +750,31 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
               </span>
             </div>
           </div>
+
+          {r2Stats && (
+            <div className="pt-4 border-t border-white/[0.06] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400 font-medium">
+                  Quota Used: <strong className="text-white font-mono">{r2Stats.usedFormatted}</strong> / {r2Stats.quotaFormatted} ({r2Stats.objectCount} files)
+                </span>
+                <span className="text-emerald-400 font-mono font-bold">
+                  {r2Stats.remainingFormatted} Left
+                </span>
+              </div>
+              <div className="w-full h-2.5 bg-black/70 rounded-full overflow-hidden p-0.5 border border-white/[0.08]">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    r2Stats.percentUsed >= 90
+                      ? 'bg-crimson-500'
+                      : r2Stats.percentUsed >= 70
+                      ? 'bg-amber-400'
+                      : 'bg-emerald-400'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(r2Stats.usedBytes ? 2 : 0, r2Stats.percentUsed))}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Next.js App Router Architecture Card */}

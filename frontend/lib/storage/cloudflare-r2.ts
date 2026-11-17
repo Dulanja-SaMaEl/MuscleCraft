@@ -1,5 +1,7 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadBucketCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadBucketCommand, ListObjectsV2Command, type ListObjectsV2CommandOutput } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import fs from 'fs';
+import path from 'path';
 
 // Helper to sanitize env values
 function cleanEnv(val?: string | null): string {
@@ -322,4 +324,184 @@ export async function deleteFromR2(key: string): Promise<{ success: boolean; key
     console.error(`[Cloudflare R2] Error deleting object "${key}" from bucket "${config.bucketName}":`, err);
     return { success: false, key, error: err.message || 'R2 DeleteObjectCommand failed.' };
   }
+}
+
+export interface R2StorageObjectSummary {
+  key: string;
+  sizeBytes: number;
+  lastModified?: string;
+}
+
+export interface R2StorageStats {
+  provider: 'cloudflare_r2' | 'local_storage';
+  configured: boolean;
+  connected: boolean;
+  bucket: string;
+  quotaGb: number;
+  quotaBytes: number;
+  usedBytes: number;
+  remainingBytes: number;
+  percentUsed: number;
+  objectCount: number;
+  quotaFormatted: string;
+  usedFormatted: string;
+  remainingFormatted: string;
+  objects: R2StorageObjectSummary[];
+  checkedAt: string;
+  error?: string;
+}
+
+/**
+ * Formats byte counts into readable B / KB / MB / GB strings.
+ */
+export function formatStorageBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, idx);
+  return `${value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2)} ${units[idx]}`;
+}
+
+function getConfiguredQuotaGb(): number {
+  const raw =
+    cleanEnv(process.env.R2_STORAGE_QUOTA_GB) ||
+    cleanEnv(process.env.CLOUDFLARE_R2_QUOTA_GB) ||
+    cleanEnv(process.env.NEXT_PUBLIC_R2_QUOTA_GB);
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10; // Cloudflare R2 Always Free 10 GB
+}
+
+/**
+ * Computes real bucket utilization across all objects in Cloudflare R2 (via paginated ListObjectsV2),
+ * or falls back to local public/uploads/videos usage when R2 is not configured.
+ */
+export async function getR2StorageStats(): Promise<R2StorageStats> {
+  const config = getR2Credentials();
+  const quotaGb = getConfiguredQuotaGb();
+  const quotaBytes = Math.round(quotaGb * 1024 * 1024 * 1024);
+  const checkedAt = new Date().toISOString();
+
+  if (config.isConfigured) {
+    const client = getR2Client();
+    if (client) {
+      try {
+        let usedBytes = 0;
+        let objectCount = 0;
+        let continuationToken: string | undefined = undefined;
+        const objects: R2StorageObjectSummary[] = [];
+
+        do {
+          const res: ListObjectsV2CommandOutput = await client.send(
+            new ListObjectsV2Command({
+              Bucket: config.bucketName,
+              ContinuationToken: continuationToken,
+              MaxKeys: 1000,
+            })
+          );
+
+          for (const item of res.Contents || []) {
+            const size = Number(item.Size || 0);
+            usedBytes += size;
+            objectCount += 1;
+            if (item.Key && objects.length < 200) {
+              objects.push({
+                key: item.Key,
+                sizeBytes: size,
+                lastModified: item.LastModified ? item.LastModified.toISOString() : undefined,
+              });
+            }
+          }
+
+          continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+        } while (continuationToken);
+
+        const remainingBytes = Math.max(0, quotaBytes - usedBytes);
+        const percentUsed = quotaBytes > 0 ? Math.min(100, Number(((usedBytes / quotaBytes) * 100).toFixed(1))) : 0;
+
+        return {
+          provider: 'cloudflare_r2',
+          configured: true,
+          connected: true,
+          bucket: config.bucketName,
+          quotaGb,
+          quotaBytes,
+          usedBytes,
+          remainingBytes,
+          percentUsed,
+          objectCount,
+          quotaFormatted: formatStorageBytes(quotaBytes),
+          usedFormatted: formatStorageBytes(usedBytes),
+          remainingFormatted: formatStorageBytes(remainingBytes),
+          objects: objects.sort((a, b) => b.sizeBytes - a.sizeBytes),
+          checkedAt,
+        };
+      } catch (err: any) {
+        return {
+          provider: 'cloudflare_r2',
+          configured: true,
+          connected: false,
+          bucket: config.bucketName,
+          quotaGb,
+          quotaBytes,
+          usedBytes: 0,
+          remainingBytes: quotaBytes,
+          percentUsed: 0,
+          objectCount: 0,
+          quotaFormatted: formatStorageBytes(quotaBytes),
+          usedFormatted: '0 B',
+          remainingFormatted: formatStorageBytes(quotaBytes),
+          objects: [],
+          checkedAt,
+          error: err.message || 'Unable to inspect Cloudflare R2 storage usage.',
+        };
+      }
+    }
+  }
+
+  // Fallback: Measure local vault disk usage if running locally without R2
+  let localUsedBytes = 0;
+  let localCount = 0;
+  const localObjects: R2StorageObjectSummary[] = [];
+
+  try {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'videos');
+    if (fs.existsSync(uploadDir)) {
+      const entries = fs.readdirSync(uploadDir);
+      for (const name of entries) {
+        if (name.startsWith('.')) continue;
+        const fullPath = path.join(uploadDir, name);
+        const stat = fs.statSync(fullPath);
+        if (stat.isFile()) {
+          localUsedBytes += stat.size;
+          localCount += 1;
+          localObjects.push({
+            key: name,
+            sizeBytes: stat.size,
+            lastModified: stat.mtime.toISOString(),
+          });
+        }
+      }
+    }
+  } catch (_) {}
+
+  const remainingBytes = Math.max(0, quotaBytes - localUsedBytes);
+  const percentUsed = quotaBytes > 0 ? Math.min(100, Number(((localUsedBytes / quotaBytes) * 100).toFixed(1))) : 0;
+
+  return {
+    provider: 'local_storage',
+    configured: false,
+    connected: false,
+    bucket: config.bucketName,
+    quotaGb,
+    quotaBytes,
+    usedBytes: localUsedBytes,
+    remainingBytes,
+    percentUsed,
+    objectCount: localCount,
+    quotaFormatted: formatStorageBytes(quotaBytes),
+    usedFormatted: formatStorageBytes(localUsedBytes),
+    remainingFormatted: formatStorageBytes(remainingBytes),
+    objects: localObjects.sort((a, b) => b.sizeBytes - a.sizeBytes),
+    checkedAt,
+  };
 }
