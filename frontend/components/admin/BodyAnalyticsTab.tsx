@@ -23,6 +23,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { BodyMeasurement, User as UserType } from '@/lib/types';
+import { useAuth } from '@/lib/context/auth-context';
 
 type EnrichedMeasurement = BodyMeasurement & {
   userName?: string;
@@ -44,6 +45,7 @@ export default function BodyAnalyticsTab({
   isLoading,
   onSaveFeedback,
 }: BodyAnalyticsTabProps) {
+  const { currentUser } = useAuth();
   const [measurements, setMeasurements] = useState<EnrichedMeasurement[]>(initialMeasurements);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
@@ -179,7 +181,7 @@ export default function BodyAnalyticsTab({
         coachFeedback: logForm.coachFeedback || '',
       };
 
-      const res = await fetch('/api/measurements', {
+      const res = await fetch(`/api/measurements?userId=${encodeURIComponent(currentUser?.id || '')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -247,7 +249,7 @@ export default function BodyAnalyticsTab({
         weekNumber: Number(editForm.weekNumber),
       };
 
-      const res = await fetch('/api/measurements', {
+      const res = await fetch(`/api/measurements?userId=${encodeURIComponent(currentUser?.id || '')}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

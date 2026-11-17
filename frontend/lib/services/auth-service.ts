@@ -6,31 +6,26 @@ export class AuthService {
   private static credentials: Map<string, string> = new Map([
     ['adeesha@musclecraft.lk', 'AdeeshaOwner2026!'],
     ['owner@musclecraft.lk', 'AdeeshaOwner2026!'],
+    ['coach.kasun@musclecraft.lk', 'KasunCoach2026!'],
     ['marcus@musclecraft.lk', 'ClientPass2026!'],
     ['nuwan.silva@gmail.com', 'Nuwan2026!'],
     ['kanishka.perera@gmail.com', 'Kanishka2026!'],
     ['rohan.v@gmail.com', 'Rohan2026!'],
+    ['dinuka@gmail.com', 'Dinuka2026!'],
+    ['saman.rashmi@gmail.com', 'Saman2026!'],
   ]);
 
-  // Get active session user by ID or default to client_90 for quick review
   static getCurrentUser(userId?: string | null): User | null {
     if (!userId) {
-      return db.users.find((u) => u.id === 'usr_client_90') || null;
+      return null;
     }
     return db.users.find((u) => u.id === userId) || null;
   }
 
   static getUserByEmail(email: string): User | null {
     const clean = email.toLowerCase().trim();
-    return (
-      db.users.find((u) => {
-        const uEmail = u.email.toLowerCase();
-        if (uEmail === clean) return true;
-        const uPrefix = uEmail.split('@')[0];
-        const cleanPrefix = clean.split('@')[0];
-        return uPrefix === cleanPrefix;
-      }) || null
-    );
+    if (!clean) return null;
+    return db.users.find((u) => u.email.toLowerCase().trim() === clean) || null;
   }
 
   static setPassword(email: string, password: string): void {
@@ -40,21 +35,10 @@ export class AuthService {
   }
 
   static verifyPassword(email: string, password?: string): boolean {
-    const clean = email.toLowerCase().trim();
-    if (clean === 'adeesha@musclecraft.lk' || clean === 'owner@musclecraft.lk' || clean === 'admin') {
-      if (!password || password === 'admin' || password === 'adeesha' || password === 'AdeeshaOwner2026!' || password === 'passthrough') {
-        return true;
-      }
-    }
-    if (clean === 'marcus@musclecraft.lk') {
-      if (!password || password === 'ClientPass2026!' || password === 'MarcusFit2026!' || password === 'passthrough') {
-        return true;
-      }
-    }
-    const stored = this.credentials.get(clean);
-    // If no explicit password was registered (demo / shortcut pass-through), allow
-    if (!stored) return true;
     if (!password) return false;
+    const clean = email.toLowerCase().trim();
+    const stored = this.credentials.get(clean);
+    if (!stored) return false;
     return stored === password;
   }
 
@@ -62,24 +46,19 @@ export class AuthService {
     const user = this.getUserByEmail(email);
     if (!user) return { user: null };
 
-    const clean = email.toLowerCase().trim();
-    const stored = this.credentials.get(clean);
-
-    // If an explicit password exists, verify it
-    if (stored && password && stored !== password) {
-      if (clean === 'adeesha@musclecraft.lk' || clean === 'owner@musclecraft.lk') {
-        if (password === 'admin' || password === 'adeesha' || password === 'AdeeshaOwner2026!' || password === 'passthrough') {
-          return { user };
-        }
-      }
-      if (clean === 'marcus@musclecraft.lk') {
-        if (password === 'ClientPass2026!' || password === 'MarcusFit2026!' || password === 'passthrough') {
-          return { user };
-        }
-      }
+    if (!password) {
       return {
         user: null,
-        error: 'Incorrect password for this account. Please check your password or contact Coach Adeesha on WhatsApp.',
+        error: 'Password is required.',
+      };
+    }
+
+    const clean = email.toLowerCase().trim();
+    const stored = this.credentials.get(clean);
+    if (!stored || stored !== password) {
+      return {
+        user: null,
+        error: 'Invalid email or password.',
       };
     }
 

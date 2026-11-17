@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AdminService } from '@/lib/services/admin-service';
-import { AuthService } from '@/lib/services/auth-service';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
-    const adminUser = AuthService.getCurrentUser(adminId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const adminId = searchParams.get('adminId');
+    const adminUser = await resolveServerUser(adminId);
+
+    if (adminUser.role !== 'admin' && adminUser.role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden: Admin or coach credentials required.' }, { status: 403 });
+    }
 
     let stats: any = AdminService.getDashboardStats(adminUser);
 

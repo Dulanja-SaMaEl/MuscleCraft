@@ -51,26 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
   }, []);
 
-  const switchPersona = async (personaId: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personaId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentUser(data.user);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('musclecraft_user_id', data.user.id);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to switch persona:', err);
-    } finally {
-      setLoading(false);
-    }
+  const switchPersona = async (_personaId: string) => {
+    await loadSession();
   };
 
   const login = async (
@@ -135,8 +117,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    if (currentUser) {
-      await switchPersona(currentUser.id);
+    if (!currentUser) return;
+    try {
+      const res = await fetch(`/api/auth/session?userId=${encodeURIComponent(currentUser.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setCurrentUser(data.user);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh session:', err);
     }
   };
 

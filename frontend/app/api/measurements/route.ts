@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     if (!isServerSupabaseConfigured && measurements.length === 0) {
       const isMockClient = clientId === 'usr_client_90' || !clientId || clientId === 'all';
       if (isMockClient) {
-        const safeCaller: any = caller || { id: 'usr_admin_1', role: 'admin' };
+        const safeCaller = caller;
         const mockMeasurements =
           clientId === 'all' || searchParams.get('all') === 'true'
             ? CoachingService.getAllClientMeasurements(safeCaller)
@@ -89,10 +89,11 @@ export async function PATCH(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller =
-      (await getSessionUser(userId)) ||
-      AuthService.getCurrentUser(userId) ||
-      ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveServerUser(userId);
+
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden: Only coaches and administrators can modify check-ins.' }, { status: 403 });
+    }
 
     const body = await req.json();
     const {
@@ -179,11 +180,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = AddMeasurementSchema.parse(body);
 
-    const targetUserId = body.userId || urlUserId || 'usr_client_90';
-    const resolvedUser = await getSessionUser(targetUserId);
+    const caller = await resolveServerUser(urlUserId || body.userId);
+    const targetUserId = caller.role === 'client' ? caller.id : (body.userId || caller.id);
+    if (!targetUserId || targetUserId === 'anon_client') {
+      return NextResponse.json({ error: 'Unauthorized: Please sign in to log measurements.' }, { status: 401 });
+    }
+    if (caller.role === 'client' && !isClientPortalActive(caller)) {
+      return NextResponse.json({ error: 'Active membership required to log body analytics.' }, { status: 403 });
+    }
+
+    const resolvedTarget = await getSessionUser(targetUserId);
     const safeUser: any =
-      resolvedUser ||
-      AuthService.getCurrentUser(targetUserId) ||
+      resolvedTarget ||
+      caller ||
       ({
         id: targetUserId,
         name: 'Athlete',
@@ -191,7 +200,7 @@ export async function POST(req: NextRequest) {
         email: 'athlete@musclecraft.lk',
       } as any);
 
-    const newMeasurement = CoachingService.addMeasurement(safeUser, {
+    const newMeasurement = CoachingService.addMeasurement(caller.role === 'client' ? caller : safeUser, {
       ...validated,
       userId: targetUserId,
     });

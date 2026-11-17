@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
+    const adminId = searchParams.get('adminId');
     const caller = await resolveServerUser(adminId);
 
     if (caller.role !== 'admin' && caller.role !== 'instructor') {

@@ -249,7 +249,7 @@ const ReportsTab = dynamic(() => import('@/components/admin/ReportsTab'), {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { currentUser, switchPersona, logout } = useAuth();
+  const { currentUser, loading: authLoading, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -408,13 +408,19 @@ export default function AdminDashboard() {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'instructor')) {
+      router.replace('/login');
+      return;
+    }
     loadAdminData();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   const loadAdminData = async () => {
+    if (!currentUser) return;
     setIsLoadingData(true);
     try {
-      const adminId = currentUser?.id || 'usr_admin_1';
+      const adminId = currentUser.id;
 
       // 1. Load Stats
       const statsRes = await fetch(`/api/admin/stats?adminId=${adminId}`);

@@ -151,6 +151,58 @@ export const supabaseServer = isServerSupabaseConfigured
     })
   : null;
 
+export async function findAuthUserByEmail(email: string) {
+  if (!supabaseServer) return null;
+  const cleanEmail = email.toLowerCase().trim();
+  if (!cleanEmail) return null;
+  try {
+    let page = 1;
+    const perPage = 200;
+    while (page <= 10) {
+      const { data, error } = await supabaseServer.auth.admin.listUsers({ page, perPage });
+      if (error || !data?.users?.length) break;
+      const match = data.users.find((u) => (u.email || '').toLowerCase().trim() === cleanEmail);
+      if (match) return match;
+      if (data.users.length < perPage) break;
+      page += 1;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export async function verifySupabaseCredentials(
+  email: string,
+  password: string
+): Promise<{ user: any | null; error?: string }> {
+  if (!isServerSupabaseConfigured || !supabaseUrl) {
+    return { user: null, error: 'Supabase Auth not configured' };
+  }
+  const authKey = discovered.pubKey || supabaseKey;
+  if (!authKey) {
+    return { user: null, error: 'Supabase Auth key missing' };
+  }
+  try {
+    const isolatedClient = createClient(supabaseUrl, authKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    const { data, error } = await isolatedClient.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
+    if (error || !data?.user) {
+      return { user: null, error: error?.message || 'Invalid credentials' };
+    }
+    return { user: data.user };
+  } catch (err: any) {
+    return { user: null, error: err?.message || 'Authentication failed' };
+  }
+}
+
 export async function pingSupabase(): Promise<{
   ok: boolean;
   latencyMs: number;
@@ -276,12 +328,10 @@ export async function getSessionUser(userIdOrEmail?: string | null): Promise<Use
     }
   }
 
-  // Fallback to in-memory mock db
-  const found =
-    db.users.find((u) => u.id === clean || u.email.toLowerCase() === clean.toLowerCase()) ||
-    (clean.includes('@')
-      ? db.users.find((u) => u.email.toLowerCase().startsWith(clean.toLowerCase().split('@')[0]))
-      : null);
+  // Fallback to in-memory mock db (exact id or email match only)
+  const found = db.users.find(
+    (u) => u.id === clean || u.email.toLowerCase().trim() === clean.toLowerCase()
+  );
 
   return found || null;
 }

@@ -60,12 +60,20 @@ export async function POST(req: NextRequest) {
               { status: 409 }
             );
           }
-          console.warn('Supabase auth.admin.createUser warning:', authError.message);
+          return NextResponse.json(
+            { error: authError.message || 'Unable to create secure authentication record.' },
+            { status: 400 }
+          );
         }
 
-        if (authData?.user?.id) {
-          authUserId = authData.user.id;
+        if (!authData?.user?.id) {
+          return NextResponse.json(
+            { error: 'Authentication provisioning failed. Please try again.' },
+            { status: 500 }
+          );
         }
+
+        authUserId = authData.user.id;
 
         // B. Upsert into public.profiles table (portal locked until package is purchased & verified)
         const profilePayload = {

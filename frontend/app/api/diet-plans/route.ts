@@ -76,7 +76,11 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = AuthService.getCurrentUser(userId) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveServerUser(userId);
+
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden: Only coaches and administrators can assign nutrition plans.' }, { status: 403 });
+    }
 
     const body = await req.json();
     const validated = SaveDietPlanSchema.parse(body);

@@ -27,7 +27,7 @@ function getDefaultDurationDays(tier: string): number {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
+    const adminId = searchParams.get('adminId');
     const adminUser = await resolveServerUser(adminId);
 
     if (adminUser.role !== 'admin' && adminUser.role !== 'instructor') {
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
+    const adminId = searchParams.get('adminId');
     const adminUser = await resolveServerUser(adminId);
 
     if (adminUser.role !== 'admin') {
@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
+    const adminId = searchParams.get('adminId');
     const adminUser = await resolveServerUser(adminId);
 
     if (adminUser.role !== 'admin') {

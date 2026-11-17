@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getR2Credentials, uploadToR2 } from '@/lib/storage/cloudflare-r2';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
-import { AuthService } from '@/lib/services/auth-service';
+import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -13,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    const caller = (userId ? AuthService.getCurrentUser(userId) : null) || ({ id: 'usr_admin_1', role: 'admin' } as any);
+    const caller = await resolveServerUser(userId);
 
     if (caller.role !== 'admin' && caller.role !== 'instructor') {
       return NextResponse.json(

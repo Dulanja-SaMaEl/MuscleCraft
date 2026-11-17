@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/services/auth-service';
-import { db } from '@/lib/db/mock-db';
-import { supabaseServer, isServerSupabaseConfigured, getSessionUser, enforceAndSyncUserStatus } from '@/lib/supabase/server';
+import {
+  supabaseServer,
+  isServerSupabaseConfigured,
+  getSessionUser,
+  enforceAndSyncUserStatus,
+  findAuthUserByEmail,
+  verifySupabaseCredentials,
+} from '@/lib/supabase/server';
+
+const ADMIN_ALIASES = new Set(['admin', 'owner', 'adeesha', 'coach', 'owner@musclecraft.lk']);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -12,46 +20,9 @@ export async function GET(req: NextRequest) {
     user = await enforceAndSyncUserStatus(user);
   }
 
-  // Available personas: load real profiles from Supabase if configured
-  let availablePersonas: any[] = [];
-
-  if (isServerSupabaseConfigured && supabaseServer) {
-    try {
-      const { data: profiles } = await supabaseServer
-        .from('profiles')
-        .select('id, name, email, role, tier, status')
-        .order('role', { ascending: true });
-
-      if (profiles && profiles.length > 0) {
-        availablePersonas = profiles.map((p) => ({
-          id: String(p.id),
-          name: p.name,
-          email: p.email,
-          role: p.role,
-          tier: p.tier || 'none',
-          status: p.status || 'active',
-        }));
-      }
-    } catch (err) {
-      console.warn('Could not query personas from Supabase:', err);
-    }
-  }
-
-  // Fallback / merge with default personas
-  if (availablePersonas.length === 0) {
-    availablePersonas = db.users.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      tier: u.tier,
-      status: u.status,
-    }));
-  }
-
   return NextResponse.json({
     user,
-    availablePersonas,
+    availablePersonas: [],
     source: isServerSupabaseConfigured ? 'supabase' : 'mock',
   });
 }
@@ -61,109 +32,85 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, personaId } = body;
 
+    if (personaId) {
+      return NextResponse.json(
+        { error: 'Passwordless account switching is disabled in production.' },
+        { status: 403 }
+      );
+    }
+
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || password.length === 0) {
+      return NextResponse.json(
+        { error: 'Email and password are required.' },
+        { status: 400 }
+      );
+    }
+
+    const rawCleanEmail = email.toLowerCase().trim();
+    const targetEmail =
+      ADMIN_ALIASES.has(rawCleanEmail) || rawCleanEmail.startsWith('admin@')
+        ? 'adeesha@musclecraft.lk'
+        : rawCleanEmail;
+
     let user = null;
 
-    if (personaId) {
-      user = await getSessionUser(personaId);
-    } else if (email) {
-      const cleanEmail = email.toLowerCase().trim();
+    if (isServerSupabaseConfigured && supabaseServer) {
+      // 1. Check whether the email already owns a Supabase Auth credential record
+      const existingAuthUser = await findAuthUserByEmail(targetEmail);
 
-      // 0. Quick keyword matching for admin / owner shortcuts
-      if (
-        cleanEmail === 'admin' ||
-        cleanEmail === 'owner' ||
-        cleanEmail === 'adeesha' ||
-        cleanEmail === 'coach' ||
-        cleanEmail === 'adeesha@musclecraft.lk' ||
-        cleanEmail === 'owner@musclecraft.lk' ||
-        cleanEmail.startsWith('admin@')
-      ) {
-        // If password is provided, check if it's the known admin password
-        if (password && password !== 'passthrough' && !AuthService.verifyPassword('adeesha@musclecraft.lk', password)) {
+      if (existingAuthUser) {
+        // Strict Supabase Auth verification with isolated client - ZERO fallback on mismatch
+        const { user: verifiedAuth } = await verifySupabaseCredentials(targetEmail, password);
+        if (!verifiedAuth) {
           return NextResponse.json(
-            { error: 'Incorrect password for Admin / Head Coach desk.' },
+            { error: 'Invalid email or password.' },
             { status: 401 }
           );
         }
-        // Prefer live Supabase profile so admin ID matches PostgreSQL FK references
-        user = (await getSessionUser('adeesha@musclecraft.lk')) || db.users.find((u) => u.role === 'admin') || null;
-      }
+        user = await getSessionUser(targetEmail);
+      } else {
+        // Legacy seeded profile not yet provisioned in auth.users: strictly verify known credentials
+        const localValid = AuthService.verifyPassword(targetEmail, password);
+        if (!localValid) {
+          return NextResponse.json(
+            { error: 'Invalid email or password.' },
+            { status: 401 }
+          );
+        }
 
-      // 1. Check Supabase Auth & profiles table
-      if (!user && isServerSupabaseConfigured && supabaseServer) {
-        try {
-          // If a password was provided, attempt verification with Supabase Auth
-          if (password && password !== 'passthrough') {
-            const { data: authData, error: authErr } = await supabaseServer.auth.signInWithPassword({
-              email: cleanEmail,
-              password: password,
+        user = await getSessionUser(targetEmail);
+        if (user) {
+          // Auto-provision into Supabase Auth now that the seeded credential was strictly verified
+          try {
+            await supabaseServer.auth.admin.createUser({
+              email: targetEmail,
+              password,
+              email_confirm: true,
+              user_metadata: {
+                name: user.name,
+                role: user.role,
+              },
             });
-
-            // If Supabase specifically tells us Invalid login credentials, and user has an auth account
-            if (authErr && authErr.message?.toLowerCase().includes('invalid login credentials')) {
-              // Check if AuthService has a local override or if this was a registered user
-              const localAuth = AuthService.authenticate(cleanEmail, password);
-              if (localAuth.error) {
-                return NextResponse.json({ error: localAuth.error }, { status: 401 });
-              }
-            }
+          } catch {
+            // Safe to ignore if already created concurrently
           }
-
-          // Fetch user profile from Supabase profiles
-          const { data, error } = await supabaseServer
-            .from('profiles')
-            .select('*')
-            .ilike('email', cleanEmail)
-            .limit(1)
-            .maybeSingle();
-
-          if (!error && data) {
-            // Check local password verification if user registered a password
-            if (password && password !== 'passthrough') {
-              const authCheck = AuthService.authenticate(cleanEmail, password);
-              if (authCheck.error) {
-                return NextResponse.json({ error: authCheck.error }, { status: 401 });
-              }
-            }
-
-            user = {
-              id: String(data.id),
-              email: data.email,
-              name: data.name,
-              role: data.role,
-              tier: data.tier || 'none',
-              packageId: data.package_id,
-              packageName: data.package_name,
-              packageType: data.package_type,
-              status: data.status || 'active',
-              avatarUrl: data.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-              assignedInstructorId: data.assigned_instructor_id,
-              assignedInstructorName: data.assigned_instructor_name,
-              membershipExpiresAt: data.membership_expires_at,
-              joinedAt: data.joined_at,
-              phone: data.phone,
-            };
-          }
-        } catch (err) {
-          console.warn('Supabase auth search error:', err);
         }
       }
-
-      // 2. Fallback to AuthService (for demo / seeded / locally registered accounts)
-      if (!user) {
-        const authRes = AuthService.authenticate(cleanEmail, password);
-        if (authRes.error) {
-          return NextResponse.json({ error: authRes.error }, { status: 401 });
-        }
-        if (authRes.user) {
-          user = authRes.user;
-        }
+    } else {
+      // Pure local/mock fallback mode (strict password required)
+      const authRes = AuthService.authenticate(targetEmail, password);
+      if (authRes.error || !authRes.user) {
+        return NextResponse.json(
+          { error: authRes.error || 'Invalid email or password.' },
+          { status: 401 }
+        );
       }
+      user = authRes.user;
     }
 
     if (!user) {
       return NextResponse.json(
-        { error: 'No account found matching this email. Please register an account first or check your credentials.' },
+        { error: 'Invalid email or password.' },
         { status: 401 }
       );
     }

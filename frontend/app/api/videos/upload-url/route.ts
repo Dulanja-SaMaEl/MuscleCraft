@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getR2Credentials, getPresignedR2UploadUrl } from '@/lib/storage/cloudflare-r2';
-import { AuthService } from '@/lib/services/auth-service';
+import { resolveServerUser } from '@/lib/supabase/server';
 import path from 'path';
 
 export const runtime = 'nodejs';
@@ -10,11 +10,13 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
-    let caller: any = userId ? (AuthService.getCurrentUser(userId) || AuthService.getUserByEmail(userId)) : null;
+    const caller = await resolveServerUser(userId);
 
-    // Allow admin / coach upload permissions; in admin panel fallback to default admin authorization
-    if (!caller || (caller.role !== 'admin' && caller.role !== 'instructor')) {
-      caller = { id: 'usr_admin_1', role: 'admin', name: 'Adeesha Admin', email: 'adeesha@musclecraft.lk', tier: 'sole_1y', status: 'active', joinedAt: '2026-01-01' };
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only coaches and administrators can upload session videos.' },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/mock-db';
 import { AuthService } from '@/lib/services/auth-service';
 import { BroadcastMessageSchema } from '@/lib/validation';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,7 +57,11 @@ export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
-    const caller = AuthService.getCurrentUser(adminId) || ({ id: 'usr_admin_1', name: 'Adeesha Kumarasingha (Head Coach)', role: 'admin' } as any);
+    const caller = await resolveServerUser(adminId);
+
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden: Only coaches and administrators can dispatch broadcasts.' }, { status: 403 });
+    }
 
     const body = await req.json();
     const validated = BroadcastMessageSchema.parse(body);

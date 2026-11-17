@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     const { searchParams } = new URL(req.url);
-    const adminId = searchParams.get('adminId') || 'usr_admin_1';
+    const adminId = searchParams.get('adminId');
     const adminUser = await resolveServerUser(adminId);
 
     if (adminUser.role !== 'admin') {
