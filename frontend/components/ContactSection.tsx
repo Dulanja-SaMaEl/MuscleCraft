@@ -122,6 +122,13 @@ export default function ContactSection() {
                 <span className="text-white font-semibold">Head Coach:</span> coach@musclecraft.lk
                 <br />
                 <span className="text-white font-semibold">General:</span> info@musclecraft.lk
+                <br />
+                <span className="text-white font-semibold">Development:</span>{' '}
+                <span className="text-gray-200 font-medium">The Monolith LK</span> · Dulanja Abeysinghe (
+                <a href="tel:0765917189" className="text-crimson-400 hover:underline font-medium">
+                  0765917189
+                </a>
+                )
               </p>
             </Card3DTilt>
           </div>

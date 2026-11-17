@@ -845,6 +845,36 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
       </div>
 
       {/* ───────────────────────────────────────────────────────────
+          PLATFORM ENGINEERING & DEVELOPMENT CONTACT
+          ─────────────────────────────────────────────────────────── */}
+      <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+              Official Development Partner
+            </span>
+          </div>
+          <h3 className="text-base font-bold text-white">The Monolith LK</h3>
+          <p className="text-xs text-gray-400">
+            Platform Architecture, Supabase PostgreSQL, Cloudflare R2 Video Vault, and Engineering Support
+          </p>
+        </div>
+        <div className="flex items-center gap-4 bg-[#161620] px-5 py-3 rounded-2xl border border-white/[0.06]">
+          <div className="text-right">
+            <span className="text-[10px] uppercase font-mono text-gray-400 block">Lead Engineer / Support</span>
+            <span className="text-sm font-bold text-white">Dulanja Abeysinghe</span>
+          </div>
+          <a
+            href="tel:0765917189"
+            className="px-3.5 py-1.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-mono text-xs font-semibold transition-colors shadow-[0_0_12px_rgba(186,26,26,0.35)]"
+          >
+            0765917189
+          </a>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────────────
           5. PRODUCTION API ROUTE AUDIT TABLE
           ─────────────────────────────────────────────────────────── */}
       <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl space-y-4">

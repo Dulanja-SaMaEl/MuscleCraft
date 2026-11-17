@@ -2207,8 +2207,15 @@ export default function AdminDashboard() {
         </main>
 
         {/* Minimal Admin Workspace Footer (NOT public marketing footer) */}
-        <footer className="py-4 px-6 sm:px-8 border-t border-white/[0.04] text-[11px] text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <footer className="py-4 px-6 sm:px-8 border-t border-white/[0.04] text-[11px] text-gray-500 flex flex-col md:flex-row items-center justify-between gap-2 text-center md:text-left">
           <span>MuscleCraft Operations Command Center · Owner Edition v1.2</span>
+          <span className="text-gray-400">
+            Development Contact: <strong className="text-gray-200 font-medium">The Monolith LK</strong> · Dulanja Abeysinghe (
+            <a href="tel:0765917189" className="text-crimson-400 hover:text-crimson-300 transition-colors underline underline-offset-2">
+              0765917189
+            </a>
+            )
+          </span>
           <span>Authorized Personnel Only · All Actions Recorded & Synced</span>
         </footer>
       </div>

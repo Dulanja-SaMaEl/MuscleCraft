@@ -115,10 +115,10 @@ export default function ContactMapSlide() {
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                      Direct Inquiries
+                      Direct Inquiries & Dev Contact
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      coach@musclecraft.lk • info@musclecraft.lk
+                      coach@musclecraft.lk • Dev: The Monolith LK (0765917189)
                     </p>
                   </div>
                 </Card3DTilt>

@@ -184,8 +184,22 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-14 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <p>© {new Date().getFullYear()} MuscleCraft. All rights reserved.</p>
+        <div className="mt-14 pt-8 border-t border-white/[0.06] flex flex-col lg:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} MuscleCraft. All rights reserved.</p>
+            <span className="hidden sm:inline text-white/20">•</span>
+            <p className="text-gray-400">
+              Development Contact:{' '}
+              <span className="text-gray-200 font-semibold">The Monolith LK</span> · Dulanja Abeysinghe (
+              <a
+                href="tel:0765917189"
+                className="text-crimson-400 hover:text-crimson-300 transition-colors font-medium underline underline-offset-2"
+              >
+                0765917189
+              </a>
+              )
+            </p>
+          </div>
 
           <div className="flex items-center space-x-6">
             <Link href="/privacy" className="hover:text-crimson-400 transition-colors">
