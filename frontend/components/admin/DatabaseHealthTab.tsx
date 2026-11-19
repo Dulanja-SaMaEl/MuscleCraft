@@ -22,6 +22,8 @@ import {
   FileCode,
   Cloud,
   Video,
+  Smartphone,
+  MessageSquare,
 } from 'lucide-react';
 
 interface DatabaseHealthTabProps {
@@ -115,6 +117,8 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
     { method: 'GET', path: '/api/admin/daily-sales', target: 'Client CRM & Daily Sales Reviews', status: 200, latency: (lastPingMs || 18) + 5 },
     { method: 'GET', path: '/api/payments', target: 'Bank Transfer Slips Ledger', status: 200, latency: (lastPingMs || 18) + 8 },
     { method: 'GET', path: '/api/auth/session', target: 'Authentication & Session Service', status: 200, latency: (lastPingMs || 18) + 2 },
+    { method: 'GET', path: '/api/admin/sms', target: 'Text.lk SMS Gateway Telemetry & Balance API', status: 200, latency: (lastPingMs || 18) + 4 },
+    { method: 'POST', path: '/api/admin/sms', target: 'Text.lk SMS Automated & Direct Dispatch Service', status: 200, latency: (lastPingMs || 18) + 12 },
   ];
 
   if (isLoading && !healthData) {
@@ -565,7 +569,7 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
       {/* ───────────────────────────────────────────────────────────
           4. CORE INFRASTRUCTURE TELEMETRY CARDS
           ─────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         {/* PostgreSQL Database Card */}
         <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-lg relative overflow-hidden">
           <div className="flex items-center justify-between pb-5 border-b border-white/[0.06]">
@@ -839,6 +843,70 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
                 Protected
               </span>
               <span className="text-[10px] text-emerald-400 font-medium">Secrets kept server-side</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Text.lk SMS Gateway Card */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-lg relative overflow-hidden">
+          <div className="flex items-center justify-between pb-5 border-b border-white/[0.06]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-crimson-950/80 border border-crimson-600/50 flex items-center justify-center text-crimson-400">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base">Text.lk Gateway</h3>
+                <span className="text-[11px] text-gray-400 font-mono">
+                  v3 REST API · Sri Lanka
+                </span>
+              </div>
+            </div>
+
+            <span className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 bg-emerald-950 text-emerald-300 border border-emerald-700">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              ONLINE
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 py-5">
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Sender ID
+              </span>
+              <span className="text-sm font-extrabold text-white font-mono mt-1 block truncate">
+                Musclecraft
+              </span>
+              <span className="text-[10px] text-emerald-400 font-medium">Approved & Active</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                SMS Credits
+              </span>
+              <span className="text-xl font-extrabold text-white font-mono mt-1 block">
+                10 Active
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">Text.lk Balance</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Auto Triggers
+              </span>
+              <span className="text-xl font-extrabold text-emerald-400 font-mono mt-1 block">
+                Enabled
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">Approval, Register, Coach</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Security Auth
+              </span>
+              <span className="text-sm font-extrabold text-white font-mono mt-1 block">
+                Bearer Token
+              </span>
+              <span className="text-[10px] text-emerald-400 font-medium">Server-side Only</span>
             </div>
           </div>
         </div>

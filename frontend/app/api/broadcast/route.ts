@@ -3,10 +3,16 @@ import { db } from '@/lib/db/mock-db';
 import { AuthService } from '@/lib/services/auth-service';
 import { BroadcastMessageSchema } from '@/lib/validation';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
+import { SmsService } from '@/lib/services/sms-service';
 
 export async function GET(req: NextRequest) {
   try {
     let broadcasts = db.broadcastMessages || [];
+    let gatewayStatus = null;
+
+    try {
+      gatewayStatus = await SmsService.getGatewayStatus();
+    } catch (_) {}
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
@@ -46,6 +52,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       broadcasts,
+      gateway: gatewayStatus,
       source: isServerSupabaseConfigured ? 'supabase' : 'cache',
     });
   } catch (error: any) {
@@ -72,7 +79,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data } = await supabaseServer
           .from('profiles')
-          .select('id, role, tier, package_type, package_name')
+          .select('id, name, phone, role, tier, package_type, package_name')
           .eq('role', 'client');
         if (data && data.length > 0) {
           clientProfiles = data;
@@ -86,36 +93,61 @@ export async function POST(req: NextRequest) {
       clientProfiles = db.users.filter((u) => u.role === 'client');
     }
 
-    let recipientCount = clientProfiles.length;
+    let targetClients = clientProfiles;
     if (validated.audience === 'coaching_90_vip') {
-      recipientCount = clientProfiles.filter(
+      targetClients = clientProfiles.filter(
         (p) =>
           p.tier === 'coaching_90' ||
           p.package_type === 'coaching' ||
           p.packageType === 'coaching' ||
           p.package_name?.toLowerCase().includes('coaching') ||
           p.packageName?.toLowerCase().includes('coaching')
-      ).length;
+      );
     } else if (validated.audience === 'sole_members') {
-      recipientCount = clientProfiles.filter(
+      targetClients = clientProfiles.filter(
         (p) =>
           p.tier?.startsWith('sole') ||
           p.package_type === 'sole' ||
           p.packageType === 'sole' ||
           p.package_name?.toLowerCase().includes('sole') ||
           p.packageName?.toLowerCase().includes('sole')
-      ).length;
+      );
     } else if (validated.audience === 'couple_members') {
-      recipientCount = clientProfiles.filter(
+      targetClients = clientProfiles.filter(
         (p) =>
           p.tier?.startsWith('couple') ||
           p.package_type === 'couple' ||
           p.packageType === 'couple' ||
           p.package_name?.toLowerCase().includes('couple') ||
           p.packageName?.toLowerCase().includes('couple')
-      ).length;
+      );
     } else if (validated.audience === 'specific_client') {
-      recipientCount = 1;
+      targetClients = clientProfiles.filter((p) => p.id === validated.targetClientId);
+    }
+
+    const recipientCount = targetClients.length;
+
+    // Dispatch real SMS via Text.lk if SMS channel is chosen
+    let smsDispatchResult: any = null;
+    if (validated.channels?.includes('sms') && targetClients.length > 0) {
+      const phones = targetClients
+        .map((c) => c.phone)
+        .filter((p): p is string => Boolean(p && typeof p === 'string' && p.trim().length > 6));
+
+      if (phones.length > 0) {
+        const smsContent = `MuscleCraft: ${validated.title}\n${validated.body}`;
+        try {
+          smsDispatchResult = await SmsService.sendSms({
+            to: phones,
+            message: smsContent,
+          });
+        } catch (smsErr: any) {
+          console.error('SMS Gateway broadcast error:', smsErr);
+          smsDispatchResult = { success: false, error: smsErr.message };
+        }
+      } else {
+        smsDispatchResult = { success: false, error: 'No phone numbers on file for selected audience' };
+      }
     }
 
     const nowIso = new Date().toISOString();
@@ -163,6 +195,23 @@ export async function POST(req: NextRequest) {
           status: 'sent',
           created_at: newBroadcast.sentAt,
         });
+
+        // Audit log entry for SMS broadcast
+        if (validated.channels?.includes('sms')) {
+          await supabaseServer.from('audit_logs').insert({
+            actor_id: caller.id,
+            actor_email: caller.email,
+            action: 'DISPATCH_SMS_BROADCAST',
+            target_type: 'broadcast_announcement',
+            target_id: newBroadcast.id,
+            details: {
+              title: newBroadcast.title,
+              audience: validated.audience,
+              recipientsCount: recipientCount,
+              smsResult: smsDispatchResult,
+            },
+          });
+        }
       } catch (err) {
         console.warn('Supabase broadcast insert error:', err);
       }
@@ -172,6 +221,7 @@ export async function POST(req: NextRequest) {
       success: true,
       broadcast: newBroadcast,
       recipientCount,
+      sms: smsDispatchResult,
     }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

@@ -9,6 +9,7 @@ import {
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 import { UserStatus } from '@/lib/types';
+import { SmsService } from '@/lib/services/sms-service';
 
 function inferPackageType(tier: string): 'sole' | 'couple' | 'coaching' {
   if (tier.startsWith('couple')) return 'couple';
@@ -282,6 +283,20 @@ export async function POST(req: NextRequest) {
     });
 
     AuthService.setPassword(cleanEmail, password);
+
+    // Automatic SMS Notification: Admin Created Member with Credentials
+    if (phone) {
+      try {
+        await SmsService.notifyAdminCreatedMember({
+          phone,
+          name: cleanName,
+          email: cleanEmail,
+          password,
+        });
+      } catch (smsErr) {
+        console.warn('Admin member creation SMS dispatch warning:', smsErr);
+      }
+    }
 
     return NextResponse.json(
       {

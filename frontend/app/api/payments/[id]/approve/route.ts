@@ -7,6 +7,7 @@ import {
   resolveServerUser,
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
+import { SmsService } from '@/lib/services/sms-service';
 
 function computePlanDurationDays(tier?: string | null): number {
   if (!tier) return 30;
@@ -85,7 +86,7 @@ export async function POST(
           const priceInfo = PaymentService.getTierPrice(existing.tier);
           const { data: currentProfile } = await supabaseServer
             .from('profiles')
-            .select('membership_expires_at, status')
+            .select('name, phone, membership_expires_at, status')
             .eq('id', existing.user_id)
             .maybeSingle();
 
@@ -116,6 +117,22 @@ export async function POST(
             localUser.tier = existing.tier;
             localUser.packageName = priceInfo.name;
             localUser.membershipExpiresAt = newExpiry;
+          }
+
+          // Automatic SMS Notification: Bank Slip Approved & Membership Activated
+          try {
+            const memberPhone = currentProfile?.phone || localUser?.phone;
+            const memberName = currentProfile?.name || localUser?.name || 'Athlete';
+            if (memberPhone) {
+              await SmsService.notifyPaymentApproved({
+                phone: memberPhone,
+                name: memberName,
+                amount: existing.amount,
+                packageName: priceInfo.name,
+              });
+            }
+          } catch (smsErr) {
+            console.warn('Payment approval SMS dispatch warning:', smsErr);
           }
         }
       }

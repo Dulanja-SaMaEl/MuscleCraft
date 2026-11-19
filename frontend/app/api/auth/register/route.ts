@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/services/auth-service';
 import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { SmsService } from '@/lib/services/sms-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -145,6 +146,18 @@ export async function POST(req: NextRequest) {
 
     // Set password in credentials map for memory caching
     AuthService.setPassword(cleanEmail, password);
+
+    // Automatic Welcome SMS Notification via Text.lk
+    if (phone) {
+      try {
+        await SmsService.notifyWelcomeRegistered({
+          phone,
+          name: cleanName,
+        });
+      } catch (smsErr) {
+        console.warn('Welcome SMS dispatch warning:', smsErr);
+      }
+    }
 
     return NextResponse.json(
       {

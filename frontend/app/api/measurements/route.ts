@@ -10,6 +10,7 @@ import {
   isClientPortalActive,
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
+import { SmsService } from '@/lib/services/sms-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -164,6 +165,44 @@ export async function PATCH(req: NextRequest) {
         }
       } catch (err) {
         console.warn('Supabase measurement update exception:', err);
+      }
+    }
+
+    if (updated?.userId && feedback && typeof feedback === 'string' && feedback.trim().length > 0) {
+      try {
+        let athletePhone: string | null = null;
+        let athleteName = 'Athlete';
+
+        if (isServerSupabaseConfigured && supabaseServer) {
+          const { data: athleteProf } = await supabaseServer
+            .from('profiles')
+            .select('name, phone')
+            .eq('id', updated.userId)
+            .maybeSingle();
+
+          if (athleteProf) {
+            athletePhone = athleteProf.phone || null;
+            athleteName = athleteProf.name || athleteName;
+          }
+        }
+
+        if (!athletePhone) {
+          const localUser = db.users.find((u) => u.id === updated.userId);
+          if (localUser) {
+            athletePhone = localUser.phone || null;
+            athleteName = localUser.name || athleteName;
+          }
+        }
+
+        if (athletePhone) {
+          await SmsService.notifyCoachFeedback({
+            phone: athletePhone,
+            name: athleteName,
+            weekNumber: updated.weekNumber || 1,
+          });
+        }
+      } catch (smsErr) {
+        console.warn('Coach feedback SMS notification error:', smsErr);
       }
     }
 

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useAuth } from '@/lib/context/auth-context';
 import {
   Radio,
   Send,
@@ -19,6 +20,7 @@ import {
   User,
   Shield,
   Layers,
+  Zap,
 } from 'lucide-react';
 import { BroadcastAudience, BroadcastChannel, User as UserType } from '@/lib/types';
 
@@ -35,6 +37,7 @@ export default function BroadcastTab({
   isLoading,
   onSendBroadcast,
 }: BroadcastTabProps) {
+  const { currentUser } = useAuth();
   // Form State
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -46,6 +49,77 @@ export default function BroadcastTab({
   const [priority, setPriority] = useState<'normal' | 'high' | 'urgent'>('normal');
   const [isDispatching, setIsDispatching] = useState(false);
   const [previewMode, setPreviewMode] = useState<'in_app' | 'sms' | 'push'>('in_app');
+
+  // Gateway Live Telemetry & Test SMS
+  const [gatewayStatus, setGatewayStatus] = useState<{
+    isConfigured: boolean;
+    provider: string;
+    senderId: string;
+    balance?: string | number;
+    expiredOn?: string;
+    status: string;
+  } | null>(null);
+  const [showTestSmsModal, setShowTestSmsModal] = useState(false);
+  const [testPhone, setTestPhone] = useState('0765917189');
+  const [testMessage, setTestMessage] = useState('MuscleCraft Test: Text.lk SMS integration online with sender ID Musclecraft.');
+  const [isSendingTestSms, setIsSendingTestSms] = useState(false);
+  const [testSmsResult, setTestSmsResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const fetchGatewayStatus = async () => {
+    try {
+      const adminId = currentUser?.id || 'usr_admin_1';
+      const res = await fetch(`/api/admin/sms?adminId=${encodeURIComponent(adminId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.gateway) {
+          setGatewayStatus(data.gateway);
+        }
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    fetchGatewayStatus();
+  }, [currentUser]);
+
+  const handleSendTestSms = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testPhone.trim()) return;
+
+    setIsSendingTestSms(true);
+    setTestSmsResult(null);
+    try {
+      const adminId = currentUser?.id || 'usr_admin_1';
+      const res = await fetch(`/api/admin/sms?adminId=${encodeURIComponent(adminId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: testPhone.trim(),
+          message: testMessage.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestSmsResult({
+          type: 'success',
+          text: data.message || `Test SMS dispatched successfully to ${testPhone}!`,
+        });
+        await fetchGatewayStatus();
+      } else {
+        setTestSmsResult({
+          type: 'error',
+          text: data.error || 'Failed to dispatch test SMS.',
+        });
+      }
+    } catch (err: any) {
+      setTestSmsResult({
+        type: 'error',
+        text: err.message || 'Connection error while contacting SMS gateway.',
+      });
+    } finally {
+      setIsSendingTestSms(false);
+    }
+  };
 
   const clientMembers = members.filter((m) => m.role === 'client');
   const allCount = clientMembers.length;
@@ -236,14 +310,36 @@ export default function BroadcastTab({
           <span className="text-[11px] text-emerald-400 mt-1 block">100% Delivery rate</span>
         </div>
 
-        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
-          <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
-            SMS Gateway Status
-          </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono mt-2 block">
-            Online
-          </span>
-          <span className="text-[11px] text-gray-400 mt-1 block">Dialog / Mobitel Core API</span>
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
+                Text.lk Gateway
+              </span>
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                gatewayStatus?.status === 'online'
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-600/40'
+                  : 'bg-amber-950/80 text-amber-400 border border-amber-600/40'
+              }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                {gatewayStatus?.status || 'Online'}
+              </span>
+            </div>
+            <span className="text-xl sm:text-2xl font-extrabold text-white font-mono mt-1.5 block">
+              {gatewayStatus?.balance !== undefined ? `${gatewayStatus.balance} Credits` : 'Text.lk v3'}
+            </span>
+            <span className="text-[11px] text-gray-400 mt-0.5 block truncate">
+              Sender ID: <strong className="text-gray-200">{gatewayStatus?.senderId || 'Musclecraft'}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowTestSmsModal(true)}
+            className="mt-3 w-full py-1.5 px-3 rounded-lg bg-white/[0.05] hover:bg-crimson-950 hover:border-crimson-600/60 border border-white/[0.08] text-[11px] font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-crimson-400" />
+            <span>Test Gateway SMS</span>
+          </button>
         </div>
       </div>
 
@@ -398,7 +494,12 @@ export default function BroadcastTab({
                   4. Message Body Content:
                 </label>
                 <span className="text-[11px] font-mono text-gray-400">
-                  {body.length} / 500 chars · {Math.ceil((body.length || 1) / 160)} SMS segment
+                  {body.length} / 500 chars · {Math.max(1, Math.ceil((body.length || 1) / 160))} SMS segment(s)
+                  {channels.includes('sms') && (
+                    <span className="text-crimson-400 ml-1.5 font-sans font-semibold">
+                      · Text.lk [{gatewayStatus?.senderId || 'Musclecraft'}]
+                    </span>
+                  )}
                 </span>
               </div>
               <textarea
@@ -715,6 +816,102 @@ export default function BroadcastTab({
           </table>
         </div>
       </div>
+      {/* Test SMS Modal */}
+      {showTestSmsModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTestSmsModal(false);
+          }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden my-auto">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e]">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <Smartphone className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-white font-bold text-sm">Text.lk Gateway Live Test</h3>
+                  <p className="text-[11px] text-gray-400 font-mono">
+                    Sender: {gatewayStatus?.senderId || 'Musclecraft'} · Balance: {gatewayStatus?.balance ?? '10'} Credits
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTestSmsModal(false)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendTestSms} className="p-6 space-y-4">
+              {testSmsResult && (
+                <div
+                  className={`p-3 rounded-xl border text-xs font-medium ${
+                    testSmsResult.type === 'success'
+                      ? 'bg-emerald-950/60 border-emerald-600/50 text-emerald-300'
+                      : 'bg-rose-950/60 border-rose-600/50 text-rose-300'
+                  }`}
+                >
+                  {testSmsResult.text}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Recipient Phone (Sri Lanka):
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 0765917189 or 94765917189"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                />
+                <span className="text-[10px] text-gray-400 block mt-1">
+                  Auto-formatted to standard 94XXXXXXXXX for Text.lk network.
+                </span>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Test Message:
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  className="w-full bg-[#161620] border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTestSmsModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingTestSms}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(186,26,26,0.4)] disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSendingTestSms ? 'Dispatching...' : 'Send Live SMS'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

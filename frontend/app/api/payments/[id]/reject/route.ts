@@ -6,6 +6,7 @@ import {
   resolveServerUser,
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
+import { SmsService } from '@/lib/services/sms-service';
 
 export async function POST(
   req: NextRequest,
@@ -49,6 +50,27 @@ export async function POST(
 
       if (!error && updPay) {
         updatedPayment = updPay;
+
+        // Automatic SMS Notification: Bank Slip Rejected
+        if (updPay.user_id) {
+          try {
+            const { data: userProf } = await supabaseServer
+              .from('profiles')
+              .select('name, phone')
+              .eq('id', updPay.user_id)
+              .maybeSingle();
+
+            if (userProf?.phone) {
+              await SmsService.notifyPaymentRejected({
+                phone: userProf.phone,
+                name: userProf.name || 'Athlete',
+                reason,
+              });
+            }
+          } catch (smsErr) {
+            console.warn('Payment rejection SMS dispatch warning:', smsErr);
+          }
+        }
       }
     }
 
