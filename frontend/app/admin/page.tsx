@@ -339,46 +339,61 @@ export default function AdminDashboard() {
   // Telemetry & Statistics
   const [stats, setStats] = useState<any>({
     totalMembers: 8,
-    activeMembers: 5,
-    pendingMembers: 2,
+    activeMembers: 7,
+    pendingMembers: 1,
     pendingTransfers: 2,
-    totalRevenue: 218500,
-    admissionFeesTotal: 18500,
-    monthRevenue: 218500,
-    approvedCount: 5,
-    rejectedCount: 1,
-    soleMembers: 65,
-    coupleMembers: 23,
-    coachingMembers: 19,
-    expiringSoonCount: 1,
-    checkinsToday: 38,
-    pendingCoachReviews: 2,
+    totalRevenue: 63500,
+    admissionFeesTotal: 2000,
+    monthRevenue: 63500,
+    approvedCount: 3,
+    rejectedCount: 0,
+    soleMembers: 5,
+    coupleMembers: 1,
+    coachingMembers: 1,
+    activeAthleteBase: 8,
+    expiringSoonCount: 0,
+    checkinsToday: 5,
+    pendingCoachReviews: 1,
+    growthPercent: 46,
     salesTrend: [
-      { month: 'May', revenue: 95000, newMembers: 12, sole: 8, couple: 3, coaching: 1 },
-      { month: 'Jun', revenue: 124000, newMembers: 16, sole: 11, couple: 4, coaching: 1 },
-      { month: 'Jul', revenue: 148000, newMembers: 19, sole: 13, couple: 4, coaching: 2 },
-      { month: 'Aug', revenue: 162500, newMembers: 21, sole: 14, couple: 5, coaching: 2 },
-      { month: 'Sep', revenue: 184000, newMembers: 23, sole: 15, couple: 6, coaching: 2 },
-      { month: 'Oct', revenue: 218500, newMembers: 26, sole: 17, couple: 6, coaching: 3 },
+      { month: 'Jun', revenue: 8500, newMembers: 1, sole: 1, couple: 0, coaching: 0 },
+      { month: 'Jul', revenue: 17500, newMembers: 2, sole: 1, couple: 0, coaching: 0 },
+      { month: 'Aug', revenue: 26000, newMembers: 4, sole: 3, couple: 1, coaching: 1 },
+      { month: 'Sep', revenue: 34500, newMembers: 5, sole: 4, couple: 1, coaching: 1 },
+      { month: 'Oct', revenue: 43500, newMembers: 6, sole: 4, couple: 1, coaching: 1 },
+      { month: 'Nov (Current)', revenue: 63500, newMembers: 3, sole: 1, couple: 1, coaching: 1 },
     ],
     registrationFunnel: {
-      registered: 48,
-      approved: 41,
-      pending: 5,
-      notApproved: 2,
+      registered: 8,
+      approved: 7,
+      pending: 1,
+      notApproved: 0,
     },
-    packageBreakdown: [
-      { name: 'Sole 1 Month', count: 18, price: 4500, type: 'sole' },
-      { name: 'Sole 3 Months', count: 24, price: 12000, type: 'sole' },
-      { name: 'Sole 6 Months', count: 14, price: 22000, type: 'sole' },
-      { name: 'Sole 1 Year', count: 9, price: 40000, type: 'sole' },
-      { name: 'Couple 1 Month', count: 6, price: 8000, type: 'couple' },
-      { name: 'Couple 3 Months', count: 8, price: 22500, type: 'couple' },
-      { name: 'Couple 6 Months', count: 5, price: 42000, type: 'couple' },
-      { name: 'Couple 1 Year', count: 4, price: 78000, type: 'couple' },
-      { name: '90-Day VIP Coaching', count: 12, price: 8000, type: 'coaching' },
-      { name: 'BurnZone Conditioning', count: 7, price: 3000, type: 'coaching' },
-    ],
+    membershipTypeSplit: {
+      soleCount: 5,
+      solePercent: 71,
+      coupleCount: 1,
+      coupleAthletes: 2,
+      couplePercent: 14,
+      coachingCount: 1,
+      coachingPercent: 14,
+    },
+    disciplines: {
+      hypertrophy: 71,
+      transformation: 14,
+      conditioning: 14,
+      mobility: 10,
+    },
+    gymFloorLoad: {
+      totalCheckedIn: 5,
+      morning: 2,
+      afternoon: 1,
+      evening: 2,
+      status: 'Optimal Capacity',
+      peakMorning: '07:00 AM',
+      peakEvening: '06:30 PM',
+    },
+    avgTurnaround: '< 45 Mins',
   });
 
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -422,68 +437,32 @@ export default function AdminDashboard() {
     try {
       const adminId = currentUser.id;
 
-      // 1. Load Stats
-      const statsRes = await fetch(`/api/admin/stats?adminId=${adminId}`);
-      if (statsRes.ok) {
-        const d = await statsRes.json();
-        setStats(d.stats);
-      }
+      // Fetch all telemetry and operational resources in parallel
+      const results = await Promise.allSettled([
+        fetch(`/api/admin/stats?adminId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/payments?userId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/admin/members?adminId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/admin/audit-logs?adminId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/measurements?userId=${adminId}&clientId=usr_client_90`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/measurements?userId=${adminId}&clientId=all`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/videos?userId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`/api/broadcast?adminId=${adminId}`).then((r) => (r.ok ? r.json() : null)),
+        fetch('/api/health').then((r) => (r.ok ? r.json() : null)),
+      ]);
 
-      // 2. Load Payments
-      const payRes = await fetch(`/api/payments?userId=${adminId}`);
-      if (payRes.ok) {
-        const d = await payRes.json();
-        setPayments(d.payments || []);
-      }
+      const [statsRes, payRes, memRes, logRes, measRes, allMeasRes, vidRes, bcRes, healthRes] = results.map(
+        (r) => (r.status === 'fulfilled' ? r.value : null)
+      );
 
-      // 3. Load Members
-      const memRes = await fetch(`/api/admin/members?adminId=${adminId}`);
-      if (memRes.ok) {
-        const d = await memRes.json();
-        setMembers(d.members || []);
-      }
-
-      // 4. Load Audit Logs
-      const logRes = await fetch(`/api/admin/audit-logs?adminId=${adminId}`);
-      if (logRes.ok) {
-        const d = await logRes.json();
-        setAuditLogs(d.logs || []);
-      }
-
-      // 5. Load Measurements for coaching desk
-      const measRes = await fetch(`/api/measurements?userId=${adminId}&clientId=usr_client_90`);
-      if (measRes.ok) {
-        const d = await measRes.json();
-        setMeasurements(d.measurements || []);
-      }
-
-      // 6. Load All Client Measurements for analytics monitoring hub
-      const allMeasRes = await fetch(`/api/measurements?userId=${adminId}&clientId=all`);
-      if (allMeasRes.ok) {
-        const d = await allMeasRes.json();
-        setAllClientMeasurements(d.measurements || []);
-      }
-
-      // 7. Load Videos Vault
-      const vidRes = await fetch(`/api/videos?userId=${adminId}`);
-      if (vidRes.ok) {
-        const d = await vidRes.json();
-        setVideos(d.videos || []);
-      }
-
-      // 8. Load Broadcast Messages
-      const bcRes = await fetch(`/api/broadcast?adminId=${adminId}`);
-      if (bcRes.ok) {
-        const d = await bcRes.json();
-        setBroadcastHistory(d.broadcasts || []);
-      }
-
-      // 9. Load Health Telemetry
-      const healthRes = await fetch('/api/health');
-      if (healthRes.ok) {
-        const d = await healthRes.json();
-        setHealthData(d);
-      }
+      if (statsRes?.stats) setStats(statsRes.stats);
+      if (payRes?.payments) setPayments(payRes.payments);
+      if (memRes?.members) setMembers(memRes.members);
+      if (logRes?.logs) setAuditLogs(logRes.logs);
+      if (measRes?.measurements) setMeasurements(measRes.measurements);
+      if (allMeasRes?.measurements) setAllClientMeasurements(allMeasRes.measurements);
+      if (vidRes?.videos) setVideos(vidRes.videos);
+      if (bcRes?.broadcasts) setBroadcastHistory(bcRes.broadcasts);
+      if (healthRes) setHealthData(healthRes);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -872,7 +851,7 @@ export default function AdminDashboard() {
     return matchesFilter && matchesSearch;
   });
 
-  const maxTrendRevenue = Math.max(...(stats.salesTrend || []).map((t: any) => t.revenue), 250000);
+  const maxTrendRevenue = Math.max(...(stats.salesTrend || []).map((t: any) => t.revenue), 10000);
   const pendingReviewsCount = allClientMeasurements.filter((m) => !m.coachFeedback).length;
 
   const navigationItems = [
@@ -1299,7 +1278,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    <span>+18.7% vs last month</span>
+                    <span>+{stats.growthPercent || 18.7}% vs last month</span>
                   </div>
                 </div>
 
@@ -1309,10 +1288,10 @@ export default function AdminDashboard() {
                     <Users className="w-4 h-4 text-crimson-400" />
                   </div>
                   <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2">
-                    {stats.soleMembers + stats.coupleMembers * 2 + stats.coachingMembers}
+                    {stats.activeAthleteBase ?? (stats.soleMembers + stats.coupleMembers * 2 + stats.coachingMembers)}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-2">
-                    {stats.soleMembers} Sole · {stats.coupleMembers} Pairs · {stats.coachingMembers} VIP
+                    {stats.soleMembers} Sole · {stats.coupleMembers} {stats.coupleMembers === 1 ? 'Pair' : 'Pairs'} ({stats.coupleMembers * 2} Athletes) · {stats.coachingMembers} VIP
                   </div>
                 </div>
 
@@ -1341,7 +1320,7 @@ export default function AdminDashboard() {
                     Rs. {stats.admissionFeesTotal.toLocaleString()}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-2">
-                    Rs. 500 Sole / Rs. 1,000 Couple
+                    Rs. 500 Sole / Rs. 1,000 Couple ({stats.activeMembers || stats.approvedCount || 0} Verified)
                   </div>
                 </div>
               </div>
@@ -1557,14 +1536,14 @@ export default function AdminDashboard() {
                   <div className="flex flex-wrap items-center justify-between text-xs text-gray-400 pt-4 gap-3">
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded bg-crimson-600 inline-block" /> Current Month (Oct)
+                        <span className="w-3 h-3 rounded bg-crimson-600 inline-block" /> Current Month ({(stats.salesTrend?.[stats.salesTrend.length - 1]?.month || 'Nov').split(' ')[0]})
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded bg-[#2d2d3a] inline-block" /> Historical Trend
                       </span>
                     </div>
                     <span className="font-mono text-gray-300">
-                      Average Monthly Growth: <strong className="text-emerald-400">+14.2%</strong>
+                      Average Monthly Growth: <strong className="text-emerald-400">+{stats.growthPercent || 18.7}%</strong>
                     </span>
                   </div>
                 </div>
@@ -1644,12 +1623,14 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-400">Approval Rate:</span>
                       <span className="font-mono font-bold text-emerald-400 text-sm">
-                        {Math.round((stats.registrationFunnel.approved / stats.registrationFunnel.registered) * 100)}%
+                        {stats.registrationFunnel?.registered > 0
+                          ? Math.round((stats.registrationFunnel.approved / stats.registrationFunnel.registered) * 100)
+                          : 0}%
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs mt-1">
                       <span className="text-gray-400">Avg Verification Turnaround:</span>
-                      <span className="font-mono text-white">1.4 Hours</span>
+                      <span className="font-mono text-white">{stats.avgTurnaround || '< 45 Mins'}</span>
                     </div>
                   </div>
                 </div>
@@ -1667,34 +1648,49 @@ export default function AdminDashboard() {
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
                         <span>Sole Memberships</span>
-                        <span className="font-mono font-bold text-white">65% (55 Active)</span>
+                        <span className="font-mono font-bold text-white">
+                          {stats.membershipTypeSplit?.solePercent ?? 71}% ({stats.soleMembers ?? 5} Active)
+                        </span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-crimson-600 rounded-full" style={{ width: '65%' }} />
+                        <div
+                          className="h-full bg-crimson-600 rounded-full transition-all"
+                          style={{ width: `${stats.membershipTypeSplit?.solePercent ?? 71}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
                         <span>Couple Memberships</span>
-                        <span className="font-mono font-bold text-white">23% (20 Pairs)</span>
+                        <span className="font-mono font-bold text-white">
+                          {stats.membershipTypeSplit?.couplePercent ?? 14}% ({stats.coupleMembers ?? 1} {stats.coupleMembers === 1 ? 'Pair' : 'Pairs'})
+                        </span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-rose-400/80 rounded-full" style={{ width: '23%' }} />
+                        <div
+                          className="h-full bg-rose-400/80 rounded-full transition-all"
+                          style={{ width: `${stats.membershipTypeSplit?.couplePercent ?? 14}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
-                        <span>Online & BurnZone</span>
-                        <span className="font-mono font-bold text-white">12% (10 Members)</span>
+                        <span>Online & VIP Coaching</span>
+                        <span className="font-mono font-bold text-white">
+                          {stats.membershipTypeSplit?.coachingPercent ?? 14}% ({stats.coachingMembers ?? 1} VIP)
+                        </span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '12%' }} />
+                        <div
+                          className="h-full bg-amber-500 rounded-full transition-all"
+                          style={{ width: `${stats.membershipTypeSplit?.coachingPercent ?? 14}%` }}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-gray-400 leading-relaxed">
-                    💡 <strong>Couple 3M and Sole 3M</strong> account for 52% of total subscriptions due to quarterly savings.
+                    💡 <strong>Sole and Couple memberships</strong> represent {Math.min(100, (stats.membershipTypeSplit?.solePercent ?? 71) + (stats.membershipTypeSplit?.couplePercent ?? 14))}% of verified active gym athletes.
                   </div>
                 </div>
 
@@ -1707,44 +1703,56 @@ export default function AdminDashboard() {
                   <div className="space-y-3 text-xs">
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
-                        <span>Weight Loss</span>
-                        <span className="font-mono font-bold text-white">38%</span>
+                        <span>Hypertrophy & Strength</span>
+                        <span className="font-mono font-bold text-white">{stats.disciplines?.hypertrophy ?? 60}%</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '38%' }} />
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{ width: `${stats.disciplines?.hypertrophy ?? 60}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
-                        <span>Fat Loss (BurnZone)</span>
-                        <span className="font-mono font-bold text-white">32%</span>
+                        <span>90-Day Transformation</span>
+                        <span className="font-mono font-bold text-white">{stats.disciplines?.transformation ?? 20}%</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-rose-500 rounded-full" style={{ width: '32%' }} />
+                        <div
+                          className="h-full bg-rose-500 rounded-full transition-all"
+                          style={{ width: `${stats.disciplines?.transformation ?? 20}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
-                        <span>Functional Training</span>
-                        <span className="font-mono font-bold text-white">20%</span>
+                        <span>Conditioning & Duo Fitness</span>
+                        <span className="font-mono font-bold text-white">{stats.disciplines?.conditioning ?? 15}%</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-zinc-400 rounded-full" style={{ width: '20%' }} />
+                        <div
+                          className="h-full bg-zinc-400 rounded-full transition-all"
+                          style={{ width: `${stats.disciplines?.conditioning ?? 15}%` }}
+                        />
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between text-gray-300 mb-1">
-                        <span>Recovery Protocols</span>
-                        <span className="font-mono font-bold text-white">10%</span>
+                        <span>Mobility & Recovery</span>
+                        <span className="font-mono font-bold text-white">{stats.disciplines?.mobility ?? 10}%</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '10%' }} />
+                        <div
+                          className="h-full bg-amber-500 rounded-full transition-all"
+                          style={{ width: `${stats.disciplines?.mobility ?? 10}%` }}
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-gray-400">
-                    Reflects client baseline goals logged during enrollment movement screening.
+                    Calculated from current athlete enrollment tracks and coaching protocols.
                   </div>
                 </div>
 
@@ -1756,31 +1764,39 @@ export default function AdminDashboard() {
                   </h3>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <span className="text-3xl font-extrabold text-white font-mono block">38</span>
-                      <span className="text-xs text-gray-400">Members Checked in Today</span>
+                      <span className="text-3xl font-extrabold text-white font-mono block">
+                        {stats.gymFloorLoad?.totalCheckedIn ?? stats.checkinsToday ?? 5}
+                      </span>
+                      <span className="text-xs text-gray-400">Athletes Scheduled / Checked In</span>
                     </div>
                     <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950/70 border border-emerald-600/40 text-emerald-400 font-semibold">
-                      Optimal Capacity
+                      {stats.gymFloorLoad?.status || 'Optimal Capacity'}
                     </span>
                   </div>
 
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between text-gray-400 border-b border-white/[0.04] pb-1.5">
                       <span>Morning Peak (06:00 - 08:30)</span>
-                      <span className="text-white font-mono font-semibold">16 Visits</span>
+                      <span className="text-white font-mono font-semibold">
+                        {stats.gymFloorLoad?.morning ?? 2} Visits
+                      </span>
                     </div>
                     <div className="flex justify-between text-gray-400 border-b border-white/[0.04] pb-1.5">
                       <span>Afternoon BurnZone (15:00 - 17:00)</span>
-                      <span className="text-white font-mono font-semibold">8 Visits</span>
+                      <span className="text-white font-mono font-semibold">
+                        {stats.gymFloorLoad?.afternoon ?? 1} Visit
+                      </span>
                     </div>
                     <div className="flex justify-between text-gray-400 pt-0.5">
                       <span>Evening Peak (17:30 - 20:30)</span>
-                      <span className="text-crimson-400 font-mono font-bold">14 Visits</span>
+                      <span className="text-crimson-400 font-mono font-bold">
+                        {stats.gymFloorLoad?.evening ?? 2} Visits
+                      </span>
                     </div>
                   </div>
 
                   <div className="mt-5 p-3.5 rounded-xl bg-crimson-950/20 border border-crimson-800/30 text-[11px] text-gray-300">
-                    🔥 Peak floor hours: <strong>06:30 AM</strong> & <strong>06:45 PM</strong>.
+                    🔥 Peak floor hours: <strong>{stats.gymFloorLoad?.peakMorning || '07:00 AM'}</strong> & <strong>{stats.gymFloorLoad?.peakEvening || '06:30 PM'}</strong>.
                   </div>
                 </div>
               </div>
