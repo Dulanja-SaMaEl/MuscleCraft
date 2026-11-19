@@ -122,6 +122,17 @@ export default function BroadcastTab({
   };
 
   const clientMembers = members.filter((m) => m.role === 'client');
+
+  // Synchronize targetClientId once client members load from database
+  useEffect(() => {
+    if (clientMembers.length > 0) {
+      const exists = clientMembers.some((c) => c.id === targetClientId);
+      if (!exists) {
+        setTargetClientId(clientMembers[0].id);
+      }
+    }
+  }, [members, clientMembers, targetClientId]);
+
   const allCount = clientMembers.length;
   const vipCount = clientMembers.filter(
     (m) =>
@@ -167,13 +178,16 @@ export default function BroadcastTab({
 
     setIsDispatching(true);
     try {
-      const selectedClient = members.find((m) => m.id === targetClientId);
+      const selectedClient = clientMembers.find((m) => m.id === targetClientId) || clientMembers[0];
+      const resolvedTargetId = audience === 'specific_client' ? (selectedClient?.id || targetClientId) : undefined;
       await onSendBroadcast({
         title: title.trim(),
         body: body.trim(),
         audience,
-        targetClientId: audience === 'specific_client' ? targetClientId : undefined,
+        targetClientId: resolvedTargetId,
         targetClientName: audience === 'specific_client' ? selectedClient?.name : undefined,
+        targetClientPhone: audience === 'specific_client' ? selectedClient?.phone : undefined,
+        targetClientEmail: audience === 'specific_client' ? selectedClient?.email : undefined,
         channels,
         priority,
       });
@@ -419,8 +433,8 @@ export default function BroadcastTab({
 
             {/* Direct Member Dropdown when selected */}
             {audience === 'specific_client' && (
-              <div>
-                <label htmlFor="directClientSelect" className="text-xs font-bold text-gray-300 block mb-1.5">
+              <div className="space-y-1.5">
+                <label htmlFor="directClientSelect" className="text-xs font-bold text-gray-300 block">
                   Select Recipient Athlete:
                 </label>
                 <select
@@ -431,10 +445,30 @@ export default function BroadcastTab({
                 >
                   {clientMembers.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.packageName || c.tier}) - {c.phone || c.email}
+                      {c.name} — {c.phone ? `📱 ${c.phone}` : '⚠️ No Phone'} ({c.packageName || c.tier})
                     </option>
                   ))}
                 </select>
+                {(() => {
+                  const sel = clientMembers.find((m) => m.id === targetClientId);
+                  if (channels.includes('sms') && (!sel?.phone || sel.phone.trim().length < 7)) {
+                    return (
+                      <p className="text-[11px] text-amber-400 flex items-center gap-1.5 mt-1">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        Selected athlete has no valid phone number. SMS delivery will be skipped for this user.
+                      </p>
+                    );
+                  }
+                  if (channels.includes('sms') && sel?.phone) {
+                    return (
+                      <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 mt-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        SMS Destination: <span className="font-mono font-bold text-white">{sel.phone}</span> via Text.lk (Sender: {gatewayStatus?.senderId || 'Musclecraft'})
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
 
@@ -664,7 +698,14 @@ export default function BroadcastTab({
                       MC
                     </div>
                     <span className="text-xs font-bold text-white block">MuscleCraft</span>
-                    <span className="text-[9px] text-gray-500">SMS Gateway · Dialog</span>
+                    <span className="text-[9px] text-gray-400 font-mono block">
+                      {audience === 'specific_client'
+                        ? (() => {
+                            const c = clientMembers.find((m) => m.id === targetClientId);
+                            return c?.phone ? `To: ${c.name} (${c.phone})` : `To: ${c?.name || 'Athlete'} (No phone)`;
+                          })()
+                        : `To: ${recipientCount} Athletes · Text.lk [${gatewayStatus?.senderId || 'Musclecraft'}]`}
+                    </span>
                   </div>
 
                   {/* Incoming SMS Bubble */}

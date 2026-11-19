@@ -757,15 +757,26 @@ export default function AdminDashboard() {
         body: JSON.stringify(broadcastData),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        let msg = `Announcement "${broadcastData.title}" dispatched!`;
+        if (broadcastData.channels?.includes('sms')) {
+          if (data.sms?.success) {
+            msg += ` SMS Delivered via Text.lk (${data.sms.deliveredCount ?? data.recipientCount} sent).`;
+          } else if (data.sms?.error) {
+            msg += ` (Notice: SMS Gateway reported: ${data.sms.error})`;
+          } else if (data.recipientCount === 0) {
+            msg += ` (Notice: 0 matching recipients found for SMS).`;
+          }
+        }
         setActionMessage({
-          type: 'success',
-          text: `Announcement "${broadcastData.title}" successfully dispatched across channels!`,
+          type: data.sms?.error ? 'error' : 'success',
+          text: msg,
         });
         await loadAdminData();
       } else {
-        const err = await res.json();
-        setActionMessage({ type: 'error', text: err.error || 'Broadcast failed' });
+        setActionMessage({ type: 'error', text: data?.error || 'Broadcast failed' });
       }
     } catch (err: any) {
       setActionMessage({ type: 'error', text: err.message });

@@ -98,6 +98,8 @@ export const BroadcastMessageSchema = z.object({
   audience: z.enum(['all_members', 'coaching_90_vip', 'sole_members', 'couple_members', 'specific_client']),
   targetClientId: z.string().optional(),
   targetClientName: z.string().optional(),
+  targetClientPhone: z.string().optional(),
+  targetClientEmail: z.string().optional(),
   channels: z.array(z.enum(['in_app', 'sms', 'email', 'push'])).min(1),
   priority: z.enum(['normal', 'high', 'urgent']).default('normal'),
 });

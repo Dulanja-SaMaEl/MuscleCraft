@@ -18,6 +18,8 @@ export interface SendSmsParams {
 export interface SmsSendResult {
   success: boolean;
   recipientCount: number;
+  deliveredCount?: number;
+  failedCount?: number;
   messageId?: string;
   status?: string;
   rawResponse?: any;
@@ -215,9 +217,60 @@ export class SmsService {
       };
     }
 
-    // Text.lk expects comma-separated numbers in "recipient"
-    const recipientString = validRecipients.join(',');
+    // Helper to send a single SMS via Text.lk API
+    const dispatchSingle = async (recipientNumber: string) => {
+      const payload = {
+        recipient: recipientNumber,
+        sender_id: resolvedSender,
+        type: 'plain',
+        message: message.trim(),
+      };
 
+      const res = await fetch(process.env.TEXTLK_API_URL || this.defaultApiUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await res.json().catch(() => null);
+      if (!res.ok || (responseData && responseData.status === 'error')) {
+        const errMsg = responseData?.message || `HTTP ${res.status}: SMS sending failed`;
+        throw new Error(errMsg);
+      }
+      return responseData;
+    };
+
+    // Case 1: Single recipient - direct send
+    if (validRecipients.length === 1) {
+      try {
+        const responseData = await dispatchSingle(validRecipients[0]);
+        return {
+          success: true,
+          recipientCount: 1,
+          deliveredCount: 1,
+          failedCount: 0,
+          status: 'delivered',
+          messageId: responseData?.data?.uid || responseData?.data?.id,
+          rawResponse: responseData,
+        };
+      } catch (err: any) {
+        console.error('[Text.lk SMS Single Error]:', err.message);
+        return {
+          success: false,
+          recipientCount: 1,
+          deliveredCount: 0,
+          failedCount: 1,
+          error: err.message || 'SMS sending failed',
+        };
+      }
+    }
+
+    // Case 2: Multi-recipient - attempt comma-separated batch first
+    const recipientString = validRecipients.join(',');
     try {
       const payload = {
         recipient: recipientString,
@@ -238,30 +291,46 @@ export class SmsService {
 
       const responseData = await res.json().catch(() => null);
 
-      if (!res.ok || (responseData && responseData.status === 'error')) {
-        const errMsg = responseData?.message || `HTTP ${res.status}: SMS sending failed`;
-        console.error('[Text.lk SMS Error]:', errMsg, responseData);
+      if (res.ok && responseData?.status !== 'error') {
         return {
-          success: false,
+          success: true,
           recipientCount: validRecipients.length,
-          error: errMsg,
+          deliveredCount: validRecipients.length,
+          failedCount: 0,
+          status: 'delivered',
+          messageId: responseData?.data?.uid || responseData?.data?.id,
           rawResponse: responseData,
         };
       }
 
+      // Batch rejected (e.g. invalid phone number in list). Fallback to parallel individual sends
+      console.warn('[Text.lk SMS] Batch delivery failed, falling back to per-recipient delivery:', responseData?.message);
+      const settled = await Promise.allSettled(validRecipients.map((num) => dispatchSingle(num)));
+      const delivered = settled.filter((r) => r.status === 'fulfilled');
+      const failed = settled.filter((r) => r.status === 'rejected');
+
       return {
-        success: true,
+        success: delivered.length > 0,
         recipientCount: validRecipients.length,
-        status: 'delivered',
-        messageId: responseData?.data?.uid || responseData?.data?.id,
+        deliveredCount: delivered.length,
+        failedCount: failed.length,
+        status: delivered.length > 0 ? 'delivered' : 'failed',
+        error: delivered.length === 0 ? (responseData?.message || 'All recipient deliveries failed') : undefined,
         rawResponse: responseData,
       };
-    } catch (err: any) {
-      console.error('[Text.lk SMS Exception]:', err);
+    } catch (batchErr: any) {
+      console.warn('[Text.lk SMS] Batch exception, falling back to individual sends:', batchErr.message);
+      const settled = await Promise.allSettled(validRecipients.map((num) => dispatchSingle(num)));
+      const delivered = settled.filter((r) => r.status === 'fulfilled');
+      const failed = settled.filter((r) => r.status === 'rejected');
+
       return {
-        success: false,
+        success: delivered.length > 0,
         recipientCount: validRecipients.length,
-        error: err.message || 'Failed to dispatch SMS through Text.lk network',
+        deliveredCount: delivered.length,
+        failedCount: failed.length,
+        status: delivered.length > 0 ? 'delivered' : 'failed',
+        error: delivered.length === 0 ? batchErr.message : undefined,
       };
     }
   }

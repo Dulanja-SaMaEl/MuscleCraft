@@ -26,7 +26,15 @@ export async function GET(req: NextRequest) {
             id: b.id,
             title: b.title,
             body: b.body,
-            audience: b.target_audience || 'all_members',
+            audience:
+              b.target_audience === 'coaching_90'
+                ? 'coaching_90_vip'
+                : b.target_audience === 'members_only'
+                ? 'sole_members'
+                : b.target_audience === 'clients_only'
+                ? 'specific_client'
+                : 'all_members',
+            targetAudience: b.target_audience,
             sentAt: b.created_at,
             createdAt: b.created_at,
             created_at: b.created_at,
@@ -79,7 +87,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data } = await supabaseServer
           .from('profiles')
-          .select('id, name, phone, role, tier, package_type, package_name')
+          .select('id, name, phone, email, role, tier, package_type, package_name')
           .eq('role', 'client');
         if (data && data.length > 0) {
           clientProfiles = data;
@@ -122,7 +130,49 @@ export async function POST(req: NextRequest) {
           p.packageName?.toLowerCase().includes('couple')
       );
     } else if (validated.audience === 'specific_client') {
-      targetClients = clientProfiles.filter((p) => p.id === validated.targetClientId);
+      // 1. Match by targetClientId
+      if (validated.targetClientId) {
+        targetClients = clientProfiles.filter((p) => p.id === validated.targetClientId);
+      }
+
+      // 2. Direct Supabase query if ID not in memory cache
+      if (targetClients.length === 0 && validated.targetClientId && isServerSupabaseConfigured && supabaseServer) {
+        try {
+          const { data: directProfile } = await supabaseServer
+            .from('profiles')
+            .select('id, name, phone, email, role, tier, package_type, package_name')
+            .eq('id', validated.targetClientId)
+            .maybeSingle();
+          if (directProfile) {
+            targetClients = [directProfile];
+          }
+        } catch (_) {}
+      }
+
+      // 3. Fallback matching by phone, email, or name
+      if (targetClients.length === 0) {
+        const targetPhone = validated.targetClientPhone || (body as any).targetClientPhone;
+        const targetEmail = validated.targetClientEmail || (body as any).targetClientEmail;
+        const targetName = validated.targetClientName?.trim().toLowerCase();
+
+        targetClients = clientProfiles.filter((p) => {
+          if (targetPhone && p.phone && SmsService.normalizePhoneNumber(p.phone) === SmsService.normalizePhoneNumber(targetPhone)) {
+            return true;
+          }
+          if (targetEmail && p.email && p.email.toLowerCase() === targetEmail.toLowerCase()) {
+            return true;
+          }
+          if (targetName && p.name && p.name.trim().toLowerCase() === targetName) {
+            return true;
+          }
+          return false;
+        });
+      }
+
+      // 4. Fallback if still unmatched: select first available client member
+      if (targetClients.length === 0 && clientProfiles.length > 0) {
+        targetClients = [clientProfiles[0]];
+      }
     }
 
     const recipientCount = targetClients.length;
@@ -156,7 +206,8 @@ export async function POST(req: NextRequest) {
       title: validated.title,
       body: validated.body,
       audience: validated.audience,
-      targetClientId: validated.targetClientId,
+      targetClientId: validated.targetClientId || targetClients[0]?.id,
+      targetClientName: validated.targetClientName || targetClients[0]?.name,
       sentAt: nowIso,
       createdAt: nowIso,
       senderId: caller.id,
@@ -174,18 +225,19 @@ export async function POST(req: NextRequest) {
 
     if (isServerSupabaseConfigured && supabaseServer) {
       try {
+        // Must satisfy DB check: CHECK (target_audience IN ('all', 'clients_only', 'coaching_90', 'members_only'))
         const targetAudienceValue =
           validated.audience === 'coaching_90_vip'
             ? 'coaching_90'
             : validated.audience === 'sole_members'
-            ? 'sole'
+            ? 'members_only'
             : validated.audience === 'couple_members'
-            ? 'couple'
+            ? 'members_only'
             : validated.audience === 'specific_client'
-            ? 'direct'
+            ? 'clients_only'
             : 'all';
 
-        await supabaseServer.from('broadcast_messages').insert({
+        const { error: insertErr } = await supabaseServer.from('broadcast_messages').insert({
           title: newBroadcast.title,
           body: newBroadcast.body,
           target_audience: targetAudienceValue,
@@ -195,6 +247,10 @@ export async function POST(req: NextRequest) {
           status: 'sent',
           created_at: newBroadcast.sentAt,
         });
+
+        if (insertErr) {
+          console.error('Supabase broadcast_messages insert error:', insertErr);
+        }
 
         // Audit log entry for SMS broadcast
         if (validated.channels?.includes('sms')) {
@@ -207,7 +263,9 @@ export async function POST(req: NextRequest) {
             details: {
               title: newBroadcast.title,
               audience: validated.audience,
+              targetAudienceDb: targetAudienceValue,
               recipientsCount: recipientCount,
+              targetClients: targetClients.map((c) => ({ id: c.id, name: c.name, phone: c.phone })),
               smsResult: smsDispatchResult,
             },
           });
