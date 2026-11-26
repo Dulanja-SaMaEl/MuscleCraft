@@ -6,9 +6,9 @@ import crypto from 'crypto';
  *
  * Environment Variables (set in Vercel / .env.local — NEVER commit secrets):
  * - RESEND_API_KEY:        Resend secret API key (starts with re_...)
- * - RESEND_FROM_EMAIL:     Verified sender address (e.g. "MuscleCraft <noreply@musclecraft.lk>")
- * - RESEND_ADMIN_EMAIL:    Admin notification inbox (e.g. "adeesha@musclecraft.lk")
- * - RESEND_REPLY_TO:       Reply-to address for inbound receiving (e.g. "support@musclecraft.lk")
+ * - RESEND_FROM_EMAIL:     Verified sender address (e.g. "MuscleCraft <admin@musclecraftlk.com>")
+ * - RESEND_ADMIN_EMAIL:    Admin notification inbox (e.g. "admin@musclecraftlk.com")
+ * - RESEND_REPLY_TO:       Reply-to address for inbound receiving (e.g. "admin@musclecraftlk.com")
  * - RESEND_WEBHOOK_SECRET: Optional Svix signing secret (whsec_...) for inbound webhook verification
  */
 
@@ -28,7 +28,7 @@ export interface EmailSendResult {
   deliveredCount?: number;
   failedCount?: number;
   messageId?: string;
-  status?: 'delivered' | 'simulated_unconfigured' | 'failed';
+  status?: 'delivered' | 'simulated_unconfigured' | 'unconfigured' | 'failed';
   error?: string;
   rawResponse?: any;
 }
@@ -70,7 +70,11 @@ function escapeHtml(str: string): string {
 }
 
 function getAppBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'https://musclecraft.lk').replace(/\/+$/, '');
+  const configured = (process.env.NEXT_PUBLIC_APP_URL || '').trim();
+  if (configured && !configured.includes('localhost') && !configured.includes('musclecraft.lk')) {
+    return configured.replace(/\/+$/, '');
+  }
+  return 'https://www.musclecraftlk.com';
 }
 
 function renderBrandedHtml({
@@ -136,9 +140,9 @@ function renderBrandedHtml({
           <tr>
             <td style="padding:18px 28px;background-color:#0b0b0f;border-top:1px solid #1f1f29;font-size:11px;color:#6b7280;line-height:1.5;">
               ${footerNote ? `<div style="margin-bottom:6px;color:#9ca3af;">${escapeHtml(footerNote)}</div>` : ''}
-              <div>MuscleCraft Athletic Facility &amp; Coaching · Coach Adeesha Kumarasingha</div>
+              <div>MuscleCraft Athletic Facility · 245, Kotugoda Road, Seeduwa · Coach Adeesha Kumarasingha</div>
               <div style="margin-top:4px;">
-                <a href="${baseUrl}" style="color:#ef4444;text-decoration:none;">${baseUrl}</a>
+                <a href="${baseUrl}" style="color:#ef4444;text-decoration:none;">${baseUrl}</a> · <a href="mailto:admin@musclecraftlk.com" style="color:#9ca3af;text-decoration:none;">admin@musclecraftlk.com</a>
               </div>
             </td>
           </tr>
@@ -152,50 +156,71 @@ function renderBrandedHtml({
 
 export class EmailService {
   private static apiBase = 'https://api.resend.com';
+  private static cachedVerifiedDomain: string | null = null;
 
   public static getApiKey(): string {
-    return (
-      process.env.RESEND_API_KEY ||
-      process.env.RESEND_TOKEN ||
-      ''
-    )
-      .trim()
-      .replace(/^["']|["']$/g, '');
+    const clean = (val?: string) => (val || '').trim().replace(/^["']|["']$/g, '');
+    const explicit =
+      clean(process.env.RESEND_API_KEY) ||
+      clean(process.env.RESEND_TOKEN) ||
+      clean(process.env.RESEND_API_TOKEN) ||
+      clean(process.env.RESEND_SECRET_KEY) ||
+      clean(process.env.NEXT_PUBLIC_RESEND_API_KEY);
+    if (explicit) return explicit;
+
+    // Auto-discover any Vercel/Resend integration env variable holding a `re_` key
+    if (typeof process !== 'undefined' && process.env) {
+      for (const [key, val] of Object.entries(process.env)) {
+        if (!val) continue;
+        const c = clean(val);
+        if (key.toLowerCase().includes('resend') && c.startsWith('re_') && c.length > 12) {
+          return c;
+        }
+      }
+      for (const [, val] of Object.entries(process.env)) {
+        if (!val) continue;
+        const c = clean(val);
+        if (c.startsWith('re_') && c.length >= 24 && !c.includes('your_resend')) {
+          return c;
+        }
+      }
+    }
+    return '';
   }
 
   public static getFromEmail(): string {
-    return (
-      process.env.RESEND_FROM_EMAIL ||
-      process.env.EMAIL_FROM ||
-      'MuscleCraft <admin@musclecraftlk.com>'
-    )
-      .trim()
-      .replace(/^["']|["']$/g, '');
+    const clean = (val?: string) => (val || '').trim().replace(/^["']|["']$/g, '');
+    const envFrom = clean(process.env.RESEND_FROM_EMAIL) || clean(process.env.EMAIL_FROM);
+    if (envFrom && !envFrom.includes('musclecraft.lk')) {
+      return envFrom;
+    }
+    if (this.cachedVerifiedDomain) {
+      return `MuscleCraft <admin@${this.cachedVerifiedDomain}>`;
+    }
+    return 'MuscleCraft <admin@musclecraftlk.com>';
   }
 
   public static getAdminEmail(): string {
-    return (
-      process.env.RESEND_ADMIN_EMAIL ||
-      process.env.ADMIN_NOTIFICATION_EMAIL ||
-      'admin@musclecraftlk.com'
-    )
-      .trim()
-      .replace(/^["']|["']$/g, '');
+    const clean = (val?: string) => (val || '').trim().replace(/^["']|["']$/g, '');
+    const envAdmin = clean(process.env.RESEND_ADMIN_EMAIL) || clean(process.env.ADMIN_NOTIFICATION_EMAIL);
+    if (envAdmin && !envAdmin.includes('adeesha@musclecraft.lk')) {
+      return envAdmin;
+    }
+    return 'admin@musclecraftlk.com';
   }
 
   public static getReplyToEmail(): string {
-    return (
-      process.env.RESEND_REPLY_TO ||
-      process.env.RESEND_ADMIN_EMAIL ||
-      'admin@musclecraftlk.com'
-    )
-      .trim()
-      .replace(/^["']|["']$/g, '');
+    const clean = (val?: string) => (val || '').trim().replace(/^["']|["']$/g, '');
+    const envReply = clean(process.env.RESEND_REPLY_TO) || clean(process.env.RESEND_ADMIN_EMAIL);
+    if (envReply && !envReply.includes('musclecraft.lk')) {
+      return envReply;
+    }
+    return 'admin@musclecraftlk.com';
   }
 
   public static isConfigured(): boolean {
     const key = this.getApiKey();
-    return Boolean(key && key.startsWith('re_') && key.length > 10);
+    return Boolean(key && key.startsWith('re_') && key.length > 10 && !key.includes('your_resend'));
   }
 
   public static addInboundFallback(record: InboundEmailRecord) {
@@ -337,28 +362,32 @@ export class EmailService {
     }
 
     const apiKey = this.getApiKey();
-    const resolvedFrom = from || this.getFromEmail();
+    let resolvedFrom = from || this.getFromEmail();
     const resolvedReplyTo = replyTo || this.getReplyToEmail();
 
-    if (!apiKey) {
-      console.warn('[Resend Email] RESEND_API_KEY not configured. Simulated delivery to:', validEmails);
+    if (!apiKey || apiKey.includes('your_resend')) {
+      console.warn('[Resend Email] RESEND_API_KEY not configured for recipients:', validEmails);
       return {
-        success: true,
+        success: false,
         recipientCount: validEmails.length,
-        deliveredCount: validEmails.length,
-        failedCount: 0,
-        status: 'simulated_unconfigured',
+        deliveredCount: 0,
+        failedCount: validEmails.length,
+        status: 'unconfigured',
+        error:
+          'RESEND_API_KEY is not configured in server environment variables. Add RESEND_API_KEY in Vercel -> Project Settings -> Environment Variables (Production & Preview) and Redeploy.',
       };
     }
 
-    const dispatchOne = async (recipient: string) => {
+    const postToResend = async (recipient: string, senderAddress: string) => {
       const payload: Record<string, any> = {
-        from: resolvedFrom,
+        from: senderAddress,
         to: [recipient],
         subject: subject.trim(),
         html,
-        reply_to: resolvedReplyTo,
       };
+      if (resolvedReplyTo && resolvedReplyTo.includes('@')) {
+        payload.reply_to = resolvedReplyTo;
+      }
       if (text) payload.text = text;
       if (tags && tags.length > 0) payload.tags = tags;
 
@@ -370,11 +399,54 @@ export class EmailService {
           Accept: 'application/json',
         },
         body: JSON.stringify(payload),
+        cache: 'no-store',
       });
 
       const data = await res.json().catch(() => null);
+      return { res, data };
+    };
+
+    const dispatchOne = async (recipient: string) => {
+      let { res, data } = await postToResend(recipient, resolvedFrom);
+
+      // Auto-recover if configured `from` domain doesn't match the user's verified Resend domain (e.g. subdomain or apex)
+      const errMsgRaw = String(data?.message || data?.error || '');
+      if (
+        !res.ok &&
+        (res.status === 403 || res.status === 422) &&
+        errMsgRaw.toLowerCase().includes('domain')
+      ) {
+        try {
+          const domRes = await fetch(`${this.apiBase}/domains`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              Accept: 'application/json',
+            },
+            cache: 'no-store',
+          });
+          if (domRes.ok) {
+            const domJson = await domRes.json().catch(() => null);
+            const verified = Array.isArray(domJson?.data)
+              ? domJson.data.find((d: any) => d.status === 'verified')
+              : null;
+            if (verified?.name) {
+              this.cachedVerifiedDomain = String(verified.name);
+              const fallbackSender = `MuscleCraft <admin@${verified.name}>`;
+              if (fallbackSender.toLowerCase() !== resolvedFrom.toLowerCase()) {
+                resolvedFrom = fallbackSender;
+                const retry = await postToResend(recipient, fallbackSender);
+                res = retry.res;
+                data = retry.data;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       if (!res.ok || data?.statusCode >= 400) {
-        throw new Error(data?.message || data?.error || `HTTP ${res.status}: Resend email failed`);
+        const finalErr = data?.message || data?.error || `HTTP ${res.status}: Resend email failed`;
+        throw new Error(`${finalErr} (From: ${resolvedFrom})`);
       }
       return data;
     };

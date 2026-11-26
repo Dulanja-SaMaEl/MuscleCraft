@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { AdminService } from '@/lib/services/admin-service';
 import { AuthService } from '@/lib/services/auth-service';
 import { PaymentService } from '@/lib/services/payment-service';
@@ -11,6 +12,145 @@ import { db } from '@/lib/db/mock-db';
 import { UserStatus } from '@/lib/types';
 import { SmsService } from '@/lib/services/sms-service';
 import { EmailService } from '@/lib/services/email-service';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+async function resolveLiveTierPrice(tier: string): Promise<{
+  amount: number;
+  packagePrice: number;
+  admissionFee: number;
+  name: string;
+}> {
+  const fallback = PaymentService.getTierPrice(tier);
+  if (!tier || tier === 'none') {
+    return { amount: 0, packagePrice: 0, admissionFee: 0, name: 'No Active Plan' };
+  }
+  if (isServerSupabaseConfigured && supabaseServer) {
+    try {
+      const { data: pkg } = await supabaseServer
+        .from('gym_packages')
+        .select('id, name, price, admission_fee')
+        .eq('id', tier)
+        .maybeSingle();
+      if (pkg) {
+        const packagePrice = Number(pkg.price) || 0;
+        const admissionFee = Number(pkg.admission_fee) || 0;
+        return {
+          amount: packagePrice + admissionFee,
+          packagePrice,
+          admissionFee,
+          name: pkg.name || fallback.name,
+        };
+      }
+    } catch (_) {}
+  }
+  return fallback;
+}
+
+async function recordAdminDirectPayment(params: {
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  tier: string;
+  priceInfo: { amount: number; packagePrice: number; admissionFee: number; name: string };
+  customAmount?: number | null;
+  paymentMethod?: string;
+  adminUser: { id: string; email?: string; name?: string };
+  note?: string;
+}) {
+  const {
+    memberId,
+    memberName,
+    memberEmail,
+    tier,
+    priceInfo,
+    customAmount,
+    paymentMethod,
+    adminUser,
+    note,
+  } = params;
+
+  const finalAmount =
+    typeof customAmount === 'number' && !Number.isNaN(customAmount) && customAmount >= 0
+      ? customAmount
+      : priceInfo.amount;
+
+  if (finalAmount <= 0 || !tier || tier === 'none') return null;
+
+  const nowIso = new Date().toISOString();
+  const todayDate = nowIso.split('T')[0];
+  const refCode = `ADM-MC-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 89)}`;
+  const methodLabel =
+    paymentMethod && paymentMethod.trim()
+      ? paymentMethod.trim()
+      : 'Cash / In-Person (Admin Enrolled)';
+  const adminNote =
+    note || `Direct package assignment by Admin (${methodLabel}) — no receipt upload required.`;
+
+  const paymentRecord: any = {
+    id: `pay_adm_${Date.now()}`,
+    userId: memberId,
+    userName: memberName,
+    userEmail: memberEmail,
+    referenceCode: refCode,
+    tier,
+    packageName: priceInfo.name,
+    packageAmount: priceInfo.packagePrice,
+    admissionFee: priceInfo.admissionFee,
+    amount: finalAmount,
+    currency: 'LKR',
+    bankName: methodLabel,
+    transferDate: todayDate,
+    senderAccountName: memberName,
+    receiptNotes: adminNote,
+    receiptUrl: undefined,
+    status: 'approved',
+    adminNotes: adminNote,
+    reviewedBy: adminUser.id,
+    reviewedAt: nowIso,
+    createdAt: nowIso,
+  };
+
+  db.payments.unshift(paymentRecord);
+
+  if (isServerSupabaseConfigured && supabaseServer) {
+    try {
+      const { data: inserted, error: payErr } = await supabaseServer
+        .from('payments')
+        .insert({
+          user_id: memberId,
+          reference_code: refCode,
+          package_id: tier,
+          tier,
+          amount: finalAmount,
+          currency: 'LKR',
+          bank_name: methodLabel,
+          transfer_date: todayDate,
+          sender_account_name: memberName,
+          receipt_url: null,
+          receipt_notes: adminNote,
+          status: 'approved',
+          admin_notes: adminNote,
+          reviewed_by: adminUser.id.includes('-') ? adminUser.id : null,
+          reviewed_at: nowIso,
+          created_at: nowIso,
+        })
+        .select('*')
+        .maybeSingle();
+
+      if (payErr) {
+        console.warn('Direct admin payment insert warning:', payErr.message);
+      } else if (inserted) {
+        paymentRecord.id = inserted.id;
+      }
+    } catch (err) {
+      console.warn('Direct admin payment insert exception:', err);
+    }
+  }
+
+  return paymentRecord;
+}
 
 function inferPackageType(tier: string): 'sole' | 'couple' | 'coaching' {
   if (tier.startsWith('couple')) return 'couple';
@@ -27,6 +167,7 @@ function getDefaultDurationDays(tier: string): number {
 }
 
 export async function GET(req: NextRequest) {
+  noStore();
   try {
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
@@ -124,6 +265,9 @@ export async function POST(req: NextRequest) {
       tier = 'sole_1m',
       status = 'active',
       durationDays,
+      recordPayment = true,
+      paymentMethod = 'Cash / In-Person (Admin Enrolled)',
+      customAmount,
     } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -143,7 +287,7 @@ export async function POST(req: NextRequest) {
       status === 'pending' || status === 'suspended' || status === 'expired' ? status : 'active';
     const selectedTier = tier || 'sole_1m';
 
-    const priceInfo = PaymentService.getTierPrice(selectedTier);
+    const priceInfo = await resolveLiveTierPrice(selectedTier);
     const pkgType = inferPackageType(selectedTier);
     const validDays =
       typeof durationDays === 'number' && durationDays > 0
@@ -260,13 +404,38 @@ export async function POST(req: NextRequest) {
       try {
         await supabaseServer.from('audit_logs').insert({
           actor_id: adminUser.id.includes('-') ? adminUser.id : null,
-          actor_email: adminUser.email || 'adeesha@musclecraft.lk',
+          actor_email: adminUser.email || 'musclecraftlk@gmail.com',
           action: 'ADMIN_MEMBER_CREATED',
           target_type: 'user',
           target_id: createdMember.id,
           details: `Admin created ${safeRole} account for ${cleanName} (${cleanEmail}) [Plan: ${createdMember.packageName}, Status: ${safeStatus}].`,
         });
       } catch (_) {}
+    }
+
+    // Automatically record an approved payment into Revenue & Profits ledger when Admin assigns an active client package (no receipt upload required)
+    let recordedPayment: any = null;
+    const shouldRecordPayment =
+      safeRole === 'client' &&
+      safeStatus === 'active' &&
+      selectedTier !== 'none' &&
+      recordPayment !== false &&
+      paymentMethod !== 'Complimentary / Free';
+
+    if (shouldRecordPayment) {
+      recordedPayment = await recordAdminDirectPayment({
+        memberId: createdMember?.id || userId,
+        memberName: cleanName,
+        memberEmail: cleanEmail,
+        tier: selectedTier,
+        priceInfo,
+        customAmount:
+          customAmount !== undefined && customAmount !== '' && customAmount !== null
+            ? Number(customAmount)
+            : null,
+        paymentMethod,
+        adminUser,
+      });
     }
 
     const syncedLocal = AuthService.registerUser({
@@ -300,8 +469,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Automatic Email Notification: Admin Created Member Credentials via Resend
+    let emailDispatch: any = null;
     try {
-      await EmailService.notifyAdminCreatedMember({
+      emailDispatch = await EmailService.notifyAdminCreatedMember({
         email: cleanEmail,
         name: cleanName,
         password,
@@ -311,11 +481,17 @@ export async function POST(req: NextRequest) {
       console.warn('Admin member creation Email dispatch warning:', emailErr);
     }
 
+    const revNote = recordedPayment
+      ? ` Rs. ${Number(recordedPayment.amount).toLocaleString()} LKR recorded to Revenue & Profits (no receipt required).`
+      : '';
+
     return NextResponse.json(
       {
         success: true,
         member: createdMember || syncedLocal,
-        message: `Member ${cleanName} added with login access (${safeStatus.toUpperCase()}).`,
+        recordedPayment,
+        email: emailDispatch,
+        message: `Member ${cleanName} added with login access (${safeStatus.toUpperCase()}).${revNote}`,
       },
       { status: 201 }
     );
@@ -351,6 +527,9 @@ export async function PATCH(req: NextRequest) {
       newPassword,
       extendDays,
       reason,
+      recordPayment,
+      paymentMethod,
+      customAmount,
     } = body;
 
     if (!memberId) {
@@ -582,6 +761,46 @@ export async function PATCH(req: NextRequest) {
           }
         }
 
+        // Record direct revenue/profit entry when Admin assigns a package or activates a pending/expired client without receipt upload
+        let recordedPayment: any = null;
+        const effectiveRole = updatedProf.role || currentProfile.role;
+        const effectiveStatus = updatedProf.status || currentProfile.status;
+        const effectiveTier = updatedProf.tier || currentProfile.tier || 'none';
+        const becameActiveFromInactive =
+          effectiveStatus === 'active' &&
+          (currentProfile.status === 'pending' ||
+            currentProfile.status === 'expired' ||
+            !currentProfile.tier ||
+            currentProfile.tier === 'none');
+        const packageChanged = Boolean(tier && tier !== currentProfile.tier && tier !== 'none');
+        const shouldRecordOnPatch =
+          effectiveRole === 'client' &&
+          effectiveStatus === 'active' &&
+          effectiveTier !== 'none' &&
+          paymentMethod !== 'Complimentary / Free' &&
+          (recordPayment === true || (recordPayment !== false && (becameActiveFromInactive || packageChanged)));
+
+        if (shouldRecordOnPatch) {
+          const livePrice = await resolveLiveTierPrice(effectiveTier);
+          recordedPayment = await recordAdminDirectPayment({
+            memberId: updatedProf.id,
+            memberName: updatedProf.name,
+            memberEmail: updatedProf.email,
+            tier: effectiveTier,
+            priceInfo: livePrice,
+            customAmount:
+              customAmount !== undefined && customAmount !== '' && customAmount !== null
+                ? Number(customAmount)
+                : null,
+            paymentMethod: paymentMethod || 'Cash / In-Person (Admin Assigned)',
+            adminUser,
+            note: `Package assigned/activated by Admin (${effectiveTier}) — no receipt upload required.`,
+          });
+          if (recordedPayment) {
+            changedFields.push(`Revenue Recorded: Rs. ${Number(recordedPayment.amount).toLocaleString()} LKR`);
+          }
+        }
+
         const auditAction = extendDays
           ? 'MEMBERSHIP_EXTENDED'
           : action === 'edit' || changedFields.length > 1
@@ -597,7 +816,7 @@ export async function PATCH(req: NextRequest) {
         try {
           await supabaseServer.from('audit_logs').insert({
             actor_id: adminUser.id.includes('-') ? adminUser.id : null,
-            actor_email: adminUser.email || 'adeesha@musclecraft.lk',
+            actor_email: adminUser.email || 'musclecraftlk@gmail.com',
             action: auditAction,
             target_type: 'user',
             target_id: memberId,
@@ -607,6 +826,10 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json({
           success: true,
+          recordedPayment,
+          message: recordedPayment
+            ? `Updated ${updatedProf.name} & recorded Rs. ${Number(recordedPayment.amount).toLocaleString()} LKR into Revenue & Profits.`
+            : `Updated profile details for ${updatedProf.name}.`,
           member: {
             id: updatedProf.id,
             name: updatedProf.name,

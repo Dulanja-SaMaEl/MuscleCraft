@@ -342,6 +342,9 @@ export default function AdminDashboard() {
     tier: 'sole_1m',
     status: 'active' as 'active' | 'pending',
     durationDays: 30,
+    recordPayment: true,
+    paymentMethod: 'Cash / In-Person (Admin Enrolled)',
+    customAmount: '',
   });
 
   useEffect(() => {
@@ -647,6 +650,9 @@ export default function AdminDashboard() {
         tier: 'sole_1m',
         status: 'active',
         durationDays: 30,
+        recordPayment: true,
+        paymentMethod: 'Cash / In-Person (Admin Enrolled)',
+        customAmount: '',
       });
       await loadAdminData();
     } catch (err: any) {
@@ -668,6 +674,9 @@ export default function AdminDashboard() {
     instructorId: string | null;
     assignedInstructorName: string | null;
     newPassword?: string;
+    recordPayment?: boolean;
+    paymentMethod?: string;
+    customAmount?: number | null;
   }) => {
     const adminId = currentUser?.id || 'usr_admin_1';
     const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
@@ -684,7 +693,7 @@ export default function AdminDashboard() {
     }
     setActionMessage({
       type: 'success',
-      text: `Updated profile details for ${payload.name} (${payload.status.toUpperCase()}).`,
+      text: data.message || `Updated profile details for ${payload.name} (${payload.status.toUpperCase()}).`,
     });
     await loadAdminData();
   };
@@ -2020,7 +2029,7 @@ export default function AdminDashboard() {
                   {
                     id: `log_${Date.now()}`,
                     actorId: currentUser?.id || 'usr_admin_1',
-                    actorEmail: currentUser?.email || 'adeesha@musclecraft.lk',
+                    actorEmail: currentUser?.email || 'musclecraftlk@gmail.com',
                     action: 'DAILY_SALES_UPDATE',
                     targetType: 'daily_sales',
                     targetId: 'crm_sheet',
@@ -2899,6 +2908,68 @@ export default function AdminDashboard() {
                   />
                 </div>
               </div>
+
+              {newMemberForm.role === 'client' && newMemberForm.status === 'active' && (
+                <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/30 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newMemberForm.recordPayment}
+                        onChange={(e) =>
+                          setNewMemberForm({ ...newMemberForm, recordPayment: e.target.checked })
+                        }
+                        className="mt-0.5 rounded border-emerald-500/60 bg-[#111116] text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span>
+                        <span className="text-xs font-bold text-emerald-300 block">
+                          Auto-Record Package Fee to Revenue &amp; Profits (No Receipt Needed)
+                        </span>
+                        <span className="text-[11px] text-gray-400 block mt-0.5">
+                          Automatically logs an approved payment into Dashboard MTD Sales, Admission Pool &amp; Executive Reports.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {newMemberForm.recordPayment && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-300 block mb-1">
+                          Payment Method
+                        </label>
+                        <select
+                          value={newMemberForm.paymentMethod}
+                          onChange={(e) =>
+                            setNewMemberForm({ ...newMemberForm, paymentMethod: e.target.value })
+                          }
+                          className="w-full px-3 py-2 bg-[#121218] border border-white/10 rounded-xl text-xs text-white focus:border-emerald-500 focus:outline-none min-h-[38px]"
+                        >
+                          <option value="Cash / In-Person (Admin Enrolled)">Cash / In-Person</option>
+                          <option value="Direct Bank Transfer (Admin Verified)">Direct Bank Transfer</option>
+                          <option value="Card / POS Payment">Card / POS Payment</option>
+                          <option value="Complimentary / Free">Complimentary / Free (Rs. 0)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-gray-300 block mb-1">
+                          Amount Override LKR <span className="text-gray-500 font-normal">(optional)</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={newMemberForm.customAmount}
+                          onChange={(e) =>
+                            setNewMemberForm({ ...newMemberForm, customAmount: e.target.value })
+                          }
+                          placeholder="Auto: Package + Admission"
+                          className="w-full px-3 py-2 bg-[#121218] border border-white/10 rounded-xl text-xs text-white font-mono focus:border-emerald-500 focus:outline-none min-h-[38px]"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
                 <button

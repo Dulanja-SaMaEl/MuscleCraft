@@ -53,10 +53,10 @@ export const metadata: Metadata = {
     'BurnZone CrossFit',
     '90 Days Better Me',
   ],
-  authors: [{ name: 'Adeesha Kumarasingha', url: 'https://musclecraft.lk/about' }],
+  authors: [{ name: 'Adeesha Kumarasingha', url: 'https://www.musclecraftlk.com/about' }],
   creator: 'Adeesha Kumarasingha',
   publisher: 'MuscleCraft',
-  metadataBase: new URL('https://musclecraft.lk'),
+  metadataBase: new URL('https://www.musclecraftlk.com'),
   alternates: {
     canonical: '/',
   },
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     title: 'MuscleCraft — Build Discipline. Sculpt Strength.',
     description:
       'Build discipline and sculpt strength with customized workout and diet plans, proven 1-on-1 coaching, and verified client transformations.',
-    url: 'https://musclecraft.lk',
+    url: 'https://www.musclecraftlk.com',
     siteName: 'MuscleCraft',
     locale: 'en_LK',
     type: 'website',
@@ -105,12 +105,12 @@ const jsonLdSchema = {
   '@graph': [
     {
       '@type': 'ExerciseGym',
-      '@id': 'https://musclecraft.lk/#gym',
+      '@id': 'https://www.musclecraftlk.com/#gym',
       name: 'MuscleCraft',
       alternateName: 'MuscleCraft Fitness & Coaching',
-      url: 'https://musclecraft.lk',
-      logo: 'https://musclecraft.lk/images/musclecraft-emblem.png',
-      image: 'https://musclecraft.lk/images/musclecraft-emblem.png',
+      url: 'https://www.musclecraftlk.com',
+      logo: 'https://www.musclecraftlk.com/images/musclecraft-emblem.png',
+      image: 'https://www.musclecraftlk.com/images/musclecraft-emblem.png',
       description:
         'Premier fitness and coaching facility dedicated to strength training, body recomposition, and personal coaching founded by Adeesha Kumarasingha.',
       priceRange: 'LKR 4,500 - LKR 78,000',
@@ -164,12 +164,12 @@ const jsonLdSchema = {
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://musclecraft.lk/#website',
-      url: 'https://musclecraft.lk',
+      '@id': 'https://www.musclecraftlk.com/#website',
+      url: 'https://www.musclecraftlk.com',
       name: 'MuscleCraft',
       description: 'Build Discipline. Sculpt Strength.',
       publisher: {
-        '@id': 'https://musclecraft.lk/#gym',
+        '@id': 'https://www.musclecraftlk.com/#gym',
       },
     },
   ],

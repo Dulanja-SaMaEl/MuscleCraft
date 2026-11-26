@@ -19,7 +19,7 @@ export class MuscleCraftDatabase {
   public users: User[] = [
     {
       id: 'a0000000-0000-0000-0000-000000000001',
-      email: 'adeesha@musclecraft.lk',
+      email: 'musclecraftlk@gmail.com',
       name: 'Adeesha Kumarasingha (Owner & Head Coach)',
       role: 'admin',
       tier: 'sole_1y',

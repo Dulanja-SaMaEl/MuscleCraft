@@ -132,7 +132,10 @@ export async function GET(req: NextRequest) {
       lower.includes('backend') ||
       lower.includes('next_public') ||
       lower.includes('r2') ||
-      lower.includes('cloudflare')
+      lower.includes('cloudflare') ||
+      lower.includes('resend') ||
+      lower.includes('textlk') ||
+      lower.includes('email')
     );
   });
 
@@ -177,6 +180,11 @@ export async function GET(req: NextRequest) {
     R2_SECRET_ACCESS_KEY: Boolean(r2Config.secretAccessKey),
     R2_BUCKET_NAME: Boolean(r2Config.bucketName),
     R2_PUBLIC_DOMAIN: Boolean(r2Config.publicDomain),
+    RESEND_API_KEY: Boolean(EmailService.getApiKey()),
+    RESEND_FROM_EMAIL: Boolean(process.env.RESEND_FROM_EMAIL?.trim()),
+    RESEND_ADMIN_EMAIL: Boolean(process.env.RESEND_ADMIN_EMAIL?.trim()),
+    RESEND_WEBHOOK_SECRET: Boolean(process.env.RESEND_WEBHOOK_SECRET?.trim()),
+    TEXTLK_API_TOKEN: Boolean(SmsService.getApiToken()),
   };
 
   const actionGuidance = !isServerSupabaseConfigured

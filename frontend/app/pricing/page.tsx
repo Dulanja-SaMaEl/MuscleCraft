@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: 'MuscleCraft Pricing — Sole & Couple Membership Rates',
     description:
       'Clear, honest gym pricing in Sri Lankan Rupees. Save up to Rs. 18,000 on annual commitments.',
-    url: 'https://musclecraft.lk/pricing',
+    url: 'https://www.musclecraftlk.com/pricing',
   },
 };
 
@@ -29,14 +29,14 @@ export default function PricingPage() {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
-          { '@type': 'ListItem', position: 2, name: 'Membership Pricing', item: 'https://musclecraft.lk/pricing' },
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.musclecraftlk.com' },
+          { '@type': 'ListItem', position: 2, name: 'Membership Pricing', item: 'https://www.musclecraftlk.com/pricing' },
         ],
       },
       {
         '@type': 'OfferCatalog',
         name: 'MuscleCraft Gym Membership & Coaching Rates (LKR)',
-        url: 'https://musclecraft.lk/pricing',
+        url: 'https://www.musclecraftlk.com/pricing',
         itemListElement: [
           { '@type': 'Offer', name: 'Sole 1 Month Membership', price: '4500', priceCurrency: 'LKR' },
           { '@type': 'Offer', name: 'Sole 3 Months Membership', price: '12000', priceCurrency: 'LKR' },

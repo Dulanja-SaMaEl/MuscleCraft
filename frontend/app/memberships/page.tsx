@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     title: 'MuscleCraft Training Programs & Coaching Tiers',
     description:
       'Compare Sole, Couple, and 90-Day VIP Coaching programs. Evidence-based progressive overload and structured nutrition.',
-    url: 'https://musclecraft.lk/memberships',
+    url: 'https://www.musclecraftlk.com/memberships',
   },
 };
 
@@ -69,8 +69,8 @@ export default function MembershipsPage() {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
-      { '@type': 'ListItem', position: 2, name: 'Training Programs & Memberships', item: 'https://musclecraft.lk/memberships' },
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.musclecraftlk.com' },
+      { '@type': 'ListItem', position: 2, name: 'Training Programs & Memberships', item: 'https://www.musclecraftlk.com/memberships' },
     ],
   };
 

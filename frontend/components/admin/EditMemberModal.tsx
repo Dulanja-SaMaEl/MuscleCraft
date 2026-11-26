@@ -32,6 +32,9 @@ interface EditMemberModalProps {
     instructorId: string | null;
     assignedInstructorName: string | null;
     newPassword?: string;
+    recordPayment?: boolean;
+    paymentMethod?: string;
+    customAmount?: number | null;
   }) => Promise<void>;
 }
 
@@ -85,6 +88,9 @@ export default function EditMemberModal({
   const [instructorId, setInstructorId] = useState<string>(member.assignedInstructorId || '');
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [recordPayment, setRecordPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Cash / In-Person (Admin Assigned)');
+  const [customAmount, setCustomAmount] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -131,6 +137,9 @@ export default function EditMemberModal({
             ? selectedCoach?.name || (instructorId ? member.assignedInstructorName || null : null)
             : null,
         ...(newPassword.trim().length >= 6 ? { newPassword: newPassword.trim() } : {}),
+        recordPayment,
+        paymentMethod,
+        customAmount: customAmount.trim() !== '' ? Number(customAmount) : null,
       });
       onClose();
     } catch (err: any) {
@@ -303,6 +312,9 @@ export default function EditMemberModal({
                   onChange={(e) => {
                     const nextTier = e.target.value;
                     setTier(nextTier);
+                    if (role === 'client' && nextTier !== 'none' && nextTier !== member.tier) {
+                      setRecordPayment(true);
+                    }
                     const opt = PACKAGE_OPTIONS.find((o) => o.value === nextTier);
                     if (opt && opt.days > 0 && !expiryDate) {
                       setExpiryDate(addDaysFromDateOrNow('', opt.days));
@@ -400,6 +412,58 @@ export default function EditMemberModal({
               </p>
             </div>
           </div>
+
+          {/* Row 4.5: Direct Revenue / Profit Recording (No Receipt Needed) */}
+          {role === 'client' && tier !== 'none' && (
+            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 space-y-3">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={recordPayment}
+                  onChange={(e) => setRecordPayment(e.target.checked)}
+                  className="mt-0.5 rounded border-emerald-500/60 bg-[#111116] text-emerald-500 focus:ring-emerald-500"
+                />
+                <span>
+                  <span className="text-xs font-bold text-emerald-300 block">
+                    Record Package Payment into Revenue &amp; Profits (No Receipt Upload Required)
+                  </span>
+                  <span className="text-[11px] text-gray-400 block mt-0.5">
+                    Check this when assigning a new package or renewal in person so it counts in Dashboard Sales &amp; Reports.
+                  </span>
+                </span>
+              </label>
+
+              {recordPayment && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-300 block mb-1">Payment Method</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#111116] border border-white/10 rounded-xl text-xs text-white focus:border-emerald-500 focus:outline-none min-h-[38px]"
+                    >
+                      <option value="Cash / In-Person (Admin Assigned)">Cash / In-Person</option>
+                      <option value="Direct Bank Transfer (Admin Verified)">Direct Bank Transfer</option>
+                      <option value="Card / POS Payment">Card / POS Payment</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-300 block mb-1">
+                      Amount Override LKR <span className="text-gray-500 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      placeholder="Auto: Live Package + Admission"
+                      className="w-full px-3 py-2 bg-[#111116] border border-white/10 rounded-xl text-xs text-white font-mono focus:border-emerald-500 focus:outline-none min-h-[38px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Row 5: Optional Password Reset */}
           <div className="p-4 rounded-2xl bg-[#161620]/70 border border-white/[0.06] space-y-2">

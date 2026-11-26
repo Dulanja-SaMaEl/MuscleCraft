@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const rawCleanEmail = email.toLowerCase().trim();
     const targetEmail =
       ADMIN_ALIASES.has(rawCleanEmail) || rawCleanEmail.startsWith('admin@')
-        ? 'adeesha@musclecraft.lk'
+        ? 'musclecraftlk@gmail.com'
         : rawCleanEmail;
 
     let user = null;

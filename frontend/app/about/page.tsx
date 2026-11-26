@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: 'About MuscleCraft — Founder Adeesha Kumarasingha',
     description:
       'Structured training, functional fitness, and personalized accountability with over 7 years of fitness industry leadership.',
-    url: 'https://musclecraft.lk/about',
+    url: 'https://www.musclecraftlk.com/about',
   },
 };
 
@@ -51,14 +51,14 @@ export default function AboutPage() {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
-          { '@type': 'ListItem', position: 2, name: 'About MuscleCraft', item: 'https://musclecraft.lk/about' },
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.musclecraftlk.com' },
+          { '@type': 'ListItem', position: 2, name: 'About MuscleCraft', item: 'https://www.musclecraftlk.com/about' },
         ],
       },
       {
         '@type': 'AboutPage',
         name: 'About MuscleCraft & Founder Coach Adeesha Kumarasingha',
-        url: 'https://musclecraft.lk/about',
+        url: 'https://www.musclecraftlk.com/about',
         mainEntity: {
           '@type': 'Person',
           name: 'Adeesha Kumarasingha',

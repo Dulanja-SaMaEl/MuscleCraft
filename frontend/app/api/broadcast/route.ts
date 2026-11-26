@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { db } from '@/lib/db/mock-db';
 import { AuthService } from '@/lib/services/auth-service';
 import { BroadcastMessageSchema } from '@/lib/validation';
@@ -6,7 +7,11 @@ import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@
 import { SmsService } from '@/lib/services/sms-service';
 import { EmailService } from '@/lib/services/email-service';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
+  noStore();
   try {
     let broadcasts = db.broadcastMessages || [];
     let gatewayStatus = null;

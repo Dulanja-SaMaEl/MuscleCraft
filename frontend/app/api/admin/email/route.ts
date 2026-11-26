@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { EmailService, InboundEmailRecord } from '@/lib/services/email-service';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 /**
  * GET /api/admin/email?adminId=...
  * Returns live Resend Gateway status + received inbound emails inbox.
  */
 export async function GET(req: NextRequest) {
+  noStore();
   try {
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
@@ -117,8 +122,13 @@ export async function POST(req: NextRequest) {
 
     if (!sendRes.success) {
       return NextResponse.json(
-        { success: false, error: sendRes.error || 'Resend email dispatch failed.' },
-        { status: 502 }
+        {
+          success: false,
+          error: sendRes.error || 'Resend email dispatch failed.',
+          fromEmail: EmailService.getFromEmail(),
+          status: sendRes.status,
+        },
+        { status: sendRes.status === 'unconfigured' ? 400 : 502 }
       );
     }
 
@@ -126,7 +136,7 @@ export async function POST(req: NextRequest) {
       try {
         await supabaseServer.from('audit_logs').insert({
           actor_id: caller.id.includes('-') ? caller.id : null,
-          actor_email: caller.email || 'adeesha@musclecraft.lk',
+          actor_email: caller.email || 'musclecraftlk@gmail.com',
           action: mode === 'reply' ? 'DISPATCH_EMAIL_REPLY' : 'DISPATCH_TEST_EMAIL',
           target_type: 'email_gateway',
           target_id: to.trim(),
@@ -143,10 +153,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       result: sendRes,
-      message:
-        sendRes.status === 'simulated_unconfigured'
-          ? `RESEND_API_KEY not set locally — simulated email to ${to.trim()}. Add RESEND_API_KEY in .env.local or Vercel to send live.`
-          : `Email successfully delivered to ${to.trim()} via Resend!`,
+      message: `Email successfully delivered to ${to.trim()} via Resend! (ID: ${sendRes.messageId || 'accepted'})`,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to dispatch email.' }, { status: 500 });

@@ -357,7 +357,7 @@ export class SmsService {
     if (!norm) return null;
 
     const formattedAmount = Number(amount).toLocaleString('en-LK');
-    const msg = `MuscleCraft: Welcome ${name}! Your bank transfer of Rs. ${formattedAmount} for ${packageName} has been APPROVED. Your athlete portal is now ACTIVE. Access at: https://musclecraft.lk/client`;
+    const msg = `MuscleCraft: Welcome ${name}! Your bank transfer of Rs. ${formattedAmount} for ${packageName} has been APPROVED. Your athlete portal is now ACTIVE. Access at: https://www.musclecraftlk.com/client`;
 
     return this.sendSms({ to: norm, message: msg });
   }
@@ -377,7 +377,7 @@ export class SmsService {
     const norm = this.normalizePhoneNumber(phone);
     if (!norm) return null;
 
-    const msg = `MuscleCraft Notice: Hi ${name}, your deposit slip could not be verified (${reason}). Please re-upload a clear slip at https://musclecraft.lk/pricing or WhatsApp Coach Adeesha.`;
+    const msg = `MuscleCraft Notice: Hi ${name}, your deposit slip could not be verified (${reason}). Please re-upload a clear slip at https://www.musclecraftlk.com/pricing or WhatsApp Coach Adeesha.`;
 
     return this.sendSms({ to: norm, message: msg });
   }
@@ -395,7 +395,7 @@ export class SmsService {
     const norm = this.normalizePhoneNumber(phone);
     if (!norm) return null;
 
-    const msg = `Welcome to MuscleCraft, ${name}! Your profile is registered. Select your training package and submit your transfer at https://musclecraft.lk/pricing to unlock your portal.`;
+    const msg = `Welcome to MuscleCraft, ${name}! Your profile is registered. Select your training package and submit your transfer at https://www.musclecraftlk.com/pricing to unlock your portal.`;
 
     return this.sendSms({ to: norm, message: msg });
   }
@@ -418,7 +418,7 @@ export class SmsService {
     if (!norm) return null;
 
     const passInfo = password ? ` Password: ${password}` : '';
-    const msg = `Welcome to MuscleCraft, ${name}! Coach Adeesha has activated your membership account (${email}).${passInfo} Login at https://musclecraft.lk/login`;
+    const msg = `Welcome to MuscleCraft, ${name}! Coach Adeesha has activated your membership account (${email}).${passInfo} Login at https://www.musclecraftlk.com/login`;
 
     return this.sendSms({ to: norm, message: msg });
   }
@@ -438,7 +438,7 @@ export class SmsService {
     const norm = this.normalizePhoneNumber(phone);
     if (!norm) return null;
 
-    const msg = `MuscleCraft Coaching: Coach Adeesha reviewed your Week ${weekNumber} check-in and added guidance. View your feedback now at https://musclecraft.lk/client`;
+    const msg = `MuscleCraft Coaching: Coach Adeesha reviewed your Week ${weekNumber} check-in and added guidance. View your feedback now at https://www.musclecraftlk.com/client`;
 
     return this.sendSms({ to: norm, message: msg });
   }

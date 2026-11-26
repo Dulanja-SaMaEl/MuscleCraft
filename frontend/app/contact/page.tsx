@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: 'Contact MuscleCraft — Location, Phone & Inquiry Desk',
     description:
       'Reach Coach Adeesha and the MuscleCraft team directly for program design and membership queries.',
-    url: 'https://musclecraft.lk/contact',
+    url: 'https://www.musclecraftlk.com/contact',
   },
 };
 
@@ -28,14 +28,14 @@ export default function ContactPage() {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
-          { '@type': 'ListItem', position: 2, name: 'Contact Us', item: 'https://musclecraft.lk/contact' },
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.musclecraftlk.com' },
+          { '@type': 'ListItem', position: 2, name: 'Contact Us', item: 'https://www.musclecraftlk.com/contact' },
         ],
       },
       {
         '@type': 'ContactPage',
         name: 'Contact MuscleCraft & Coach Adeesha',
-        url: 'https://musclecraft.lk/contact',
+        url: 'https://www.musclecraftlk.com/contact',
         mainEntity: {
           '@type': 'ExerciseGym',
           name: 'MuscleCraft Athletic Facility',

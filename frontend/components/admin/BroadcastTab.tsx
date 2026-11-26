@@ -80,7 +80,7 @@ export default function BroadcastTab({
   >([]);
   const [showTestEmailModal, setShowTestEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState<'test' | 'reply'>('test');
-  const [testEmailTo, setTestEmailTo] = useState('adeesha@musclecraft.lk');
+  const [testEmailTo, setTestEmailTo] = useState('musclecraftlk@gmail.com');
   const [testEmailSubject, setTestEmailSubject] = useState('MuscleCraft Resend Email Gateway Live Check');
   const [testEmailBody, setTestEmailBody] = useState(
     'This test confirms MuscleCraft transactional and broadcast emailing via Resend is live and DNS-authenticated.'
@@ -400,7 +400,7 @@ export default function BroadcastTab({
             type="button"
             onClick={() => {
               setEmailModalMode('test');
-              setTestEmailTo(emailGateway?.adminEmail || 'adeesha@musclecraft.lk');
+              setTestEmailTo(currentUser?.email || 'musclecraftlk@gmail.com');
               setTestEmailSubject('MuscleCraft Resend Email Gateway Live Check');
               setTestEmailBody('This test confirms MuscleCraft transactional and broadcast emailing via Resend is live and DNS-authenticated.');
               setTestEmailResult(null);

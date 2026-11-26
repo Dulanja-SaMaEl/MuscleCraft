@@ -4,7 +4,7 @@ import { User, UserRole } from '../types';
 export class AuthService {
   // Production handover credentials map: Administrator account only (live members authenticate via Supabase Auth)
   private static credentials: Map<string, string> = new Map([
-    ['adeesha@musclecraft.lk', 'AdeeshaOwner2026!'],
+    ['musclecraftlk@gmail.com', 'AdeeshaOwner2026!'],
     ['owner@musclecraft.lk', 'AdeeshaOwner2026!'],
   ]);
 

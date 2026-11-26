@@ -96,7 +96,7 @@ export default async function Image() {
             color: '#d1d5db',
           }}
         >
-          <span>musclecraft.lk</span>
+          <span>www.musclecraftlk.com</span>
           <span style={{ color: '#f87171', fontWeight: 700 }}>From Rs. 4,500 / Month</span>
         </div>
       </div>

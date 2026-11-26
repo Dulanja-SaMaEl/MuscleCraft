@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: 'MuscleCraft FAQ — Membership & Training Questions Answered',
     description:
       'Everything you need to know about joining MuscleCraft, training with Coach Adeesha, and bank transfer setup.',
-    url: 'https://musclecraft.lk/faq',
+    url: 'https://www.musclecraftlk.com/faq',
   },
 };
 
