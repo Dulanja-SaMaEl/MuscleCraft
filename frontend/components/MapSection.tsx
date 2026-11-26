@@ -100,10 +100,10 @@ export default function MapSection() {
               MuscleCraft Facility
             </h4>
             <p className="text-xs text-gray-400 mt-0.5">
-              Build Discipline. Sculpt Strength.
+              245, Kotugoda Road, Seeduwa
             </p>
             <a
-              href="https://maps.google.com"
+              href="https://www.google.com/maps/search/?api=1&query=245+Kotugoda+Road+Seeduwa+Sri+Lanka"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[11px] font-semibold text-crimson-400 hover:underline flex items-center gap-1 mt-1.5"

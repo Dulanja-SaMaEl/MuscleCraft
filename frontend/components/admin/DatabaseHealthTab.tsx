@@ -954,7 +954,7 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
                 Sender Address
               </span>
               <span className="text-xs font-extrabold text-white font-mono mt-1 block truncate">
-                {healthData?.communications?.resend?.fromEmail || 'MuscleCraft <noreply@musclecraft.lk>'}
+                {healthData?.communications?.resend?.fromEmail || 'MuscleCraft <admin@musclecraftlk.com>'}
               </span>
               <span className="text-[10px] text-gray-400 font-medium">RESEND_FROM_EMAIL</span>
             </div>
@@ -964,7 +964,7 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
                 Admin Inbox Forward
               </span>
               <span className="text-xs font-extrabold text-white font-mono mt-1 block truncate">
-                {healthData?.communications?.resend?.adminEmail || 'adeesha@musclecraft.lk'}
+                {healthData?.communications?.resend?.adminEmail || 'admin@musclecraftlk.com'}
               </span>
               <span className="text-[10px] text-gray-400 font-medium">RESEND_ADMIN_EMAIL</span>
             </div>

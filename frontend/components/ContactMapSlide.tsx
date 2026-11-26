@@ -84,7 +84,7 @@ export default function ContactMapSlide() {
                       Flagship Facility
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      MuscleCraft Strength Facility
+                      245, Kotugoda Road, Seeduwa
                     </p>
                   </div>
                 </Card3DTilt>
@@ -118,7 +118,10 @@ export default function ContactMapSlide() {
                       Direct Inquiries & Dev Contact
                     </h3>
                     <p className="text-xs text-gray-300 leading-snug mt-0.5">
-                      coach@musclecraft.lk • Dev: The Monolith LK (0765917189)
+                      <a href="mailto:admin@musclecraftlk.com" className="hover:text-crimson-400 transition-colors">
+                        admin@musclecraftlk.com
+                      </a>{' '}
+                      • Dev: The Monolith LK (0765917189)
                     </p>
                   </div>
                 </Card3DTilt>
@@ -152,10 +155,10 @@ export default function ContactMapSlide() {
                     MuscleCraft Facility
                   </h4>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Build Discipline. Sculpt Strength.
+                    245, Kotugoda Road, Seeduwa
                   </p>
                   <a
-                    href="https://maps.google.com"
+                    href="https://www.google.com/maps/search/?api=1&query=245+Kotugoda+Road+Seeduwa+Sri+Lanka"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[11px] font-semibold text-crimson-400 hover:underline flex items-center gap-1 mt-1.5"

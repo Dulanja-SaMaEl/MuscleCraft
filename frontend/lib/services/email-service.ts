@@ -167,7 +167,7 @@ export class EmailService {
     return (
       process.env.RESEND_FROM_EMAIL ||
       process.env.EMAIL_FROM ||
-      'MuscleCraft <noreply@musclecraft.lk>'
+      'MuscleCraft <admin@musclecraftlk.com>'
     )
       .trim()
       .replace(/^["']|["']$/g, '');
@@ -177,7 +177,7 @@ export class EmailService {
     return (
       process.env.RESEND_ADMIN_EMAIL ||
       process.env.ADMIN_NOTIFICATION_EMAIL ||
-      'adeesha@musclecraft.lk'
+      'admin@musclecraftlk.com'
     )
       .trim()
       .replace(/^["']|["']$/g, '');
@@ -187,7 +187,7 @@ export class EmailService {
     return (
       process.env.RESEND_REPLY_TO ||
       process.env.RESEND_ADMIN_EMAIL ||
-      'support@musclecraft.lk'
+      'admin@musclecraftlk.com'
     )
       .trim()
       .replace(/^["']|["']$/g, '');

@@ -79,9 +79,9 @@ export default function ContactSection() {
               <p className="text-sm text-gray-300 leading-relaxed">
                 MuscleCraft Athletic Facility
                 <br />
-                8400 Olympic Boulevard, Suite 100
+                245, Kotugoda Road, Seeduwa
                 <br />
-                Colombo & Los Angeles
+                Sri Lanka
               </p>
             </Card3DTilt>
           </div>
@@ -119,9 +119,13 @@ export default function ContactSection() {
               <p className="text-sm text-gray-300 leading-relaxed">
                 <span className="text-white font-semibold">Front Desk:</span> +94 77 123 4567
                 <br />
-                <span className="text-white font-semibold">Head Coach:</span> coach@musclecraft.lk
-                <br />
-                <span className="text-white font-semibold">General:</span> info@musclecraft.lk
+                <span className="text-white font-semibold">Email:</span>{' '}
+                <a
+                  href="mailto:admin@musclecraftlk.com"
+                  className="text-crimson-400 hover:underline font-medium"
+                >
+                  admin@musclecraftlk.com
+                </a>
                 <br />
                 <span className="text-white font-semibold">Development:</span>{' '}
                 <span className="text-gray-200 font-medium">The Monolith LK</span> · Dulanja Abeysinghe (

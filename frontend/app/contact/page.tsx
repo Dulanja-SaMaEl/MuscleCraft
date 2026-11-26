@@ -36,6 +36,19 @@ export default function ContactPage() {
         '@type': 'ContactPage',
         name: 'Contact MuscleCraft & Coach Adeesha',
         url: 'https://musclecraft.lk/contact',
+        mainEntity: {
+          '@type': 'ExerciseGym',
+          name: 'MuscleCraft Athletic Facility',
+          email: 'admin@musclecraftlk.com',
+          telephone: '+94 77 123 4567',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: '245, Kotugoda Road',
+            addressLocality: 'Seeduwa',
+            addressRegion: 'Western Province',
+            addressCountry: 'LK',
+          },
+        },
       },
     ],
   };

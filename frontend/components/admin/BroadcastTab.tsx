@@ -393,7 +393,7 @@ export default function BroadcastTab({
               {emailGateway?.verifiedDomains?.length ? emailGateway.verifiedDomains[0] : 'Send & Receive'}
             </span>
             <span className="text-[11px] text-gray-400 mt-0.5 block truncate" title={emailGateway?.fromEmail}>
-              From: <strong className="text-gray-200">{emailGateway?.fromEmail || 'noreply@musclecraft.lk'}</strong>
+              From: <strong className="text-gray-200">{emailGateway?.fromEmail || 'admin@musclecraftlk.com'}</strong>
             </span>
           </div>
           <button
@@ -1034,7 +1034,7 @@ export default function BroadcastTab({
                     {emailModalMode === 'reply' ? 'Reply via Resend Email' : 'Resend Email Gateway Test'}
                   </h3>
                   <p className="text-[11px] text-gray-400 font-mono truncate max-w-[230px]">
-                    From: {emailGateway?.fromEmail || 'noreply@musclecraft.lk'}
+                    From: {emailGateway?.fromEmail || 'admin@musclecraftlk.com'}
                   </p>
                 </div>
               </div>

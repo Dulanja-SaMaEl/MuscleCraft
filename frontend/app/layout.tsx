@@ -121,8 +121,12 @@ const jsonLdSchema = {
         description:
           'NVQ Certified Fitness and Personal Trainer, ISO 9001 Certified Aerobic Instructor, with a Diploma in Exercise and Sport Science and over 7 years of fitness industry experience.',
       },
+      email: 'admin@musclecraftlk.com',
       address: {
         '@type': 'PostalAddress',
+        streetAddress: '245, Kotugoda Road',
+        addressLocality: 'Seeduwa',
+        addressRegion: 'Western Province',
         addressCountry: 'LK',
       },
       currenciesAccepted: 'LKR',
