@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   CreditCard,
@@ -25,6 +25,26 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { PaymentRecord } from '@/lib/types';
+import TablePagination from './TablePagination';
+
+const TIER_LABELS: Record<string, string> = {
+  sole_1m: 'Sole - 1 Month',
+  sole_3m: 'Sole - 3 Months',
+  sole_6m: 'Sole - 6 Months',
+  sole_1y: 'Sole - 1 Year',
+  couple_1m: 'Couple - 1 Month',
+  couple_3m: 'Couple - 3 Months',
+  couple_6m: 'Couple - 6 Months',
+  couple_1y: 'Couple - 1 Year',
+  coaching_90: '90-Day VIP Coaching',
+  burnzone: 'BurnZone Conditioning',
+};
+
+function formatPackageLabel(packageName?: string, tier?: string): string {
+  if (packageName && !TIER_LABELS[packageName]) return packageName;
+  if (tier && TIER_LABELS[tier]) return TIER_LABELS[tier];
+  return packageName || tier || 'Standard Plan';
+}
 
 interface BankApprovalsTabProps {
   payments: PaymentRecord[];
@@ -49,6 +69,12 @@ export default function BankApprovalsTab({
   const [isProcessing, setIsProcessing] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(8);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [paymentFilter, paymentSearch, pageSize]);
 
   // Filter payments
   const filteredPayments = payments.filter((p) => {
@@ -65,6 +91,10 @@ export default function BankApprovalsTab({
 
     return matchesFilter && matchesSearch;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPayments = filteredPayments.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const pendingCount = payments.filter((p) => p.status === 'pending').length;
   const approvedCount = payments.filter((p) => p.status === 'approved').length;
@@ -199,27 +229,122 @@ export default function BankApprovalsTab({
           placeholder="Search by reference code (TRF-MC-...), member name, email, or bank..."
           value={paymentSearch}
           onChange={(e) => setPaymentSearch(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none transition-colors"
+          className="w-full pl-11 pr-10 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none transition-colors"
         />
+        {paymentSearch && (
+          <button
+            type="button"
+            onClick={() => setPaymentSearch('')}
+            aria-label="Clear payment search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
-      {/* Table */}
+      {/* Table + Mobile Cards Container */}
       <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-white/[0.06]">
+          {paginatedPayments.length === 0 ? (
+            <div className="text-center py-12 px-4 text-gray-500">
+              <CreditCard className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+              <span className="text-sm font-medium text-gray-400 block">No payment records found</span>
+              <span className="text-xs text-gray-600 block mt-0.5">Try adjusting your filter or search query.</span>
+            </div>
+          ) : (
+            paginatedPayments.map((p) => (
+              <div key={p.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono font-bold text-white text-xs block">{p.referenceCode}</span>
+                    <span className="text-[11px] text-gray-400 block mt-0.5">{p.userName}</span>
+                  </div>
+                  <span className="text-sm font-bold font-mono text-white shrink-0">
+                    Rs. {p.amount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
+                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-gray-200 font-medium">
+                    {formatPackageLabel(p.packageName, p.tier)}
+                  </span>
+                  <span>{p.bankName}</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/[0.05]">
+                  <div>
+                    {p.status === 'approved' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
+                        <CheckCircle2 className="w-3 h-3" /> Approved
+                      </span>
+                    )}
+                    {p.status === 'pending' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+                        <Clock className="w-3 h-3 text-amber-400" /> Awaiting Review
+                      </span>
+                    )}
+                    {p.status === 'rejected' && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30">
+                        <XCircle className="w-3 h-3 text-rose-400" /> Rejected
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {p.receiptUrl && (
+                      <button
+                        type="button"
+                        onClick={() => openSlipModal(p)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] border border-white/10 text-gray-200 text-xs font-medium cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Slip
+                      </button>
+                    )}
+                    {p.status === 'pending' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleApproveAction(p.id)}
+                          disabled={isProcessing}
+                          className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs cursor-pointer disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRejectingId(p.id);
+                            setRejectReason('');
+                          }}
+                          disabled={isProcessing}
+                          className="px-2.5 py-1.5 bg-rose-950/50 text-rose-300 border border-rose-500/30 rounded-lg font-medium text-xs cursor-pointer disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#16161f] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
               <tr>
-                <th className="py-3.5 px-4 font-bold">Reference / Date</th>
-                <th className="py-3.5 px-4 font-bold">Member & Contact</th>
-                <th className="py-3.5 px-4 font-bold">Package & Tier</th>
-                <th className="py-3.5 px-4 font-bold">Amount (LKR)</th>
-                <th className="py-3.5 px-4 font-bold">Bank & Slip Details</th>
-                <th className="py-3.5 px-4 font-bold">Status</th>
-                <th className="py-3.5 px-4 font-bold text-right">Actions</th>
+                <th className="py-3.5 px-3 font-bold">Reference / Date</th>
+                <th className="py-3.5 px-3 font-bold">Member</th>
+                <th className="py-3.5 px-3 font-bold">Package</th>
+                <th className="py-3.5 px-3 font-bold">Amount</th>
+                <th className="py-3.5 px-3 font-bold">Bank & Slip</th>
+                <th className="py-3.5 px-3 font-bold">Status</th>
+                <th className="py-3.5 px-3 font-bold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {filteredPayments.length === 0 ? (
+              {paginatedPayments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-16 text-gray-500">
                     <div className="flex flex-col items-center justify-center space-y-2">
@@ -230,48 +355,53 @@ export default function BankApprovalsTab({
                   </td>
                 </tr>
               ) : (
-                filteredPayments.map((p) => (
+                paginatedPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
                     {/* Reference / Date */}
-                    <td className="py-4 px-4 whitespace-nowrap">
-                      <span className="font-mono font-bold text-white block">{p.referenceCode}</span>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <span className="font-mono font-bold text-white block text-[11px]">{p.referenceCode}</span>
                       <span className="text-[10px] text-gray-500">
-                        {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : p.transferDate}
+                        {p.createdAt
+                          ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : p.transferDate}
                       </span>
                     </td>
 
                     {/* Member & Contact */}
-                    <td className="py-4 px-4">
-                      <span className="font-semibold text-white block">{p.userName}</span>
-                      <span className="text-[11px] text-gray-400 block">{p.userEmail || '—'}</span>
+                    <td className="py-3.5 px-3 max-w-[150px]">
+                      <span className="font-semibold text-white block truncate">{p.userName}</span>
+                      <span className="text-[11px] text-gray-400 block truncate">{p.userEmail || '—'}</span>
                     </td>
 
                     {/* Package & Tier */}
-                    <td className="py-4 px-4">
-                      <span className="font-semibold text-gray-200 block">{p.packageName || p.tier}</span>
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <span className="font-semibold text-gray-200 block">
+                        {formatPackageLabel(p.packageName, p.tier)}
+                      </span>
                       {p.admissionFee && p.admissionFee > 0 ? (
                         <span className="text-[10px] text-crimson-400 font-mono">
-                          Includes Rs. {p.admissionFee.toLocaleString()} Admission
+                          +Rs. {p.admissionFee.toLocaleString()} Adm.
                         </span>
                       ) : null}
                     </td>
 
                     {/* Amount */}
-                    <td className="py-4 px-4 whitespace-nowrap">
-                      <span className="text-sm font-bold font-mono text-white block">
-                        Rs. {p.amount.toLocaleString()} LKR
+                    <td className="py-3.5 px-3 whitespace-nowrap">
+                      <span className="text-xs font-bold font-mono text-white block">
+                        Rs. {p.amount.toLocaleString()}
                       </span>
+                      <span className="text-[10px] text-gray-500 font-mono">LKR</span>
                     </td>
 
                     {/* Bank & Slip Details */}
-                    <td className="py-4 px-4 max-w-xs">
+                    <td className="py-3.5 px-3 max-w-[185px]">
                       <span className="text-gray-300 font-medium block truncate">{p.bankName}</span>
                       <span className="text-[11px] text-gray-400 block truncate">
                         Sender: {p.senderAccountName}
                       </span>
                       {p.receiptNotes && (
-                        <span className="text-[10px] text-gray-500 italic block truncate mt-0.5">
-                          Note: {p.receiptNotes}
+                        <span className="text-[10px] text-gray-500 italic block truncate mt-0.5" title={p.receiptNotes}>
+                          {p.receiptNotes}
                         </span>
                       )}
 
@@ -280,20 +410,20 @@ export default function BankApprovalsTab({
                         <button
                           type="button"
                           onClick={() => openSlipModal(p)}
-                          className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-crimson-950/80 hover:bg-crimson-900 border border-crimson-700/60 text-crimson-300 text-[11px] font-mono font-medium transition-colors cursor-pointer group"
+                          className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-crimson-950/80 hover:bg-crimson-900 border border-crimson-700/60 text-crimson-300 text-[10px] font-mono font-medium transition-colors cursor-pointer group"
                         >
-                          <Eye className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                          <span>View Slip Receipt</span>
+                          <Eye className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                          <span>View Slip</span>
                         </button>
                       ) : (
-                        <span className="text-[10px] text-gray-500 font-mono block mt-1">
-                          Manual Reference Only
+                        <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
+                          Manual Ref Only
                         </span>
                       )}
                     </td>
 
                     {/* Status */}
-                    <td className="py-4 px-4 whitespace-nowrap">
+                    <td className="py-3.5 px-3 whitespace-nowrap">
                       {p.status === 'approved' && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
                           <CheckCircle2 className="w-3 h-3" /> Approved
@@ -301,7 +431,7 @@ export default function BankApprovalsTab({
                       )}
                       {p.status === 'pending' && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
-                          <Clock className="w-3 h-3 text-amber-400" /> Awaiting Review
+                          <Clock className="w-3 h-3 text-amber-400" /> Pending
                         </span>
                       )}
                       {p.status === 'rejected' && (
@@ -312,26 +442,16 @@ export default function BankApprovalsTab({
                     </td>
 
                     {/* Actions */}
-                    <td className="py-4 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-3 text-right whitespace-nowrap">
                       {p.status === 'pending' ? (
-                        <div className="flex items-center justify-end gap-2">
-                          {p.receiptUrl && (
-                            <button
-                              type="button"
-                              onClick={() => openSlipModal(p)}
-                              title="Inspect Slip"
-                              className="p-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 hover:text-white border border-white/10 rounded-lg text-xs transition-colors cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleApproveAction(p.id)}
                             disabled={isProcessing}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-sm disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium text-[11px] transition-colors flex items-center gap-1 cursor-pointer shadow-sm disabled:opacity-50"
                           >
-                            <Check className="w-3.5 h-3.5" /> Approve
+                            <Check className="w-3 h-3" /> Approve
                           </button>
                           <button
                             type="button"
@@ -340,7 +460,7 @@ export default function BankApprovalsTab({
                               setRejectReason('');
                             }}
                             disabled={isProcessing}
-                            className="px-3 py-1.5 bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30 rounded-lg font-medium text-xs transition-colors cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1.5 bg-white/[0.03] hover:bg-rose-950/40 text-zinc-400 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/30 rounded-lg font-medium text-[11px] transition-colors cursor-pointer disabled:opacity-50"
                           >
                             Reject
                           </button>
@@ -351,13 +471,13 @@ export default function BankApprovalsTab({
                             <button
                               type="button"
                               onClick={() => openSlipModal(p)}
-                              className="text-[11px] text-gray-400 hover:text-white underline font-mono flex items-center gap-1"
+                              className="text-[11px] text-gray-400 hover:text-white underline font-mono flex items-center gap-1 cursor-pointer"
                             >
                               <Eye className="w-3 h-3" /> Slip
                             </button>
                           )}
                           <span className="text-[11px] text-gray-500">
-                            {p.reviewedAt ? `Reviewed ${new Date(p.reviewedAt).toLocaleDateString()}` : 'Archived'}
+                            {p.reviewedAt ? `Reviewed ${new Date(p.reviewedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Archived'}
                           </span>
                         </div>
                       )}
@@ -368,6 +488,18 @@ export default function BankApprovalsTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {filteredPayments.length > 0 && (
+          <TablePagination
+            currentPage={safePage}
+            totalItems={filteredPayments.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="slips"
+          />
+        )}
       </div>
 
       {/* ───────────────────────────────────────────────────────────

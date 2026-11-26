@@ -884,9 +884,9 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
                 SMS Credits
               </span>
               <span className="text-xl font-extrabold text-white font-mono mt-1 block">
-                10 Active
+                Live Synced
               </span>
-              <span className="text-[10px] text-gray-400 font-medium">Text.lk Balance</span>
+              <span className="text-[10px] text-gray-400 font-medium">View balance in Broadcast</span>
             </div>
 
             <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
@@ -963,7 +963,7 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
             </thead>
             <tbody className="divide-y divide-white/[0.04] text-gray-300">
               {endpoints.map((ep) => (
-                <tr key={ep.path} className="hover:bg-white/[0.02]">
+                <tr key={`${ep.method}-${ep.path}`} className="hover:bg-white/[0.02]">
                   <td className="py-3 px-4">
                     <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 text-[10px] font-bold">
                       {ep.method}

@@ -322,19 +322,54 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { memberId, action, status, instructorId, extendDays, tier, reason } = body;
+    const {
+      memberId,
+      action,
+      status,
+      name,
+      email,
+      phone,
+      role,
+      tier,
+      packageName,
+      membershipExpiresAt,
+      instructorId,
+      assignedInstructorName,
+      newPassword,
+      extendDays,
+      reason,
+    } = body;
 
     if (!memberId) {
       return NextResponse.json({ error: 'Missing memberId' }, { status: 400 });
     }
 
+    const isSelf = memberId === adminUser.id;
     let resolvedStatus: UserStatus | undefined = status;
     if (action === 'ban') resolvedStatus = 'suspended';
     if (action === 'unban' || action === 'activate') resolvedStatus = 'active';
 
+    if (isSelf && resolvedStatus && resolvedStatus !== 'active') {
+      return NextResponse.json({ error: 'Cannot suspend or deactivate your own administrator account.' }, { status: 400 });
+    }
+    if (isSelf && role && role !== 'admin') {
+      return NextResponse.json({ error: 'Cannot demote your own administrator role.' }, { status: 400 });
+    }
+
+    if (name !== undefined && (typeof name !== 'string' || name.trim().length < 2)) {
+      return NextResponse.json({ error: 'Full name must be at least 2 characters.' }, { status: 400 });
+    }
+    if (email !== undefined && (typeof email !== 'string' || !email.includes('@'))) {
+      return NextResponse.json({ error: 'Please provide a valid email address.' }, { status: 400 });
+    }
+    if (newPassword !== undefined && newPassword !== '' && (typeof newPassword !== 'string' || newPassword.length < 6)) {
+      return NextResponse.json({ error: 'New password must be at least 6 characters.' }, { status: 400 });
+    }
+
     const updatePayload: any = { updated_at: new Date().toISOString() };
     let newExpiryIso: string | undefined = undefined;
     let memberName = 'member';
+    const changedFields: string[] = [];
 
     if (isServerSupabaseConfigured && supabaseServer) {
       const { data: currentProfile } = await supabaseServer
@@ -346,6 +381,82 @@ export async function PATCH(req: NextRequest) {
       if (currentProfile) {
         memberName = currentProfile.name;
 
+        // Editable identity fields
+        if (name !== undefined && name.trim() !== currentProfile.name) {
+          updatePayload.name = name.trim();
+          memberName = name.trim();
+          changedFields.push(`Name: ${name.trim()}`);
+        }
+
+        if (email !== undefined) {
+          const cleanEmail = email.toLowerCase().trim();
+          if (cleanEmail !== (currentProfile.email || '').toLowerCase()) {
+            const { data: emailConflict } = await supabaseServer
+              .from('profiles')
+              .select('id')
+              .ilike('email', cleanEmail)
+              .neq('id', memberId)
+              .maybeSingle();
+
+            if (emailConflict) {
+              return NextResponse.json(
+                { error: 'Another member is already registered with this email address.' },
+                { status: 409 }
+              );
+            }
+            updatePayload.email = cleanEmail;
+            changedFields.push(`Email: ${cleanEmail}`);
+          }
+        }
+
+        if (phone !== undefined) {
+          const cleanPhone = typeof phone === 'string' && phone.trim() ? phone.trim() : null;
+          if (cleanPhone !== (currentProfile.phone || null)) {
+            updatePayload.phone = cleanPhone;
+            changedFields.push(`Phone: ${cleanPhone || 'Cleared'}`);
+          }
+        }
+
+        if (role !== undefined && ['client', 'instructor', 'admin'].includes(role) && role !== currentProfile.role) {
+          updatePayload.role = role;
+          changedFields.push(`Role: ${role}`);
+        }
+
+        // Editable tier / package
+        if (tier !== undefined && typeof tier === 'string' && tier !== currentProfile.tier) {
+          const priceInfo = PaymentService.getTierPrice(tier);
+          updatePayload.tier = tier;
+          updatePayload.package_id = tier !== 'none' ? tier : null;
+          updatePayload.package_name =
+            packageName?.trim() || (tier !== 'none' ? priceInfo.name : 'No Active Plan');
+          updatePayload.package_type = inferPackageType(tier);
+          changedFields.push(`Plan: ${updatePayload.package_name}`);
+        } else if (packageName !== undefined && packageName.trim() !== currentProfile.package_name) {
+          updatePayload.package_name = packageName.trim();
+          changedFields.push(`Plan Name: ${packageName.trim()}`);
+        }
+
+        // Explicit expiration date override from Edit Modal (only log if date actually changed)
+        if (membershipExpiresAt !== undefined) {
+          if (membershipExpiresAt === null || membershipExpiresAt === '') {
+            if (currentProfile.membership_expires_at !== null) {
+              updatePayload.membership_expires_at = null;
+              changedFields.push('Expiry: Cleared');
+            }
+          } else {
+            const parsedDate = new Date(membershipExpiresAt);
+            const curDateStr = currentProfile.membership_expires_at
+              ? String(currentProfile.membership_expires_at).slice(0, 10)
+              : '';
+            const nextDateStr = !isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : '';
+            if (nextDateStr && nextDateStr !== curDateStr) {
+              updatePayload.membership_expires_at = parsedDate.toISOString();
+              changedFields.push(`Expiry: ${nextDateStr}`);
+            }
+          }
+        }
+
+        // Quick +N days extension
         if (extendDays && Number(extendDays) > 0) {
           const currentExp = currentProfile.membership_expires_at
             ? new Date(currentProfile.membership_expires_at).getTime()
@@ -361,8 +472,11 @@ export async function PATCH(req: NextRequest) {
           }
         } else if (resolvedStatus) {
           updatePayload.status = resolvedStatus;
-          // When unbanning / activating an expired or unassigned client, ensure valid package & future expiry
-          if (resolvedStatus === 'active') {
+          if (resolvedStatus !== currentProfile.status) {
+            changedFields.push(`Status: ${resolvedStatus}`);
+          }
+          // When unbanning / activating an expired or unassigned client (without explicit expiry override), ensure valid package & future expiry
+          if (resolvedStatus === 'active' && membershipExpiresAt === undefined && action !== 'edit') {
             const curExp = currentProfile.membership_expires_at
               ? new Date(currentProfile.membership_expires_at).getTime()
               : 0;
@@ -380,8 +494,46 @@ export async function PATCH(req: NextRequest) {
           }
         }
 
-        if (instructorId) {
-          updatePayload.assigned_instructor_id = instructorId;
+        // Assigned coach update (supports clearing to null too)
+        if (instructorId !== undefined) {
+          const cleanCoachId = instructorId && String(instructorId).trim() ? String(instructorId).trim() : null;
+          updatePayload.assigned_instructor_id = cleanCoachId;
+          if (assignedInstructorName !== undefined) {
+            updatePayload.assigned_instructor_name = assignedInstructorName || null;
+          } else if (cleanCoachId) {
+            const { data: coachRow } = await supabaseServer
+              .from('profiles')
+              .select('name')
+              .eq('id', cleanCoachId)
+              .maybeSingle();
+            if (coachRow?.name) updatePayload.assigned_instructor_name = coachRow.name;
+          } else {
+            updatePayload.assigned_instructor_name = null;
+          }
+          changedFields.push(`Coach: ${updatePayload.assigned_instructor_name || 'Default'}`);
+        } else if (assignedInstructorName !== undefined) {
+          updatePayload.assigned_instructor_name = assignedInstructorName || null;
+        }
+
+        // Sync email / password with Supabase Auth if modified
+        if (updatePayload.email || (newPassword && newPassword.trim().length >= 6)) {
+          try {
+            const authUpdate: any = {};
+            if (updatePayload.email) {
+              authUpdate.email = updatePayload.email;
+              authUpdate.email_confirm = true;
+            }
+            if (newPassword && newPassword.trim().length >= 6) {
+              authUpdate.password = newPassword.trim();
+              changedFields.push('Password: Reset');
+            }
+            await supabaseServer.auth.admin.updateUserById(memberId, authUpdate);
+          } catch (authUpdErr) {
+            console.warn('Supabase auth admin update note:', authUpdErr);
+          }
+          if (newPassword && newPassword.trim().length >= 6) {
+            AuthService.setPassword(updatePayload.email || currentProfile.email, newPassword.trim());
+          }
         }
 
         const { data: updatedProf, error: updErr } = await supabaseServer
@@ -398,24 +550,45 @@ export async function PATCH(req: NextRequest) {
         // Update local mock cache if present
         const localMatch = db.users.find((u) => u.id === memberId);
         if (localMatch) {
+          if (updatePayload.name) localMatch.name = updatePayload.name;
+          if (updatePayload.email) localMatch.email = updatePayload.email;
+          if (updatePayload.phone !== undefined) localMatch.phone = updatePayload.phone || undefined;
+          if (updatePayload.role) localMatch.role = updatePayload.role;
           if (updatePayload.status) localMatch.status = updatePayload.status;
-          if (updatePayload.membership_expires_at) localMatch.membershipExpiresAt = updatePayload.membership_expires_at;
+          if (updatePayload.membership_expires_at !== undefined) {
+            localMatch.membershipExpiresAt = updatePayload.membership_expires_at || undefined;
+          }
           if (updatePayload.tier) localMatch.tier = updatePayload.tier;
           if (updatePayload.package_name) localMatch.packageName = updatePayload.package_name;
+          if (updatePayload.package_type) localMatch.packageType = updatePayload.package_type;
+          if (updatePayload.assigned_instructor_id !== undefined) {
+            localMatch.assignedInstructorId = updatePayload.assigned_instructor_id || undefined;
+          }
+          if (updatePayload.assigned_instructor_name !== undefined) {
+            localMatch.assignedInstructorName = updatePayload.assigned_instructor_name || undefined;
+          }
         }
+
+        const auditAction = extendDays
+          ? 'MEMBERSHIP_EXTENDED'
+          : action === 'edit' || changedFields.length > 1
+          ? 'ADMIN_MEMBER_UPDATED'
+          : `MEMBER_STATUS_${(updatePayload.status || 'updated').toUpperCase()}`;
+
+        const auditDetails = extendDays
+          ? `Extended membership for ${memberName} by +${extendDays} days.`
+          : action === 'edit' || changedFields.length > 0
+          ? `Admin updated ${memberName} (${changedFields.join(', ') || 'details saved'}).`
+          : `Admin updated ${memberName} status to ${updatePayload.status}.${reason ? ` Note: ${reason}` : ''}`;
 
         try {
           await supabaseServer.from('audit_logs').insert({
             actor_id: adminUser.id.includes('-') ? adminUser.id : null,
             actor_email: adminUser.email || 'adeesha@musclecraft.lk',
-            action: extendDays
-              ? 'MEMBERSHIP_EXTENDED'
-              : `MEMBER_STATUS_${(updatePayload.status || 'updated').toUpperCase()}`,
+            action: auditAction,
             target_type: 'user',
             target_id: memberId,
-            details: extendDays
-              ? `Extended membership for ${memberName} by +${extendDays} days.`
-              : `Admin updated ${memberName} status to ${updatePayload.status}.${reason ? ` Note: ${reason}` : ''}`,
+            details: auditDetails,
           });
         } catch (_) {}
 
@@ -425,17 +598,45 @@ export async function PATCH(req: NextRequest) {
             id: updatedProf.id,
             name: updatedProf.name,
             email: updatedProf.email,
+            phone: updatedProf.phone,
             role: updatedProf.role,
             tier: updatedProf.tier,
+            packageId: updatedProf.package_id,
             packageName: updatedProf.package_name,
+            packageType: updatedProf.package_type,
             status: updatedProf.status,
+            assignedInstructorId: updatedProf.assigned_instructor_id,
+            assignedInstructorName: updatedProf.assigned_instructor_name,
             membershipExpiresAt: updatedProf.membership_expires_at,
+            joinedAt: updatedProf.joined_at,
+            avatarUrl: updatedProf.avatar_url,
           },
         });
       }
     }
 
     // Fallback to AdminService (local mock DB)
+    const localUser = db.users.find((u) => u.id === memberId);
+    if (localUser && action === 'edit') {
+      if (name) localUser.name = name.trim();
+      if (email) localUser.email = email.toLowerCase().trim();
+      if (phone !== undefined) localUser.phone = phone?.trim() || undefined;
+      if (role) localUser.role = role;
+      if (resolvedStatus) localUser.status = resolvedStatus;
+      if (tier) {
+        localUser.tier = tier;
+        localUser.packageType = inferPackageType(tier);
+        localUser.packageName = packageName || (tier !== 'none' ? PaymentService.getTierPrice(tier).name : 'No Active Plan');
+      }
+      if (membershipExpiresAt !== undefined) {
+        localUser.membershipExpiresAt = membershipExpiresAt || undefined;
+      }
+      if (newPassword && newPassword.trim().length >= 6) {
+        AuthService.setPassword(localUser.email, newPassword.trim());
+      }
+      return NextResponse.json({ success: true, member: localUser });
+    }
+
     let updatedMember = null;
     if (extendDays) {
       updatedMember = AdminService.extendMembership(adminUser, memberId, Number(extendDays));

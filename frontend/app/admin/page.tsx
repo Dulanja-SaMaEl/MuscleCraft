@@ -47,9 +47,59 @@ import {
   FileBarChart2,
   Ban,
   ShieldCheck,
+  Pencil,
 } from 'lucide-react';
-import { User, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@/lib/types';
+import { User, UserRole, UserStatus, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@/lib/types';
 import dynamic from 'next/dynamic';
+import EditMemberModal from '@/components/admin/EditMemberModal';
+import TablePagination from '@/components/admin/TablePagination';
+
+function formatShortDate(dateStr?: string | null): string {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'N/A';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatAuditLogDetails(raw: any): { summary: string; meta: string[] } {
+  if (!raw) return { summary: '—', meta: [] };
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return formatAuditLogDetails(parsed);
+      } catch (_) {
+        return { summary: trimmed, meta: [] };
+      }
+    }
+    return { summary: trimmed, meta: [] };
+  }
+  if (typeof raw === 'object') {
+    const meta: string[] = [];
+    if (raw.title && raw.audience) {
+      const delivered = raw.smsResult?.deliveredCount ?? raw.recipientsCount ?? 0;
+      const status = raw.smsResult?.status || (raw.smsResult?.success ? 'delivered' : raw.smsResult ? 'failed' : 'in-app');
+      meta.push(`Audience: ${String(raw.audience).replace(/_/g, ' ')}`);
+      meta.push(`Recipients: ${raw.recipientsCount ?? 0}`);
+      if (raw.smsResult) meta.push(`SMS: ${status} (${delivered})`);
+      return { summary: `Broadcast "${raw.title}" dispatched`, meta };
+    }
+    if (raw.recipient && raw.senderId) {
+      meta.push(`Sender: ${raw.senderId}`);
+      if (raw.status) meta.push(`Status: ${raw.status}`);
+      return { summary: `Test SMS sent to ${raw.recipient}`, meta };
+    }
+    const entries = Object.entries(raw)
+      .filter(([, v]) => v !== null && v !== undefined && typeof v !== 'object')
+      .map(([k, v]) => `${k}: ${String(v)}`);
+    return {
+      summary: entries.length > 0 ? entries.slice(0, 3).join(' · ') : JSON.stringify(raw).slice(0, 140),
+      meta: entries.slice(3, 6),
+    };
+  }
+  return { summary: String(raw), meta: [] };
+}
 
 const TabLoadingState = ({ name }: { name: string }) => (
   <div className="space-y-6 animate-pulse">
@@ -276,6 +326,13 @@ export default function AdminDashboard() {
   // Admin Create Member Modal State
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [isCreatingMember, setIsCreatingMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<User | null>(null);
+  const [membersPage, setMembersPage] = useState<number>(1);
+  const [membersPageSize, setMembersPageSize] = useState<number>(8);
+  const [auditSearch, setAuditSearch] = useState<string>('');
+  const [auditActionFilter, setAuditActionFilter] = useState<string>('all');
+  const [auditPage, setAuditPage] = useState<number>(1);
+  const [auditPageSize, setAuditPageSize] = useState<number>(10);
   const [newMemberForm, setNewMemberForm] = useState({
     name: '',
     email: '',
@@ -606,6 +663,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditMember = async (payload: {
+    memberId: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: UserRole;
+    tier: string;
+    status: UserStatus;
+    membershipExpiresAt: string | null;
+    instructorId: string | null;
+    assignedInstructorName: string | null;
+    newPassword?: string;
+  }) => {
+    const adminId = currentUser?.id || 'usr_admin_1';
+    const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'edit',
+        ...payload,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update member details.');
+    }
+    setActionMessage({
+      type: 'success',
+      text: `Updated profile details for ${payload.name} (${payload.status.toUpperCase()}).`,
+    });
+    await loadAdminData();
+  };
+
   const handleExtendMembership = async (memberId: string, days: number = 30) => {
     try {
       const adminId = currentUser?.id || 'usr_admin_1';
@@ -842,6 +932,55 @@ export default function AdminDashboard() {
     return matchesSearch && matchesStatus && matchesType;
   });
 
+  // Reset pagination to page 1 when filters change
+  useEffect(() => {
+    setMembersPage(1);
+  }, [memberSearch, memberStatusFilter, memberFilterType, membersPageSize]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditSearch, auditActionFilter, auditPageSize]);
+
+  useEffect(() => {
+    if (!showAddMemberModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowAddMemberModal(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showAddMemberModal]);
+
+  const totalMembersPages = Math.max(1, Math.ceil(filteredMembers.length / membersPageSize));
+  const safeMembersPage = Math.min(membersPage, totalMembersPages);
+  const paginatedMembers = filteredMembers.slice(
+    (safeMembersPage - 1) * membersPageSize,
+    safeMembersPage * membersPageSize
+  );
+
+  const staffCoaches = members.filter((m) => m.role === 'admin' || m.role === 'instructor');
+  const hasActiveMemberFilters =
+    memberSearch.trim().length > 0 || memberStatusFilter !== 'all' || memberFilterType !== 'all';
+
+  const uniqueAuditActions = Array.from(new Set(auditLogs.map((l) => l.action))).sort();
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const matchesAction = auditActionFilter === 'all' || log.action === auditActionFilter;
+    const q = auditSearch.toLowerCase().trim();
+    if (!q) return matchesAction;
+    const detailText = typeof log.details === 'string' ? log.details : JSON.stringify(log.details || '');
+    return (
+      matchesAction &&
+      (log.actorEmail?.toLowerCase().includes(q) ||
+        log.action?.toLowerCase().includes(q) ||
+        detailText.toLowerCase().includes(q))
+    );
+  });
+  const totalAuditPages = Math.max(1, Math.ceil(filteredAuditLogs.length / auditPageSize));
+  const safeAuditPage = Math.min(auditPage, totalAuditPages);
+  const paginatedAuditLogs = filteredAuditLogs.slice(
+    (safeAuditPage - 1) * auditPageSize,
+    safeAuditPage * auditPageSize
+  );
+
   const filteredPayments = payments.filter((p) => {
     const matchesFilter = paymentFilter === 'all' || p.status === paymentFilter;
     const matchesSearch =
@@ -1010,16 +1149,16 @@ export default function AdminDashboard() {
           {/* Owner Profile Card */}
           <div className="p-2 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-              alt="Adeesha Kumarasingha"
+              src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+              alt={currentUser?.name || 'Adeesha Kumarasingha'}
               className="w-7 h-7 rounded-full object-cover border border-crimson-500/50 shrink-0"
             />
             <div className="min-w-0 flex-1">
               <span className="text-xs font-bold text-white block truncate leading-tight">
-                Adeesha Kumarasingha
+                {(currentUser?.name || 'Adeesha Kumarasingha').replace(/\s*\(.*?\)\s*/g, '')}
               </span>
               <span className="text-[10px] text-gray-400 block truncate leading-tight">
-                Founder & Head Coach
+                {currentUser?.role === 'instructor' ? 'Senior Coach' : 'Founder & Head Coach'}
               </span>
             </div>
           </div>
@@ -1109,7 +1248,7 @@ export default function AdminDashboard() {
                     <div className="absolute left-0 mt-2 w-64 sm:w-72 bg-[#0e0e14] border border-white/[0.12] rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] z-50 p-2 space-y-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
                       <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold border-b border-white/[0.06] flex items-center justify-between">
                         <span>Select Workspace</span>
-                        <span className="text-crimson-400">10 Workspaces</span>
+                        <span className="text-crimson-400">{navigationItems.length} Workspaces</span>
                       </div>
                       <div className="max-h-[360px] overflow-y-auto space-y-0.5 py-1 scrollbar-thin scrollbar-thumb-white/10">
                         {navigationItems.map((item) => {
@@ -1877,23 +2016,29 @@ export default function AdminDashboard() {
             isLoadingData && members.length === 0 ? (
               <MembersDirectorySkeleton />
             ) : (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
                 <div>
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                    <Users className="w-5 h-5 text-crimson-500" />
-                    Members Directory & Roster
-                  </h2>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                      <Users className="w-5 h-5 text-crimson-500" />
+                      Members Directory & Roster
+                    </h2>
+                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-gray-300">
+                      {filteredMembers.length} {filteredMembers.length === 1 ? 'Account' : 'Accounts'}
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Add members, manage package renewals, ban/unban access, and track 90-day expirations
+                    Add or edit members, manage package renewals, ban/unban access, and track 90-day expirations
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-1.5 bg-[#181822] p-1 rounded-xl border border-white/5 text-xs">
+                  <div className="flex items-center gap-1 bg-[#181822] p-1 rounded-xl border border-white/5 text-xs">
                     {(['all', 'sole', 'couple', 'coaching'] as const).map((type) => (
                       <button
                         key={type}
+                        type="button"
                         onClick={() => setMemberFilterType(type)}
                         className={`px-3 py-1.5 rounded-lg font-semibold uppercase text-[11px] transition-all cursor-pointer ${
                           memberFilterType === type
@@ -1917,190 +2062,418 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Search Bar */}
+              {/* Search & Status Filter Bar */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search by name, email, or phone number..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none"
+                    aria-label="Search members"
+                    className="w-full pl-11 pr-10 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500/30 transition-colors"
                   />
+                  {memberSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setMemberSearch('')}
+                      aria-label="Clear search"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                <select
-                  value={memberStatusFilter}
-                  onChange={(e) => setMemberStatusFilter(e.target.value as any)}
-                  className="px-4 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active Members</option>
-                  <option value="expiring_soon">⚡ Expiring Soon (≤ 7 Days)</option>
-                  <option value="expired">🚨 Expired (Auto-Deactivated)</option>
-                  <option value="pending">Pending Package / Slip</option>
-                  <option value="suspended">⛔ Banned / Suspended</option>
-                </select>
+                <div className="relative sm:w-56 shrink-0">
+                  <select
+                    value={memberStatusFilter}
+                    onChange={(e) => setMemberStatusFilter(e.target.value as any)}
+                    aria-label="Filter by member status"
+                    className="appearance-none w-full pl-4 pr-10 py-3 bg-[#111116] border border-white/[0.08] hover:border-white/[0.16] rounded-xl text-xs text-white font-medium focus:border-crimson-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500/30 cursor-pointer transition-colors"
+                  >
+                    <option value="all" className="bg-[#161620]">All Statuses</option>
+                    <option value="active" className="bg-[#161620]">Active Members</option>
+                    <option value="expiring_soon" className="bg-[#161620]">Expiring Soon (&le; 7 Days)</option>
+                    <option value="expired" className="bg-[#161620]">Expired (Auto-Deactivated)</option>
+                    <option value="pending" className="bg-[#161620]">Pending Package / Slip</option>
+                    <option value="suspended" className="bg-[#161620]">Banned / Suspended</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+
+                {hasActiveMemberFilters && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMemberSearch('');
+                      setMemberStatusFilter('all');
+                      setMemberFilterType('all');
+                    }}
+                    className="px-3.5 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl text-xs font-semibold text-gray-300 hover:text-white cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    Reset Filters
+                  </button>
+                )}
               </div>
 
-              {/* Members Table */}
+              {/* Members Table + Responsive Mobile Cards */}
               <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#16161f] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
-                      <tr>
-                        <th className="py-3.5 px-4 font-bold">Member Name</th>
-                        <th className="py-3.5 px-4 font-bold">Package / Plan</th>
-                        <th className="py-3.5 px-4 font-bold">Status</th>
-                        <th className="py-3.5 px-4 font-bold">Expires At</th>
-                        <th className="py-3.5 px-4 font-bold">Assigned Coach</th>
-                        <th className="py-3.5 px-4 font-bold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {filteredMembers.map((m) => {
+                {paginatedMembers.length === 0 ? (
+                  <div className="py-16 px-4 text-center space-y-3">
+                    <Users className="w-9 h-9 text-gray-600 mx-auto" />
+                    <div>
+                      <span className="text-sm font-semibold text-gray-300 block">
+                        No members match your current filters
+                      </span>
+                      <span className="text-xs text-gray-500 block mt-1">
+                        Try clearing your search term or switching status / tier filters.
+                      </span>
+                    </div>
+                    {hasActiveMemberFilters && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemberSearch('');
+                          setMemberStatusFilter('all');
+                          setMemberFilterType('all');
+                        }}
+                        className="mt-2 px-4 py-2 rounded-xl bg-crimson-600/20 hover:bg-crimson-600/30 border border-crimson-500/40 text-crimson-300 text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Reset All Filters
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile Card View (< md) */}
+                    <div className="md:hidden divide-y divide-white/[0.06]">
+                      {paginatedMembers.map((m) => {
                         const expiry = m.membershipExpiresAt ? new Date(m.membershipExpiresAt).getTime() : null;
                         const daysLeft = expiry ? Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24)) : null;
                         const isExpired = (daysLeft !== null && daysLeft <= 0) || m.status === 'expired';
                         const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
-                        const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
-                        const waText = isExpired
-                          ? `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! A quick note that your ${m.packageName || 'Gym'} membership has expired. Reply here to confirm your renewal or share your transfer slip so you can keep training without interruption!`
-                          : `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! Quick reminder that your ${m.packageName || 'Gym'} membership expires on ${m.membershipExpiresAt ? new Date(m.membershipExpiresAt).toLocaleDateString() : ''} (in ${daysLeft} days). Renew early to keep your workouts uninterrupted!`;
+                        const isSelfRow = Boolean(currentUser?.id && m.id === currentUser.id);
 
                         return (
-                          <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              <div className="flex items-center gap-3">
+                          <div key={m.id} className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <img
                                   src={m.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop'}
                                   alt={m.name}
-                                  className="w-8 h-8 rounded-full object-cover border border-white/10"
+                                  className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
                                 />
-                                <div>
-                                  <span className="font-semibold text-white block">{m.name}</span>
-                                  <span className="text-[11px] text-gray-400 block">{m.email} {m.phone ? `· ${m.phone}` : ''}</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <span className="font-semibold text-gray-200 block">{m.packageName || m.tier}</span>
-                              <span className="text-[10px] text-gray-500 uppercase font-mono">
-                                Joined {new Date(m.joinedAt).toLocaleDateString()}
-                              </span>
-                            </td>
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              {m.status === 'suspended' ? (
-                                <span className="text-[11px] font-bold text-rose-300 bg-rose-950/90 px-2.5 py-1 rounded-full border border-rose-600/70 inline-flex items-center gap-1">
-                                  <Ban className="w-3 h-3" /> Banned
-                                </span>
-                              ) : isExpired ? (
-                                <span className="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/60 shadow-sm">
-                                  Expired (Inactive)
-                                </span>
-                              ) : isExpiringSoon ? (
-                                <span className="text-[11px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-600/50">
-                                  Due Soon
-                                </span>
-                              ) : m.status === 'active' ? (
-                                <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
-                                  Active
-                                </span>
-                              ) : (
-                                <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50">
-                                  Pending Package
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              {m.membershipExpiresAt ? (
-                                <div>
-                                  <span
-                                    className={`font-mono text-xs block ${
-                                      isExpired
-                                        ? 'text-rose-400 font-bold'
-                                        : isExpiringSoon
-                                        ? 'text-amber-400 font-bold'
-                                        : 'text-gray-300'
-                                    }`}
-                                  >
-                                    {new Date(m.membershipExpiresAt).toLocaleDateString()}
-                                  </span>
-                                  {isExpired && (
-                                    <span className="text-[10px] text-rose-300 bg-rose-950/70 border border-rose-700/50 px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 mt-0.5">
-                                      <AlertCircle className="w-2.5 h-2.5" /> Expired ({Math.abs(daysLeft || 0)}d ago)
-                                    </span>
-                                  )}
-                                  {!isExpired && isExpiringSoon && (
-                                    <span className="text-[10px] text-amber-300 bg-amber-950/70 border border-amber-600/50 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1 mt-0.5">
-                                      <Clock className="w-2.5 h-2.5" /> Due in {daysLeft}d
-                                    </span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-gray-500 font-mono text-[11px]">N/A</span>
-                              )}
-                            </td>
-                            <td className="py-4 px-4 whitespace-nowrap">
-                              <span className="text-xs text-gray-300 block">
-                                {m.assignedInstructorName || 'Coach Adeesha (Owner)'}
-                              </span>
-                              <span className="text-[10px] text-gray-500">Master Roster</span>
-                            </td>
-                            <td className="py-4 px-4 text-right whitespace-nowrap">
-                              <div className="flex items-center justify-end gap-2">
-                                {cleanPhone && (isExpiringSoon || isExpired) && (
-                                  <a
-                                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                                    title="Send WhatsApp Renewal Reminder"
-                                  >
-                                    <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
-                                  </a>
-                                )}
-                                {(isExpiringSoon || isExpired) && (
-                                  <button
-                                    onClick={() => handleExtendMembership(m.id, 30)}
-                                    className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                                    title="Extend membership by +30 days"
-                                  >
-                                    +30d
-                                  </button>
-                                )}
-                                {m.role !== 'admin' && (
-                                  <button
-                                    onClick={() => handleToggleMemberStatus(m)}
-                                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                                      m.status === 'active'
-                                        ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
-                                        : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
-                                    }`}
-                                    title={m.status === 'active' ? 'Ban / Suspend user portal access' : 'Unban & activate member portal'}
-                                  >
-                                    {m.status === 'active' ? (
-                                      <>
-                                        <Ban className="w-3.5 h-3.5" />
-                                        <span>Ban</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ShieldCheck className="w-3.5 h-3.5" />
-                                        <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
-                                      </>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-white text-xs truncate">{m.name}</span>
+                                    {m.role === 'admin' && (
+                                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-crimson-950/90 text-crimson-300 border border-crimson-700/60">
+                                        Admin
+                                      </span>
                                     )}
-                                  </button>
+                                    {m.role === 'instructor' && (
+                                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-700/60">
+                                        Coach
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-gray-400 block truncate">{m.email}</span>
+                                  {m.phone && <span className="text-[11px] text-gray-500 font-mono block">{m.phone}</span>}
+                                </div>
+                              </div>
+
+                              <div className="shrink-0">
+                                {m.status === 'suspended' ? (
+                                  <span className="text-[10px] font-bold text-rose-300 bg-rose-950/90 px-2 py-0.5 rounded-full border border-rose-600/70 inline-flex items-center gap-1">
+                                    <Ban className="w-2.5 h-2.5" /> Banned
+                                  </span>
+                                ) : isExpired ? (
+                                  <span className="text-[10px] font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-700/60">
+                                    Expired
+                                  </span>
+                                ) : isExpiringSoon ? (
+                                  <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/50">
+                                    Due Soon
+                                  </span>
+                                ) : m.status === 'active' ? (
+                                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-700/50">
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-700/50">
+                                    Pending
+                                  </span>
                                 )}
                               </div>
-                            </td>
-                          </tr>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-[11px] bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05]">
+                              <div>
+                                <span className="text-[10px] text-gray-500 uppercase block">Plan</span>
+                                <span className="text-gray-200 font-medium block truncate">{m.packageName || m.tier}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-gray-500 uppercase block">Expires</span>
+                                <span className="text-gray-200 font-mono block">
+                                  {formatShortDate(m.membershipExpiresAt)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingMember(m)}
+                                className="flex-1 px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-gray-200 text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-crimson-400" />
+                                <span>Edit Details</span>
+                              </button>
+                              {!isSelfRow && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleMemberStatus(m)}
+                                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer ${
+                                    m.status === 'active'
+                                      ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
+                                      : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                                  }`}
+                                >
+                                  {m.status === 'active' ? (
+                                    <>
+                                      <Ban className="w-3.5 h-3.5" />
+                                      <span>Ban</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ShieldCheck className="w-3.5 h-3.5" />
+                                      <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+
+                    {/* Desktop Table View (>= md) */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-[#16161f] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
+                          <tr>
+                            <th className="py-3.5 px-4 font-bold">Member Name</th>
+                            <th className="py-3.5 px-4 font-bold">Package / Plan</th>
+                            <th className="py-3.5 px-4 font-bold">Status</th>
+                            <th className="py-3.5 px-4 font-bold">Expires At</th>
+                            <th className="py-3.5 px-4 font-bold">Assigned Coach</th>
+                            <th className="py-3.5 px-4 font-bold text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.04]">
+                          {paginatedMembers.map((m) => {
+                            const expiry = m.membershipExpiresAt ? new Date(m.membershipExpiresAt).getTime() : null;
+                            const daysLeft = expiry ? Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                            const isExpired = (daysLeft !== null && daysLeft <= 0) || m.status === 'expired';
+                            const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 7;
+                            const cleanPhone = m.phone ? m.phone.replace(/[^0-9]/g, '') : '';
+                            const isSelfRow = Boolean(currentUser?.id && m.id === currentUser.id);
+                            const waText = isExpired
+                              ? `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! A quick note that your ${m.packageName || 'Gym'} membership has expired. Reply here to confirm your renewal or share your transfer slip so you can keep training without interruption!`
+                              : `Hi ${m.name}, Coach Adeesha from MuscleCraft Gym here! Quick reminder that your ${m.packageName || 'Gym'} membership expires on ${formatShortDate(m.membershipExpiresAt)} (in ${daysLeft} days). Renew early to keep your workouts uninterrupted!`;
+
+                            return (
+                              <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                                <td className="py-3.5 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={m.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop'}
+                                      alt={m.name}
+                                      className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-semibold text-white">{m.name}</span>
+                                        {m.role === 'admin' && (
+                                          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-crimson-950/90 text-crimson-300 border border-crimson-700/60">
+                                            Admin
+                                          </span>
+                                        )}
+                                        {m.role === 'instructor' && (
+                                          <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-700/60">
+                                            Coach
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[11px] text-gray-400 block">
+                                        {m.email} {m.phone ? `· ${m.phone}` : ''}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className="font-semibold text-gray-200 block">{m.packageName || m.tier}</span>
+                                  <span className="text-[10px] text-gray-500 uppercase font-mono whitespace-nowrap block">
+                                    Joined {formatShortDate(m.joinedAt)}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  {m.status === 'suspended' ? (
+                                    <span className="text-[11px] font-bold text-rose-300 bg-rose-950/90 px-2.5 py-1 rounded-full border border-rose-600/70 inline-flex items-center gap-1">
+                                      <Ban className="w-3 h-3" /> Banned
+                                    </span>
+                                  ) : isExpired ? (
+                                    <span className="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2.5 py-1 rounded-full border border-rose-700/60 shadow-sm">
+                                      Expired (Inactive)
+                                    </span>
+                                  ) : isExpiringSoon ? (
+                                    <span className="text-[11px] font-bold text-amber-300 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-600/50">
+                                      Due Soon
+                                    </span>
+                                  ) : m.status === 'active' ? (
+                                    <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-700/50">
+                                      Active
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-700/50">
+                                      Pending Package
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  {m.membershipExpiresAt ? (
+                                    <div>
+                                      <span
+                                        className={`font-mono text-xs block ${
+                                          isExpired
+                                            ? 'text-rose-400 font-bold'
+                                            : isExpiringSoon
+                                            ? 'text-amber-400 font-bold'
+                                            : 'text-gray-200'
+                                        }`}
+                                      >
+                                        {formatShortDate(m.membershipExpiresAt)}
+                                      </span>
+                                      {isExpired ? (
+                                        <span className="text-[10px] text-rose-300 bg-rose-950/70 border border-rose-700/50 px-2 py-0.5 rounded font-bold inline-flex items-center gap-1 mt-0.5">
+                                          <AlertCircle className="w-2.5 h-2.5" /> Expired ({Math.abs(daysLeft || 0)}d ago)
+                                        </span>
+                                      ) : isExpiringSoon ? (
+                                        <span className="text-[10px] text-amber-300 bg-amber-950/70 border border-amber-600/50 px-2 py-0.5 rounded font-semibold inline-flex items-center gap-1 mt-0.5">
+                                          <Clock className="w-2.5 h-2.5" /> Due in {daysLeft}d
+                                        </span>
+                                      ) : daysLeft !== null ? (
+                                        <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
+                                          {daysLeft}d remaining
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-500 font-mono text-[11px]">
+                                      {m.role !== 'client' ? 'Staff' : 'N/A'}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  {m.role === 'admin' ? (
+                                    <>
+                                      <span className="text-xs text-crimson-300 font-medium block">System Owner / Admin</span>
+                                      <span className="text-[10px] text-gray-500">Full Access</span>
+                                    </>
+                                  ) : m.role === 'instructor' ? (
+                                    <>
+                                      <span className="text-xs text-amber-300 font-medium block">Coaching Staff</span>
+                                      <span className="text-[10px] text-gray-500">Instructor Roster</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-xs text-gray-300 block">
+                                        {m.assignedInstructorName || 'Coach Adeesha (Owner)'}
+                                      </span>
+                                      <span className="text-[10px] text-gray-500">Master Roster</span>
+                                    </>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {cleanPhone && (isExpiringSoon || isExpired) && (
+                                      <a
+                                        href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2.5 py-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                        title="Send WhatsApp Renewal Reminder"
+                                      >
+                                        <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
+                                      </a>
+                                    )}
+                                    {(isExpiringSoon || isExpired) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleExtendMembership(m.id, 30)}
+                                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 text-gray-200 border border-white/10 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                                        title="Extend membership by +30 days"
+                                      >
+                                        +30d
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingMember(m)}
+                                      className="px-2.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.1] text-gray-200 hover:text-white border border-white/[0.1] hover:border-crimson-500/40 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500"
+                                      title={`Edit ${m.name}'s details`}
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-crimson-400" />
+                                      <span>Edit</span>
+                                    </button>
+                                    {!isSelfRow && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleMemberStatus(m)}
+                                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500 ${
+                                          m.status === 'active'
+                                            ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
+                                            : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                                        }`}
+                                        title={m.status === 'active' ? 'Ban / Suspend user portal access' : 'Unban & activate member portal'}
+                                      >
+                                        {m.status === 'active' ? (
+                                          <>
+                                            <Ban className="w-3.5 h-3.5" />
+                                            <span>Ban</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ShieldCheck className="w-3.5 h-3.5" />
+                                            <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination Footer */}
+                    <TablePagination
+                      currentPage={safeMembersPage}
+                      totalItems={filteredMembers.length}
+                      pageSize={membersPageSize}
+                      onPageChange={setMembersPage}
+                      onPageSizeChange={setMembersPageSize}
+                      pageSizeOptions={[5, 8, 10, 25]}
+                      itemLabel="members"
+                    />
+                  </>
+                )}
               </div>
             </div>
             )
@@ -2169,53 +2542,140 @@ export default function AdminDashboard() {
             isLoadingData && auditLogs.length === 0 ? (
               <AuditLogsSkeleton />
             ) : (
-            <div className="space-y-6">
-              <div className="bg-[#111116] border border-white/[0.08] p-6 rounded-3xl shadow-xl flex items-center justify-between">
+            <div className="space-y-5">
+              <div className="bg-[#111116] border border-white/[0.08] p-5 sm:p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                     <History className="w-5 h-5 text-crimson-500" />
                     Administrative Audit Trail & Security Ledger
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    Immutable log of all financial approvals, status mutations, and protocol assignments.
+                    Immutable log of all financial approvals, member edits, SMS dispatches, and protocol assignments.
                   </p>
                 </div>
-                <span className="text-xs font-mono text-gray-400">Total Entries: {auditLogs.length}</span>
+                <span className="text-xs font-mono text-gray-300 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] self-start sm:self-auto">
+                  {filteredAuditLogs.length} / {auditLogs.length} Entries
+                </span>
+              </div>
+
+              {/* Audit Search & Action Filter */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search audit logs by actor, action, member name, or message..."
+                    value={auditSearch}
+                    onChange={(e) => setAuditSearch(e.target.value)}
+                    aria-label="Search audit logs"
+                    className="w-full pl-11 pr-10 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-gray-500 focus:border-crimson-500 focus:outline-none"
+                  />
+                  {auditSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAuditSearch('')}
+                      aria-label="Clear audit search"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white rounded-lg cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative sm:w-64 shrink-0">
+                  <select
+                    value={auditActionFilter}
+                    onChange={(e) => setAuditActionFilter(e.target.value)}
+                    aria-label="Filter by audit action"
+                    className="appearance-none w-full pl-4 pr-10 py-3 bg-[#111116] border border-white/[0.08] rounded-xl text-xs text-white font-mono focus:border-crimson-500 focus:outline-none cursor-pointer"
+                  >
+                    <option value="all" className="bg-[#161620]">All Action Types</option>
+                    {uniqueAuditActions.map((act) => (
+                      <option key={act} value={act} className="bg-[#161620]">
+                        {act}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               <div className="bg-[#111116] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs table-fixed">
                     <thead className="bg-[#16161f] text-gray-400 uppercase text-[10px] tracking-wider border-b border-white/[0.06]">
                       <tr>
-                        <th className="py-3.5 px-4 font-bold">Timestamp</th>
-                        <th className="py-3.5 px-4 font-bold">Actor</th>
-                        <th className="py-3.5 px-4 font-bold">Action Type</th>
+                        <th className="py-3.5 px-4 font-bold w-[170px]">Timestamp</th>
+                        <th className="py-3.5 px-4 font-bold w-[180px]">Actor</th>
+                        <th className="py-3.5 px-4 font-bold w-[200px]">Action Type</th>
                         <th className="py-3.5 px-4 font-bold">Details & Notes</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
-                      {auditLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-gray-400">
-                            {new Date(log.timestamp).toLocaleString()}
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-semibold text-white block">{log.actorEmail}</span>
-                          </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-crimson-950 text-crimson-300 border border-crimson-800">
-                              {log.action}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-gray-300 font-medium">
-                            {log.details}
+                      {paginatedAuditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-14 text-center text-gray-500">
+                            No audit entries match your current filter.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        paginatedAuditLogs.map((log) => {
+                          const formatted = formatAuditLogDetails(log.details);
+                          return (
+                            <tr key={log.id} className="hover:bg-white/[0.02] transition-colors align-top">
+                              <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-gray-400">
+                                {new Date(log.timestamp).toLocaleString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </td>
+                              <td className="py-3.5 px-4 truncate">
+                                <span className="font-semibold text-white block truncate" title={log.actorEmail}>
+                                  {log.actorEmail}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-crimson-950 text-crimson-300 border border-crimson-800 inline-block max-w-full truncate">
+                                  {log.action}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-gray-300 font-medium break-words">
+                                <span className="block leading-relaxed">{formatted.summary}</span>
+                                {formatted.meta.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                    {formatted.meta.map((tag, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {filteredAuditLogs.length > 0 && (
+                  <TablePagination
+                    currentPage={safeAuditPage}
+                    totalItems={filteredAuditLogs.length}
+                    pageSize={auditPageSize}
+                    onPageChange={setAuditPage}
+                    onPageSizeChange={setAuditPageSize}
+                    pageSizeOptions={[5, 10, 25, 50]}
+                    itemLabel="entries"
+                  />
+                )}
               </div>
             </div>
             )
@@ -2423,6 +2883,17 @@ export default function AdminDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Edit Member Details Modal */}
+      {editingMember && (
+        <EditMemberModal
+          member={editingMember}
+          coaches={staffCoaches}
+          currentUserId={currentUser?.id}
+          onClose={() => setEditingMember(null)}
+          onSave={handleEditMember}
+        />
       )}
     </div>
   );
