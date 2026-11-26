@@ -65,8 +65,21 @@ export default function MembershipsPage() {
     },
   ];
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
+      { '@type': 'ListItem', position: 2, name: 'Training Programs & Memberships', item: 'https://musclecraft.lk/memberships' },
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
 
       <main className="flex-grow pt-32 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">

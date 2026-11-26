@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SmsService } from '@/lib/services/sms-service';
 import { resolveServerUser, supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +31,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rate = checkRateLimit('admin_sms_test', ip, 10, 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: `Rate limit exceeded. Please wait ${rate.retryAfterSeconds}s before sending another test SMS.` },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');
     const caller = await resolveServerUser(adminId);

@@ -17,6 +17,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { GymPackage, GYM_PACKAGES } from '@/lib/types';
+import { useAuth } from '@/lib/context/auth-context';
 
 interface PackagesManagerTabProps {
   onNotify: (type: 'success' | 'error', text: string) => void;
@@ -27,6 +28,7 @@ export default function PackagesManagerTab({
   onNotify,
   onAuditLog,
 }: PackagesManagerTabProps) {
+  const { currentUser } = useAuth();
   const [packages, setPackages] = useState<GymPackage[]>(() =>
     JSON.parse(JSON.stringify(GYM_PACKAGES))
   );
@@ -146,10 +148,11 @@ export default function PackagesManagerTab({
         },
       };
 
-      const res = await fetch('/api/admin/packages', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/packages${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, adminId: currentUser?.id }),
       });
 
       if (res.ok) {
@@ -182,10 +185,12 @@ export default function PackagesManagerTab({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/packages', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/packages${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          adminId: currentUser?.id,
           action: 'update_admission',
           admissionFees: {
             sole: Number(tempAdmission.sole),
@@ -222,10 +227,11 @@ export default function PackagesManagerTab({
 
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/packages', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/packages${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset' }),
+        body: JSON.stringify({ action: 'reset', adminId: currentUser?.id }),
       });
 
       if (res.ok) {

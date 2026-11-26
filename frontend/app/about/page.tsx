@@ -45,8 +45,36 @@ export default function AboutPage() {
     },
   ];
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
+          { '@type': 'ListItem', position: 2, name: 'About MuscleCraft', item: 'https://musclecraft.lk/about' },
+        ],
+      },
+      {
+        '@type': 'AboutPage',
+        name: 'About MuscleCraft & Founder Coach Adeesha Kumarasingha',
+        url: 'https://musclecraft.lk/about',
+        mainEntity: {
+          '@type': 'Person',
+          name: 'Adeesha Kumarasingha',
+          jobTitle: 'Founder & Head Coach',
+          worksFor: { '@type': 'Organization', name: 'MuscleCraft' },
+        },
+      },
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
 
       <main className="flex-grow pt-32 sm:pt-36 lg:pt-40 pb-16 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">

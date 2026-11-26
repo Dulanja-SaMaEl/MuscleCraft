@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaymentService } from '@/lib/services/payment-service';
 import { SubmitBankTransferSchema } from '@/lib/validation';
+import { EmailService } from '@/lib/services/email-service';
 import {
   supabaseServer,
   isServerSupabaseConfigured,
@@ -167,6 +168,20 @@ export async function POST(req: NextRequest) {
       if (inserted) {
         payment.id = inserted.id;
       }
+    }
+
+    // Automatic Email Notification: Bank Slip Submitted (Member Receipt + Admin Alert via Resend)
+    try {
+      await EmailService.notifyPaymentSubmitted({
+        email: payment.userEmail || user.email,
+        name: payment.userName,
+        referenceCode: payment.referenceCode,
+        amount: payment.amount,
+        packageName: payment.packageName,
+        bankName: payment.bankName,
+      });
+    } catch (emailErr) {
+      console.warn('Payment submitted email warning:', emailErr);
     }
 
     return NextResponse.json({ success: true, payment }, { status: 201 });

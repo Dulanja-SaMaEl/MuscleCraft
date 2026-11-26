@@ -1,7 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/context/auth-context';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#080809',
+};
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -67,18 +74,18 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/images/musclecraft-emblem.png',
-        width: 800,
-        height: 800,
-        alt: 'MuscleCraft Emblem — Build Discipline. Sculpt Strength.',
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'MuscleCraft — Build Discipline. Sculpt Strength. Premier Gym & 1-on-1 Coaching Sri Lanka',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'MuscleCraft — Build Discipline. Sculpt Strength.',
-    description: 'Build discipline. Sculpt strength. Premier workout & diet coaching.',
-    images: ['/images/musclecraft-emblem.png'],
+    description: 'Build discipline. Sculpt strength. Premier workout & diet coaching with Coach Adeesha.',
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,

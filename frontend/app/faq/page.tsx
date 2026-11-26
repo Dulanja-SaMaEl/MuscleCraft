@@ -64,6 +64,7 @@ export default function FaqPage() {
       <Navbar />
 
       <main className="flex-grow pt-24 sm:pt-28 lg:pt-32">
+        <h1 className="sr-only">MuscleCraft Frequently Asked Questions — Gym Memberships &amp; 90-Day Coaching</h1>
         <FaqSection />
 
         <div className="max-w-4xl mx-auto px-4 pb-20 text-center">

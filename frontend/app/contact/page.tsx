@@ -22,11 +22,34 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
+          { '@type': 'ListItem', position: 2, name: 'Contact Us', item: 'https://musclecraft.lk/contact' },
+        ],
+      },
+      {
+        '@type': 'ContactPage',
+        name: 'Contact MuscleCraft & Coach Adeesha',
+        url: 'https://musclecraft.lk/contact',
+      },
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
 
       <main className="flex-grow pt-24 sm:pt-28 lg:pt-32">
+        <h1 className="sr-only">Contact MuscleCraft — Speak with Coach Adeesha Kumarasingha</h1>
         {/* Contact Info Grid from Reference Image */}
         <ContactSection />
 

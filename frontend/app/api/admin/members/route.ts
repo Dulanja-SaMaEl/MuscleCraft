@@ -10,6 +10,7 @@ import {
 import { db } from '@/lib/db/mock-db';
 import { UserStatus } from '@/lib/types';
 import { SmsService } from '@/lib/services/sms-service';
+import { EmailService } from '@/lib/services/email-service';
 
 function inferPackageType(tier: string): 'sole' | 'couple' | 'coaching' {
   if (tier.startsWith('couple')) return 'couple';
@@ -296,6 +297,18 @@ export async function POST(req: NextRequest) {
       } catch (smsErr) {
         console.warn('Admin member creation SMS dispatch warning:', smsErr);
       }
+    }
+
+    // Automatic Email Notification: Admin Created Member Credentials via Resend
+    try {
+      await EmailService.notifyAdminCreatedMember({
+        email: cleanEmail,
+        name: cleanName,
+        password,
+        packageName: selectedTier !== 'none' ? priceInfo.name : 'No Active Plan',
+      });
+    } catch (emailErr) {
+      console.warn('Admin member creation Email dispatch warning:', emailErr);
     }
 
     return NextResponse.json(

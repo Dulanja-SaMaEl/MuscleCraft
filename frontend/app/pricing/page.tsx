@@ -23,11 +23,45 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://musclecraft.lk' },
+          { '@type': 'ListItem', position: 2, name: 'Membership Pricing', item: 'https://musclecraft.lk/pricing' },
+        ],
+      },
+      {
+        '@type': 'OfferCatalog',
+        name: 'MuscleCraft Gym Membership & Coaching Rates (LKR)',
+        url: 'https://musclecraft.lk/pricing',
+        itemListElement: [
+          { '@type': 'Offer', name: 'Sole 1 Month Membership', price: '4500', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Sole 3 Months Membership', price: '12000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Sole 6 Months Membership', price: '22000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Sole 1 Year Membership', price: '40000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Couple 1 Month Membership', price: '8000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Couple 3 Months Membership', price: '22500', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Couple 6 Months Membership', price: '42000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: 'Couple 1 Year Membership', price: '78000', priceCurrency: 'LKR' },
+          { '@type': 'Offer', name: '90-Day Better Me VIP Online Coaching', price: '8000', priceCurrency: 'LKR' },
+        ],
+      },
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#080809]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
 
       <main className="flex-grow pt-24 sm:pt-28 lg:pt-32">
+        <h1 className="sr-only">MuscleCraft Gym Membership Packages &amp; Coaching Rates in Sri Lanka (LKR)</h1>
         {/* Main Pricing Cards with Sole / Couple / Signature options */}
         <PricingSection />
 

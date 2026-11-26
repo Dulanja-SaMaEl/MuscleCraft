@@ -11,6 +11,7 @@ import {
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 import { SmsService } from '@/lib/services/sms-service';
+import { EmailService } from '@/lib/services/email-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -171,25 +172,28 @@ export async function PATCH(req: NextRequest) {
     if (updated?.userId && feedback && typeof feedback === 'string' && feedback.trim().length > 0) {
       try {
         let athletePhone: string | null = null;
+        let athleteEmail: string | null = null;
         let athleteName = 'Athlete';
 
         if (isServerSupabaseConfigured && supabaseServer) {
           const { data: athleteProf } = await supabaseServer
             .from('profiles')
-            .select('name, phone')
+            .select('name, email, phone')
             .eq('id', updated.userId)
             .maybeSingle();
 
           if (athleteProf) {
             athletePhone = athleteProf.phone || null;
+            athleteEmail = athleteProf.email || null;
             athleteName = athleteProf.name || athleteName;
           }
         }
 
-        if (!athletePhone) {
+        if (!athletePhone || !athleteEmail) {
           const localUser = db.users.find((u) => u.id === updated.userId);
           if (localUser) {
-            athletePhone = localUser.phone || null;
+            athletePhone = athletePhone || localUser.phone || null;
+            athleteEmail = athleteEmail || localUser.email || null;
             athleteName = localUser.name || athleteName;
           }
         }
@@ -201,8 +205,16 @@ export async function PATCH(req: NextRequest) {
             weekNumber: updated.weekNumber || 1,
           });
         }
-      } catch (smsErr) {
-        console.warn('Coach feedback SMS notification error:', smsErr);
+        if (athleteEmail) {
+          await EmailService.notifyCoachFeedback({
+            email: athleteEmail,
+            name: athleteName,
+            weekNumber: updated.weekNumber || 1,
+            feedback: feedback.trim(),
+          });
+        }
+      } catch (notifyErr) {
+        console.warn('Coach feedback notification error:', notifyErr);
       }
     }
 

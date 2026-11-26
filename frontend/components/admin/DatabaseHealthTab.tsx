@@ -24,6 +24,7 @@ import {
   Video,
   Smartphone,
   MessageSquare,
+  Mail,
 } from 'lucide-react';
 
 interface DatabaseHealthTabProps {
@@ -119,6 +120,11 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
     { method: 'GET', path: '/api/auth/session', target: 'Authentication & Session Service', status: 200, latency: (lastPingMs || 18) + 2 },
     { method: 'GET', path: '/api/admin/sms', target: 'Text.lk SMS Gateway Telemetry & Balance API', status: 200, latency: (lastPingMs || 18) + 4 },
     { method: 'POST', path: '/api/admin/sms', target: 'Text.lk SMS Automated & Direct Dispatch Service', status: 200, latency: (lastPingMs || 18) + 12 },
+    { method: 'GET', path: '/api/admin/email', target: 'Resend Email Gateway Status & Inbound Inbox', status: 200, latency: (lastPingMs || 18) + 5 },
+    { method: 'POST', path: '/api/admin/email', target: 'Resend Test Dispatch & Direct Inbox Replies', status: 200, latency: (lastPingMs || 18) + 10 },
+    { method: 'POST', path: '/api/webhooks/resend-inbound', target: 'Resend Inbound Email Webhook Receiver (Svix)', status: 200, latency: (lastPingMs || 18) + 3 },
+    { method: 'POST', path: '/api/contact', target: 'Public Contact Form Inquiry & Auto-Responder', status: 200, latency: (lastPingMs || 18) + 7 },
+    { method: 'POST', path: '/api/newsletter', target: 'Footer Newsletter Subscription & Welcome Mail', status: 200, latency: (lastPingMs || 18) + 6 },
   ];
 
   if (isLoading && !healthData) {
@@ -907,6 +913,80 @@ R2_PUBLIC_DOMAIN="https://pub-yourdomain.r2.dev"
                 Bearer Token
               </span>
               <span className="text-[10px] text-emerald-400 font-medium">Server-side Only</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Resend Email Sending & Receiving Card */}
+        <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-lg relative overflow-hidden md:col-span-2 xl:col-span-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.06]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-950/80 border border-sky-600/50 flex items-center justify-center text-sky-400">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base">Resend Transactional & Inbound Email</h3>
+                <span className="text-[11px] text-gray-400 font-mono">
+                  Outbound Notifications · Broadcast Blasts · Inbound Webhook Receiver
+                </span>
+              </div>
+            </div>
+
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit ${
+                healthData?.communications?.resend?.configured
+                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                  : 'bg-amber-950 text-amber-300 border border-amber-700'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  healthData?.communications?.resend?.configured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+              {healthData?.communications?.resend?.configured ? 'CONNECTED' : 'STANDBY (SET RESEND_API_KEY)'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Sender Address
+              </span>
+              <span className="text-xs font-extrabold text-white font-mono mt-1 block truncate">
+                {healthData?.communications?.resend?.fromEmail || 'MuscleCraft <noreply@musclecraft.lk>'}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">RESEND_FROM_EMAIL</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Admin Inbox Forward
+              </span>
+              <span className="text-xs font-extrabold text-white font-mono mt-1 block truncate">
+                {healthData?.communications?.resend?.adminEmail || 'adeesha@musclecraft.lk'}
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">RESEND_ADMIN_EMAIL</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Inbound Webhook
+              </span>
+              <span className="text-xs font-extrabold text-sky-400 font-mono mt-1 block truncate">
+                /api/webhooks/resend-inbound
+              </span>
+              <span className="text-[10px] text-gray-400 font-medium">Event: email.received</span>
+            </div>
+
+            <div className="bg-[#161620] p-3.5 rounded-xl border border-white/[0.04]">
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                Svix Signature Check
+              </span>
+              <span className="text-xs font-extrabold text-white font-mono mt-1 block">
+                {healthData?.communications?.resend?.webhookSecretConfigured ? 'Enforced HMAC' : 'Optional Secret'}
+              </span>
+              <span className="text-[10px] text-emerald-400 font-medium">Manage in Broadcast Center</span>
             </div>
           </div>
         </div>

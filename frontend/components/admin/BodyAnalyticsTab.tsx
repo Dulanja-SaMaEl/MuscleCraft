@@ -61,7 +61,7 @@ export default function BodyAnalyticsTab({
 
   // Currently focused athlete for the trajectory progression chart
   const [activeAthleteId, setActiveAthleteId] = useState<string>(() => {
-    return allClientMembers[0]?.id || initialMeasurements[0]?.userId || 'usr_client_90';
+    return allClientMembers[0]?.id || initialMeasurements[0]?.userId || '';
   });
 
   // Modal 1: Quick Coach Feedback Modal

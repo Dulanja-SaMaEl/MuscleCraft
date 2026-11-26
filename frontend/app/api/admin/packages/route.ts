@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GYM_PACKAGES, GymPackage } from '@/lib/types';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 
 let currentPackages: GymPackage[] = JSON.parse(JSON.stringify(GYM_PACKAGES));
 let admissionFees = {
@@ -101,7 +101,16 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
     const body = await req.json();
+    const adminId = searchParams.get('adminId') || body?.adminId;
+    const caller = await resolveServerUser(adminId);
+    if (caller.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only administrators can modify gym packages and admission fees.' },
+        { status: 403 }
+      );
+    }
     const { action, package: updatedPkg, admissionFees: newFees, packages: bulkPackages } = body;
 
     // Action 1: Reset to default rate card

@@ -8,6 +8,7 @@ import {
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 import { SmsService } from '@/lib/services/sms-service';
+import { EmailService } from '@/lib/services/email-service';
 
 function computePlanDurationDays(tier?: string | null): number {
   if (!tier) return 30;
@@ -86,7 +87,7 @@ export async function POST(
           const priceInfo = PaymentService.getTierPrice(existing.tier);
           const { data: currentProfile } = await supabaseServer
             .from('profiles')
-            .select('name, phone, membership_expires_at, status')
+            .select('name, email, phone, membership_expires_at, status')
             .eq('id', existing.user_id)
             .maybeSingle();
 
@@ -119,9 +120,10 @@ export async function POST(
             localUser.membershipExpiresAt = newExpiry;
           }
 
-          // Automatic SMS Notification: Bank Slip Approved & Membership Activated
+          // Automatic SMS & Email Notification: Bank Slip Approved & Membership Activated
           try {
             const memberPhone = currentProfile?.phone || localUser?.phone;
+            const memberEmail = currentProfile?.email || localUser?.email;
             const memberName = currentProfile?.name || localUser?.name || 'Athlete';
             if (memberPhone) {
               await SmsService.notifyPaymentApproved({
@@ -131,8 +133,17 @@ export async function POST(
                 packageName: priceInfo.name,
               });
             }
-          } catch (smsErr) {
-            console.warn('Payment approval SMS dispatch warning:', smsErr);
+            if (memberEmail) {
+              await EmailService.notifyPaymentApproved({
+                email: memberEmail,
+                name: memberName,
+                amount: existing.amount,
+                packageName: priceInfo.name,
+                expiresAt: newExpiry,
+              });
+            }
+          } catch (notifyErr) {
+            console.warn('Payment approval notification warning:', notifyErr);
           }
         }
       }

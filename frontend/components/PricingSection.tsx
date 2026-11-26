@@ -380,40 +380,45 @@ export default function PricingSection() {
         />
 
         {/* Category Switcher Tabs: Sole / Couple / Signature */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10 max-w-xl mx-auto">
-          <div className="p-1.5 bg-[#121217] border border-white/10 rounded-2xl flex items-center w-full shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10 max-w-2xl mx-auto">
+          <div className="p-1.5 bg-[#121217] border border-white/10 rounded-2xl grid grid-cols-3 gap-1 w-full shadow-2xl">
             <button
+              type="button"
               onClick={() => setActiveCategory('sole')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-3 px-2 sm:px-4 rounded-xl text-[11px] sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer min-h-[44px] ${
                 activeCategory === 'sole'
                   ? 'bg-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.6)] font-extrabold'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <User className="w-4 h-4" />
-              Sole (Individual)
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="sm:hidden">Sole</span>
+              <span className="hidden sm:inline">Sole (Individual)</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveCategory('couple')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-3 px-2 sm:px-4 rounded-xl text-[11px] sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer min-h-[44px] ${
                 activeCategory === 'couple'
                   ? 'bg-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.6)] font-extrabold'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Users className="w-4 h-4" />
-              Couple (2 Partners)
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="sm:hidden">Couple</span>
+              <span className="hidden sm:inline">Couple (2 Partners)</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveCategory('signature')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-3 px-2 sm:px-4 rounded-xl text-[11px] sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer min-h-[44px] ${
                 activeCategory === 'signature'
                   ? 'bg-crimson-600 text-white shadow-[0_0_15px_rgba(186,26,26,0.6)] font-extrabold'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles className="w-4 h-4" />
-              Coaching
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span>Coaching</span>
             </button>
           </div>
         </div>

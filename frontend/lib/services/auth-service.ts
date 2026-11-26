@@ -2,17 +2,10 @@ import { db } from '../db/mock-db';
 import { User, UserRole } from '../types';
 
 export class AuthService {
-  // Credential map for local in-memory authentication and fallback
+  // Production handover credentials map: Administrator account only (live members authenticate via Supabase Auth)
   private static credentials: Map<string, string> = new Map([
     ['adeesha@musclecraft.lk', 'AdeeshaOwner2026!'],
     ['owner@musclecraft.lk', 'AdeeshaOwner2026!'],
-    ['coach.kasun@musclecraft.lk', 'KasunCoach2026!'],
-    ['marcus@musclecraft.lk', 'ClientPass2026!'],
-    ['nuwan.silva@gmail.com', 'Nuwan2026!'],
-    ['kanishka.perera@gmail.com', 'Kanishka2026!'],
-    ['rohan.v@gmail.com', 'Rohan2026!'],
-    ['dinuka@gmail.com', 'Dinuka2026!'],
-    ['saman.rashmi@gmail.com', 'Saman2026!'],
   ]);
 
   static getCurrentUser(userId?: string | null): User | null {

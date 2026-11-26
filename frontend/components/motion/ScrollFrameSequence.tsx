@@ -46,10 +46,8 @@ export default function ScrollFrameSequence({
   const magneticBtnRef1 = useMagnetic<HTMLAnchorElement>(0.28);
   const magneticBtnRef4 = useMagnetic<HTMLAnchorElement>(0.28);
 
-  // Runtime State
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  );
+  // Runtime State (initialized consistently for SSR/hydration; mobile tier detected in useEffect)
+  const [isMobile, setIsMobile] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const [framesFailed, setFramesFailed] = useState(false);
   const [firstFramePainted, setFirstFramePainted] = useState(false);
@@ -62,11 +60,7 @@ export default function ScrollFrameSequence({
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const loadedImagesRef = useRef<Map<number, HTMLImageElement>>(new Map());
   const loadingSetRef = useRef<Set<number>>(new Set());
-  const activeConfigRef = useRef(
-    typeof window !== 'undefined' && window.innerWidth <= 768
-      ? framesManifest.mobile
-      : framesManifest.desktop
-  );
+  const activeConfigRef = useRef(framesManifest.desktop);
 
   // Animated Stats DOM Refs for Beat 1 (eliminates 100+ React re-renders on page load)
   const statPercentRef = useRef<HTMLSpanElement>(null);

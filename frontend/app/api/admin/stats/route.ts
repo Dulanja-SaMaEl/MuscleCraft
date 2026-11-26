@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AdminService } from '@/lib/services/admin-service';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 
-function generateSalesTrend(approvedPayments: any[], clientProfiles: any[]) {
+function generateSalesTrend(approvedPayments: any[]) {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
   const currentMonthIdx = now.getMonth();
@@ -21,42 +21,21 @@ function generateSalesTrend(approvedPayments: any[], clientProfiles: any[]) {
 
     const monthPayments = approvedPayments.filter((p) => {
       const d = new Date(p.created_at || p.createdAt);
-      return d.getMonth() === mIdx && d.getFullYear() === y;
+      return !isNaN(d.getTime()) && d.getMonth() === mIdx && d.getFullYear() === y;
     });
 
     const monthRevenue = monthPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
     const soleCount = monthPayments.filter((p) => p.tier?.startsWith('sole')).length;
     const coupleCount = monthPayments.filter((p) => p.tier?.startsWith('couple')).length;
-    const coachingCount = monthPayments.filter((p) => p.tier?.includes('coaching')).length;
-
-    let displayRevenue = monthRevenue;
-    let displayMembers = monthPayments.length;
-    let s = soleCount;
-    let c = coupleCount;
-    let coach = coachingCount;
-
-    if (!isCurrent && displayRevenue === 0) {
-      const rampFactor = (6 - i) / 6;
-      displayRevenue = Math.round((63500 * rampFactor * 0.82) / 500) * 500;
-      displayMembers = Math.max(1, Math.round(7 * rampFactor));
-      s = Math.max(1, Math.round(displayMembers * 0.7));
-      c = Math.round(displayMembers * 0.15);
-      coach = Math.round(displayMembers * 0.15);
-    } else if (isCurrent) {
-      displayRevenue = monthRevenue || 63500;
-      displayMembers = approvedPayments.length || 3;
-      s = approvedPayments.filter((p) => p.tier?.startsWith('sole')).length;
-      c = approvedPayments.filter((p) => p.tier?.startsWith('couple')).length;
-      coach = approvedPayments.filter((p) => p.tier?.includes('coaching')).length;
-    }
+    const coachingCount = monthPayments.filter((p) => p.tier?.includes('coaching') || p.tier === 'burnzone').length;
 
     trend.push({
       month: label,
-      revenue: displayRevenue,
-      newMembers: displayMembers,
-      sole: s,
-      couple: c,
-      coaching: coach,
+      revenue: monthRevenue,
+      newMembers: monthPayments.length,
+      sole: soleCount,
+      couple: coupleCount,
+      coaching: coachingCount,
     });
   }
 
@@ -113,7 +92,6 @@ export async function GET(req: NextRequest) {
           0
         );
 
-        // Expirations within 7 days
         const now = new Date();
         const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         const expiringSoonCount = activeClients.filter((p) => {
@@ -122,7 +100,6 @@ export async function GET(req: NextRequest) {
           return exp > now && exp <= sevenDays;
         }).length;
 
-        // Ad reviews telemetry
         const totalSpend = reviews.reduce((sum, r) => sum + (Number(r.spend) || 0), 0);
         const totalMsgs = reviews.reduce((sum, r) => sum + (Number(r.message_count) || 0), 0);
         const totalAdSales = reviews.reduce((sum, r) => sum + (Number(r.actual) || 0), 0);
@@ -130,20 +107,23 @@ export async function GET(req: NextRequest) {
         const cpr = totalMsgs > 0 ? Number((totalSpend / totalMsgs).toFixed(2)) : 0;
         const roas = totalSpend > 0 ? Number((totalAdSales / totalSpend).toFixed(2)) : 0;
 
-        // Dynamic 6-month sales trend ending in current month
-        const salesTrend = generateSalesTrend(approvedPayments, clientProfiles);
-        const prevMonthRevenue = salesTrend.length >= 2 ? salesTrend[salesTrend.length - 2].revenue : totalRevenue;
-        const growthPercent = prevMonthRevenue > 0
-          ? Math.round(((totalRevenue - prevMonthRevenue) / prevMonthRevenue) * 100)
-          : 18.7;
+        const salesTrend = generateSalesTrend(approvedPayments);
+        const prevMonthRevenue = salesTrend.length >= 2 ? salesTrend[salesTrend.length - 2].revenue : 0;
+        const curMonthRevenue = salesTrend.length >= 1 ? salesTrend[salesTrend.length - 1].revenue : 0;
+        const growthPercent =
+          prevMonthRevenue > 0
+            ? Math.round(((curMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100)
+            : curMonthRevenue > 0
+            ? 100
+            : 0;
 
-        // Realistic gym floor load based on active athletes
-        const checkinsToday = Math.min(activeAthleteBase, Math.max(1, Math.round(activeAthleteBase * 0.62)));
-        const morningCheckins = Math.round(checkinsToday * 0.4);
-        const afternoonCheckins = Math.max(1, Math.round(checkinsToday * 0.2));
-        const eveningCheckins = Math.max(1, checkinsToday - morningCheckins - afternoonCheckins);
+        const checkinsToday =
+          activeAthleteBase === 0 ? 0 : Math.min(activeAthleteBase, Math.max(1, Math.round(activeAthleteBase * 0.62)));
+        const morningCheckins = checkinsToday === 0 ? 0 : Math.round(checkinsToday * 0.4);
+        const afternoonCheckins = checkinsToday === 0 ? 0 : Math.round(checkinsToday * 0.2);
+        const eveningCheckins = Math.max(0, checkinsToday - morningCheckins - afternoonCheckins);
 
-        const totalActive = activeClients.length || 1;
+        const totalActive = activeClients.length;
 
         stats = {
           totalMembers: clientProfiles.length,
@@ -154,7 +134,7 @@ export async function GET(req: NextRequest) {
           approvedCount: approvedPayments.length,
           rejectedCount: rejectedTransfers,
           totalRevenue,
-          monthRevenue: totalRevenue,
+          monthRevenue: curMonthRevenue,
           admissionFeesTotal,
           soleMembers,
           coupleMembers,
@@ -162,7 +142,7 @@ export async function GET(req: NextRequest) {
           activeAthleteBase,
           expiringSoonCount,
           checkinsToday,
-          growthPercent: growthPercent > 0 ? growthPercent : 18.7,
+          growthPercent,
           roas,
           cpr,
           salesTrend,
@@ -174,29 +154,29 @@ export async function GET(req: NextRequest) {
           },
           membershipTypeSplit: {
             soleCount: soleMembers,
-            solePercent: Math.round((soleMembers / totalActive) * 100),
+            solePercent: totalActive > 0 ? Math.round((soleMembers / totalActive) * 100) : 0,
             coupleCount: coupleMembers,
             coupleAthletes: coupleMembers * 2,
-            couplePercent: Math.round((coupleMembers / totalActive) * 100),
+            couplePercent: totalActive > 0 ? Math.round((coupleMembers / totalActive) * 100) : 0,
             coachingCount: coachingMembers,
-            coachingPercent: Math.round((coachingMembers / totalActive) * 100),
+            coachingPercent: totalActive > 0 ? Math.round((coachingMembers / totalActive) * 100) : 0,
           },
           disciplines: {
-            hypertrophy: Math.round((soleMembers / totalActive) * 100) || 60,
-            transformation: Math.round((coachingMembers / totalActive) * 100) || 20,
-            conditioning: Math.round((coupleMembers / totalActive) * 100) || 15,
-            mobility: 10,
+            hypertrophy: totalActive > 0 ? Math.round((soleMembers / totalActive) * 100) : 0,
+            transformation: totalActive > 0 ? Math.round((coachingMembers / totalActive) * 100) : 0,
+            conditioning: totalActive > 0 ? Math.round((coupleMembers / totalActive) * 100) : 0,
+            mobility: totalActive > 0 ? 10 : 0,
           },
           gymFloorLoad: {
             totalCheckedIn: checkinsToday,
             morning: morningCheckins,
             afternoon: afternoonCheckins,
             evening: eveningCheckins,
-            status: 'Optimal Capacity',
+            status: checkinsToday === 0 ? 'Ready for Open' : 'Optimal Capacity',
             peakMorning: '07:00 AM',
             peakEvening: '06:30 PM',
           },
-          avgTurnaround: '< 45 Mins',
+          avgTurnaround: approvedPayments.length > 0 ? '< 45 Mins' : 'No Slips Yet',
         };
       } catch (sbErr) {
         console.warn('Supabase stats fetch error, falling back to cache:', sbErr);

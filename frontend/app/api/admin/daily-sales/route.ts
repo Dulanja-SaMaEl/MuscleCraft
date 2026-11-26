@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/mock-db';
 import { DailySalesRecord, CrmMarketingSummary } from '@/lib/types';
-import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
+import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 
 function formatDisplayDate(rawDate: string): string {
   if (!rawDate) return '';
@@ -142,7 +142,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
     const body = await req.json();
+    const adminId = searchParams.get('adminId') || body?.adminId;
+    const caller = await resolveServerUser(adminId);
+    if (caller.role !== 'admin' && caller.role !== 'instructor') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only administrators can modify daily sales CRM records.' },
+        { status: 403 }
+      );
+    }
     const { action, record, records, lifetimeSpend } = body;
 
     // 1. Update Lifetime Ad Spend Settings

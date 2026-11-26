@@ -65,17 +65,77 @@ export default function BroadcastTab({
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [testSmsResult, setTestSmsResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Resend Email Gateway Telemetry, Test Email & Inbound Inbox
+  const [emailGateway, setEmailGateway] = useState<{
+    isConfigured: boolean;
+    provider: string;
+    fromEmail: string;
+    adminEmail: string;
+    replyToEmail: string;
+    verifiedDomains: string[];
+    status: string;
+  } | null>(null);
+  const [inboundEmails, setInboundEmails] = useState<
+    { id: string; from: string; to: string[]; subject: string; text: string; receivedAt: string }[]
+  >([]);
+  const [showTestEmailModal, setShowTestEmailModal] = useState(false);
+  const [emailModalMode, setEmailModalMode] = useState<'test' | 'reply'>('test');
+  const [testEmailTo, setTestEmailTo] = useState('adeesha@musclecraft.lk');
+  const [testEmailSubject, setTestEmailSubject] = useState('MuscleCraft Resend Email Gateway Live Check');
+  const [testEmailBody, setTestEmailBody] = useState(
+    'This test confirms MuscleCraft transactional and broadcast emailing via Resend is live and DNS-authenticated.'
+  );
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const fetchGatewayStatus = async () => {
+    const adminId = currentUser?.id;
+    if (!adminId) return;
     try {
-      const adminId = currentUser?.id || 'usr_admin_1';
-      const res = await fetch(`/api/admin/sms?adminId=${encodeURIComponent(adminId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.gateway) {
-          setGatewayStatus(data.gateway);
-        }
+      const [smsRes, emailRes] = await Promise.all([
+        fetch(`/api/admin/sms?adminId=${encodeURIComponent(adminId)}`),
+        fetch(`/api/admin/email?adminId=${encodeURIComponent(adminId)}`),
+      ]);
+      if (smsRes.ok) {
+        const data = await smsRes.json();
+        if (data.gateway) setGatewayStatus(data.gateway);
+      }
+      if (emailRes.ok) {
+        const data = await emailRes.json();
+        if (data.gateway) setEmailGateway(data.gateway);
+        if (Array.isArray(data.inbox)) setInboundEmails(data.inbox);
       }
     } catch (_) {}
+  };
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testEmailTo.trim()) return;
+    setIsSendingTestEmail(true);
+    setTestEmailResult(null);
+    try {
+      const adminId = currentUser?.id || 'usr_admin_1';
+      const res = await fetch(`/api/admin/email?adminId=${encodeURIComponent(adminId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testEmailTo.trim(),
+          subject: testEmailSubject.trim(),
+          message: testEmailBody.trim(),
+          mode: emailModalMode,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestEmailResult({ type: 'success', text: data.message || `Email delivered to ${testEmailTo}!` });
+      } else {
+        setTestEmailResult({ type: 'error', text: data.error || 'Failed to dispatch email.' });
+      }
+    } catch (err: any) {
+      setTestEmailResult({ type: 'error', text: err.message || 'Network error contacting email gateway.' });
+    } finally {
+      setIsSendingTestEmail(false);
+    }
   };
 
   useEffect(() => {
@@ -286,31 +346,19 @@ export default function BroadcastTab({
       </div>
 
       {/* KPI Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
           <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
             Target Reach
           </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2 block">
+          <span className="text-xl sm:text-2xl font-extrabold text-white font-mono mt-2 block whitespace-nowrap">
             {recipientCount}{' '}
             {audience === 'couple_members'
               ? `Couple${recipientCount === 1 ? '' : 's'}`
               : `Athlete${recipientCount === 1 ? '' : 's'}`}
           </span>
           <span className="text-[11px] text-crimson-400 font-semibold mt-1 block">
-            Active in current audience
-          </span>
-        </div>
-
-        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl">
-          <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
-            Delivery Channels
-          </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2 block">
-            {channels.length} Selected
-          </span>
-          <span className="text-[11px] text-gray-400 mt-1 block">
-            {channels.join(', ').toUpperCase()}
+            Active in current audience · {channels.length} channel{channels.length === 1 ? '' : 's'}
           </span>
         </div>
 
@@ -318,15 +366,56 @@ export default function BroadcastTab({
           <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
             Sent Broadcasts
           </span>
-          <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-2 block">
+          <span className="text-xl sm:text-2xl font-extrabold text-white font-mono mt-2 block whitespace-nowrap">
             {broadcastHistory.length} Dispatched
           </span>
-          <span className="text-[11px] text-emerald-400 mt-1 block">100% Delivery rate</span>
+          <span className="text-[11px] text-emerald-400 mt-1 block">
+            {inboundEmails.length} Inbound Emails in Inbox
+          </span>
         </div>
 
         <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
+                Resend Email
+              </span>
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                emailGateway?.status === 'online'
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-600/40'
+                  : 'bg-amber-950/80 text-amber-400 border border-amber-600/40'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${emailGateway?.status === 'online' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                {emailGateway?.status === 'online' ? 'Online' : 'Ready'}
+              </span>
+            </div>
+            <span className="text-lg sm:text-xl font-extrabold text-white font-mono mt-1.5 block truncate">
+              {emailGateway?.verifiedDomains?.length ? emailGateway.verifiedDomains[0] : 'Send & Receive'}
+            </span>
+            <span className="text-[11px] text-gray-400 mt-0.5 block truncate" title={emailGateway?.fromEmail}>
+              From: <strong className="text-gray-200">{emailGateway?.fromEmail || 'noreply@musclecraft.lk'}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEmailModalMode('test');
+              setTestEmailTo(emailGateway?.adminEmail || 'adeesha@musclecraft.lk');
+              setTestEmailSubject('MuscleCraft Resend Email Gateway Live Check');
+              setTestEmailBody('This test confirms MuscleCraft transactional and broadcast emailing via Resend is live and DNS-authenticated.');
+              setTestEmailResult(null);
+              setShowTestEmailModal(true);
+            }}
+            className="mt-3 w-full py-1.5 px-3 rounded-lg bg-white/[0.05] hover:bg-crimson-950 hover:border-crimson-600/60 border border-white/[0.08] text-[11px] font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
+          >
+            <Mail className="w-3.5 h-3.5 text-crimson-400" />
+            <span>Test Resend Email</span>
+          </button>
+        </div>
+
+        <div className="bg-[#111116] border border-white/[0.08] p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider block">
                 Text.lk Gateway
               </span>
@@ -349,7 +438,7 @@ export default function BroadcastTab({
           <button
             type="button"
             onClick={() => setShowTestSmsModal(true)}
-            className="mt-3 w-full py-1.5 px-3 rounded-lg bg-white/[0.05] hover:bg-crimson-950 hover:border-crimson-600/60 border border-white/[0.08] text-[11px] font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            className="mt-3 w-full py-1.5 px-3 rounded-lg bg-white/[0.05] hover:bg-crimson-950 hover:border-crimson-600/60 border border-white/[0.08] text-[11px] font-bold text-gray-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[36px]"
           >
             <Smartphone className="w-3.5 h-3.5 text-crimson-400" />
             <span>Test Gateway SMS</span>
@@ -857,6 +946,178 @@ export default function BroadcastTab({
           </table>
         </div>
       </div>
+
+      {/* ───────────────────────────────────────────────────────────
+          4. RESEND INBOUND EMAILS & WEBSITE INQUIRIES INBOX
+          ─────────────────────────────────────────────────────────── */}
+      <div className="bg-[#111116] border border-white/[0.08] p-6 sm:p-7 rounded-3xl shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-white/[0.06]">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Mail className="w-4 h-4 text-crimson-400" />
+              <span>Resend Inbound Inbox &amp; Website Inquiries</span>
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Emails received via Resend Inbound Webhook (<code className="text-gray-300">/api/webhooks/resend-inbound</code>) and website Contact Desk submissions.
+            </p>
+          </div>
+          <span className="text-xs font-mono text-gray-300 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] self-start sm:self-auto">
+            {inboundEmails.length} Message{inboundEmails.length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {inboundEmails.length === 0 ? (
+          <div className="py-10 text-center text-xs text-gray-500 bg-white/[0.01] rounded-2xl border border-white/[0.04]">
+            <Mail className="w-7 h-7 text-gray-600 mx-auto mb-2" />
+            <span className="text-gray-300 font-semibold block">Inbox Clear</span>
+            <span>Incoming member replies and Contact Desk messages will appear here in real time.</span>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/[0.06] rounded-2xl border border-white/[0.06] bg-[#0e0e13] overflow-hidden">
+            {inboundEmails.map((em) => {
+              const emailMatch = em.from.match(/<([^>]+)>/) || [null, em.from];
+              const replyAddress = (emailMatch[1] || em.from).trim();
+              return (
+                <div key={em.id} className="p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 hover:bg-white/[0.02] transition-colors">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-white text-xs">{em.subject}</span>
+                      <span className="text-[10px] font-mono text-gray-400">
+                        {new Date(em.receivedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-crimson-300 font-mono block truncate">From: {em.from}</span>
+                    <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap break-words max-w-3xl">
+                      {em.text}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmailModalMode('reply');
+                      setTestEmailTo(replyAddress);
+                      setTestEmailSubject(em.subject.startsWith('Re:') ? em.subject : `Re: ${em.subject}`);
+                      setTestEmailBody('');
+                      setTestEmailResult(null);
+                      setShowTestEmailModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-crimson-600 border border-white/10 hover:border-crimson-500 text-xs font-semibold text-gray-200 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0 self-start"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Reply</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Test / Reply Email Modal (Resend) */}
+      {showTestEmailModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTestEmailModal(false);
+          }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden my-auto">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e]">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
+                  <Mail className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="text-white font-bold text-sm">
+                    {emailModalMode === 'reply' ? 'Reply via Resend Email' : 'Resend Email Gateway Test'}
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-mono truncate max-w-[230px]">
+                    From: {emailGateway?.fromEmail || 'noreply@musclecraft.lk'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTestEmailModal(false)}
+                aria-label="Close email modal"
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendTestEmail} className="p-6 space-y-4">
+              {testEmailResult && (
+                <div
+                  className={`p-3 rounded-xl border text-xs font-medium ${
+                    testEmailResult.type === 'success'
+                      ? 'bg-emerald-950/60 border-emerald-600/50 text-emerald-300'
+                      : 'bg-rose-950/60 border-rose-600/50 text-rose-300'
+                  }`}
+                >
+                  {testEmailResult.text}
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Recipient Email:</label>
+                <input
+                  type="email"
+                  required
+                  value={testEmailTo}
+                  onChange={(e) => setTestEmailTo(e.target.value)}
+                  placeholder="athlete@example.com"
+                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Subject:</label>
+                <input
+                  type="text"
+                  required
+                  value={testEmailSubject}
+                  onChange={(e) => setTestEmailSubject(e.target.value)}
+                  className="w-full bg-[#161620] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">Message Body:</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={testEmailBody}
+                  onChange={(e) => setTestEmailBody(e.target.value)}
+                  placeholder="Write your message..."
+                  className="w-full bg-[#161620] border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-crimson-500 resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTestEmailModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingTestEmail}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-crimson-600 to-rose-600 hover:from-crimson-500 text-white text-xs font-bold transition-all shadow-[0_0_15px_rgba(186,26,26,0.4)] disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isSendingTestEmail ? 'Sending...' : emailModalMode === 'reply' ? 'Send Reply' : 'Send Test Email'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Test SMS Modal */}
       {showTestSmsModal && (
         <div

@@ -4,6 +4,7 @@ import { AuthService } from '@/lib/services/auth-service';
 import { BroadcastMessageSchema } from '@/lib/validation';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
 import { SmsService } from '@/lib/services/sms-service';
+import { EmailService } from '@/lib/services/email-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -200,6 +201,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Dispatch real Email Blast via Resend if email channel is chosen
+    let emailDispatchResult: any = null;
+    if (validated.channels?.includes('email') && targetClients.length > 0) {
+      const emails = targetClients
+        .map((c) => c.email)
+        .filter((e): e is string => Boolean(e && typeof e === 'string' && e.includes('@')));
+
+      if (emails.length > 0) {
+        try {
+          emailDispatchResult = await EmailService.sendBroadcastEmail({
+            recipients: emails,
+            title: validated.title,
+            body: validated.body,
+            priority: validated.priority,
+          });
+        } catch (emailErr: any) {
+          console.error('Resend Email broadcast error:', emailErr);
+          emailDispatchResult = { success: false, error: emailErr.message };
+        }
+      } else {
+        emailDispatchResult = { success: false, error: 'No valid email addresses on file for selected audience' };
+      }
+    }
+
     const nowIso = new Date().toISOString();
     const newBroadcast = {
       id: `bc_${Date.now()}`,
@@ -252,12 +277,14 @@ export async function POST(req: NextRequest) {
           console.error('Supabase broadcast_messages insert error:', insertErr);
         }
 
-        // Audit log entry for SMS broadcast
-        if (validated.channels?.includes('sms')) {
+        // Audit log entry for SMS / Email broadcast
+        if (validated.channels?.includes('sms') || validated.channels?.includes('email')) {
           await supabaseServer.from('audit_logs').insert({
             actor_id: caller.id,
             actor_email: caller.email,
-            action: 'DISPATCH_SMS_BROADCAST',
+            action: validated.channels?.includes('email') && !validated.channels?.includes('sms')
+              ? 'DISPATCH_EMAIL_BROADCAST'
+              : 'DISPATCH_SMS_BROADCAST',
             target_type: 'broadcast_announcement',
             target_id: newBroadcast.id,
             details: {
@@ -265,8 +292,9 @@ export async function POST(req: NextRequest) {
               audience: validated.audience,
               targetAudienceDb: targetAudienceValue,
               recipientsCount: recipientCount,
-              targetClients: targetClients.map((c) => ({ id: c.id, name: c.name, phone: c.phone })),
+              targetClients: targetClients.map((c) => ({ id: c.id, name: c.name, phone: c.phone, email: c.email })),
               smsResult: smsDispatchResult,
+              emailResult: emailDispatchResult,
             },
           });
         }
@@ -280,6 +308,7 @@ export async function POST(req: NextRequest) {
       broadcast: newBroadcast,
       recipientCount,
       sms: smsDispatchResult,
+      email: emailDispatchResult,
     }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

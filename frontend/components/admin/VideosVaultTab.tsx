@@ -110,7 +110,7 @@ export default function VideosVaultTab({
     category: 'Technique Review',
     duration: '08:30',
     targetScope: 'specific_client',
-    targetClientId: members.find((m) => m.role === 'client')?.id || 'usr_client_90',
+    targetClientId: members.find((m) => m.role === 'client')?.id || '',
     videoUrl: '',
     thumbnailUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
     description: '',

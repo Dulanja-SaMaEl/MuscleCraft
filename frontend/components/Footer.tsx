@@ -14,6 +14,8 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subError, setSubError] = useState<string | null>(null);
   const footerRef = useRef<HTMLElement | null>(null);
   const magneticBtnRef = useMagnetic<HTMLButtonElement>(0.25);
 
@@ -54,11 +56,25 @@ export default function Footer() {
     { scope: footerRef }
   );
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
+    if (!email.trim()) return;
+    setSubscribing(true);
+    setSubError(null);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not subscribe.');
       setSubscribed(true);
       setEmail('');
+    } catch (err: any) {
+      setSubError(err.message || 'Subscription failed.');
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -156,35 +172,54 @@ export default function Footer() {
                 ✓ You are subscribed! Welcome to the MuscleCraft dispatch.
               </div>
             ) : (
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-md">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="bg-[#121215] border border-white/[0.12] focus:border-crimson-500 px-4 py-3 rounded text-sm text-white placeholder-gray-500 flex-grow outline-none transition-colors"
-                />
-                <button
-                  ref={magneticBtnRef}
-                  type="submit"
-                  style={{
-                    backgroundColor: '#BA1A1A',
-                    color: '#FFFFFF',
-                    fontWeight: 600,
-                    fontSize: '13.5px',
-                  }}
-                  className="bg-crimson-600 hover:bg-crimson-500 text-white font-semibold px-6 py-3 rounded text-[13.5px] uppercase tracking-wide transition-colors flex-shrink-0 cursor-pointer will-change-transform shadow-[0_0_15px_rgba(186,26,26,0.35)]"
-                >
-                  Subscribe
-                </button>
-              </form>
+              <div className="space-y-2 max-w-md">
+                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    aria-label="Email address for MuscleCraft dispatch"
+                    placeholder="Enter your email address"
+                    className="bg-[#121215] border border-white/[0.12] focus:border-crimson-500 px-4 py-3 rounded text-sm text-white placeholder-gray-500 flex-grow outline-none transition-colors min-h-[44px]"
+                  />
+                  <button
+                    ref={magneticBtnRef}
+                    type="submit"
+                    disabled={subscribing}
+                    style={{
+                      backgroundColor: '#BA1A1A',
+                      color: '#FFFFFF',
+                      fontWeight: 600,
+                      fontSize: '13.5px',
+                    }}
+                    className="bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded text-[13.5px] uppercase tracking-wide transition-colors flex-shrink-0 cursor-pointer will-change-transform shadow-[0_0_15px_rgba(186,26,26,0.35)] min-h-[44px]"
+                  >
+                    {subscribing ? 'Joining...' : 'Subscribe'}
+                  </button>
+                </form>
+                {subError && <p className="text-xs text-rose-400">{subError}</p>}
+              </div>
             )}
           </div>
         </div>
 
+        {/* SEO Internal Navigation Bar */}
+        <nav
+          aria-label="Footer Navigation"
+          className="mt-10 pt-6 border-t border-white/[0.06] flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2 text-xs text-gray-400"
+        >
+          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <Link href="/memberships" className="hover:text-white transition-colors">Training Programs</Link>
+          <Link href="/pricing" className="hover:text-white transition-colors">Membership Pricing</Link>
+          <Link href="/about" className="hover:text-white transition-colors">About Coach Adeesha</Link>
+          <Link href="/faq" className="hover:text-white transition-colors">FAQ</Link>
+          <Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link>
+          <Link href="/login" className="hover:text-crimson-400 transition-colors">Client Portal</Link>
+        </nav>
+
         {/* Bottom Bar */}
-        <div className="mt-14 pt-8 border-t border-white/[0.06] flex flex-col lg:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+        <div className="mt-6 pt-6 border-t border-white/[0.06] flex flex-col lg:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
             <p>© {new Date().getFullYear()} MuscleCraft. All rights reserved.</p>
             <span className="hidden sm:inline text-white/20">•</span>

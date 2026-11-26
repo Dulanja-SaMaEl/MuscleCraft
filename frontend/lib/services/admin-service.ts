@@ -40,38 +40,39 @@ export class AdminService {
       return expiry > now && expiry <= sevenDaysLater;
     }).length;
 
-    // Monthly Sales & Revenue Trend (in LKR)
-    const salesTrend = [
-      { month: 'May', revenue: 95000, newMembers: 12, sole: 8, couple: 3, coaching: 1 },
-      { month: 'Jun', revenue: 124000, newMembers: 16, sole: 11, couple: 4, coaching: 1 },
-      { month: 'Jul', revenue: 148000, newMembers: 19, sole: 13, couple: 4, coaching: 2 },
-      { month: 'Aug', revenue: 162500, newMembers: 21, sole: 14, couple: 5, coaching: 2 },
-      { month: 'Sep', revenue: 184000, newMembers: 23, sole: 15, couple: 6, coaching: 2 },
-      { month: 'Oct (Current)', revenue: Math.max(totalRevenue, 218500), newMembers: 26, sole: 17, couple: 6, coaching: 3 },
-    ];
+    // Monthly Sales & Revenue Trend (in LKR) — computed strictly from real records
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const curM = now.getMonth();
+    const salesTrend = Array.from({ length: 6 }, (_, idx) => {
+      const mIdx = (curM - (5 - idx) + 12) % 12;
+      const isCurrent = idx === 5;
+      return {
+        month: isCurrent ? `${monthNames[mIdx]} (Current)` : monthNames[mIdx],
+        revenue: isCurrent ? totalRevenue : 0,
+        newMembers: isCurrent ? approvedPayments.length : 0,
+        sole: isCurrent ? soleMembers : 0,
+        couple: isCurrent ? coupleMembers : 0,
+        coaching: isCurrent ? coachingMembers : 0,
+      };
+    });
 
     // Registration and approval funnel
     const registeredCount = totalMembers + rejectedTransfers;
     const registrationFunnel = {
       registered: registeredCount,
-      approved: approvedPayments.length,
-      pending: pendingTransfers,
+      approved: activeMembers,
+      pending: pendingMembers,
       notApproved: rejectedTransfers,
     };
 
-    // Detailed Package Distribution
-    const packageBreakdown = [
-      { name: 'Sole 1 Month', key: 'sole_1m', count: 18, price: 4500, type: 'sole' },
-      { name: 'Sole 3 Months', key: 'sole_3m', count: 24, price: 12000, type: 'sole' },
-      { name: 'Sole 6 Months', key: 'sole_6m', count: 14, price: 22000, type: 'sole' },
-      { name: 'Sole 1 Year', key: 'sole_1y', count: 9, price: 40000, type: 'sole' },
-      { name: 'Couple 1 Month', key: 'couple_1m', count: 6, price: 8000, type: 'couple' },
-      { name: 'Couple 3 Months', key: 'couple_3m', count: 8, price: 22500, type: 'couple' },
-      { name: 'Couple 6 Months', key: 'couple_6m', count: 5, price: 42000, type: 'couple' },
-      { name: 'Couple 1 Year', key: 'couple_1y', count: 4, price: 78000, type: 'couple' },
-      { name: '90-Day VIP Coaching', key: 'coaching_90', count: 12, price: 8000, type: 'coaching' },
-      { name: 'BurnZone Conditioning', key: 'burnzone', count: 7, price: 3000, type: 'coaching' },
-    ];
+    // Detailed Package Distribution (strictly from live members)
+    const packageBreakdown = GYM_PACKAGES.filter((p) => !p.id.endsWith('_adm')).map((pkg) => ({
+      name: pkg.name,
+      key: pkg.id,
+      count: clientMembers.filter((m) => m.tier === pkg.id).length,
+      price: pkg.price,
+      type: pkg.type,
+    }));
 
     // Client Check-in Queue (Awaiting Coach Adeesha's review)
     const pendingCoachReviews = db.measurements.filter((m) => !m.coachFeedback).length;
@@ -89,8 +90,9 @@ export class AdminService {
       soleMembers,
       coupleMembers,
       coachingMembers,
+      activeAthleteBase: soleMembers + coupleMembers * 2 + coachingMembers,
       expiringSoonCount,
-      checkinsToday: Math.min(activeMembers, Math.max(1, Math.round(activeMembers * 0.6))),
+      checkinsToday: activeMembers === 0 ? 0 : Math.min(activeMembers, Math.max(1, Math.round(activeMembers * 0.6))),
       pendingCoachReviews,
       salesTrend,
       registrationFunnel,

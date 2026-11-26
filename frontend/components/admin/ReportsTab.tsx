@@ -39,7 +39,7 @@ function downloadCsv(filename: string, headers: string[], rows: any[][]) {
   URL.revokeObjectURL(url);
 }
 
-export default function ReportsTab({ adminId = 'usr_admin_1' }: ReportsTabProps) {
+export default function ReportsTab({ adminId = '' }: ReportsTabProps) {
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +47,7 @@ export default function ReportsTab({ adminId = 'usr_admin_1' }: ReportsTabProps)
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('all');
 
   const loadReports = useCallback(async () => {
+    if (!adminId) return;
     setLoading(true);
     setError('');
     try {
@@ -455,7 +456,16 @@ export default function ReportsTab({ adminId = 'usr_admin_1' }: ReportsTabProps)
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
-                {(activeReport === 'cohort90' ? cohort90Members : members).map((m: any) => {
+                {(activeReport === 'cohort90' ? cohort90Members : members).length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-gray-500">
+                      {activeReport === 'cohort90'
+                        ? 'No athletes enrolled in the 90-Day Coaching cohort yet.'
+                        : 'No client memberships registered yet.'}
+                    </td>
+                  </tr>
+                ) : (
+                (activeReport === 'cohort90' ? cohort90Members : members).map((m: any) => {
                   const expTime = m.membership_expires_at ? new Date(m.membership_expires_at).getTime() : null;
                   const daysRemaining = expTime ? Math.ceil((expTime - Date.now()) / (1000 * 60 * 60 * 24)) : null;
                   const isExp = m.status === 'expired' || (expTime !== null && expTime <= Date.now());
@@ -504,7 +514,8 @@ export default function ReportsTab({ adminId = 'usr_admin_1' }: ReportsTabProps)
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
           </div>

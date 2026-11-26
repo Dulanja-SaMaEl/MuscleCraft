@@ -8,6 +8,7 @@ import {
   findAuthUserByEmail,
   verifySupabaseCredentials,
 } from '@/lib/supabase/server';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 const ADMIN_ALIASES = new Set(['admin', 'owner', 'adeesha', 'coach', 'owner@musclecraft.lk']);
 
@@ -29,6 +30,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rate = checkRateLimit('auth_login', ip, 15, 10 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: `Too many sign-in attempts. Please wait ${rate.retryAfterSeconds}s and try again.` },
+        { status: 429 }
+      );
+    }
     const body = await req.json();
     const { email, password, personaId } = body;
 

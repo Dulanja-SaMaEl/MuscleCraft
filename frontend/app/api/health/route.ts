@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/mock-db';
 import {
   supabaseServer,
@@ -6,10 +6,17 @@ import {
   pingSupabase,
   supabaseUrl,
   supabaseKey,
+  resolveServerUser,
 } from '@/lib/supabase/server';
 import { getR2Credentials, pingR2, getR2StorageStats } from '@/lib/storage/cloudflare-r2';
+import { EmailService } from '@/lib/services/email-service';
+import { SmsService } from '@/lib/services/sms-service';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const adminId = searchParams.get('adminId');
+  const caller = adminId ? await resolveServerUser(adminId) : null;
+  const isStaff = Boolean(caller && (caller.role === 'admin' || caller.role === 'instructor'));
   let isConnected = false;
   let latencyMs = 0;
   let dbType = 'Local Cache / Mock Engine';
@@ -180,6 +187,32 @@ export async function GET() {
     ? `Supabase host reached but connection failed: ${errorMessage}. Run supabase/schema.sql in the Supabase SQL Editor.`
     : 'Supabase Cloud Database connected and operational.');
 
+  const emailConfigured = EmailService.isConfigured();
+  const smsConfigured = SmsService.isConfigured();
+
+  if (!isStaff) {
+    // Public health probe: minimal operational status only (no env key inventory or masked credentials)
+    return NextResponse.json({
+      status: isConnected ? 'healthy' : (isServerSupabaseConfigured ? 'degraded' : 'local_fallback'),
+      backendEngine: 'Next.js App Router API & Supabase Edge',
+      serverTimestamp: new Date().toISOString(),
+      supabaseConfigured: isServerSupabaseConfigured,
+      database: {
+        connected: isConnected,
+        latencyMs,
+      },
+      services: {
+        authService: 'operational',
+        coachingAnalytics: 'operational',
+        paymentsLedger: 'operational',
+        videoVaultWorker: 'operational',
+        broadcastDispatcher: 'operational',
+        emailService: emailConfigured ? 'operational' : 'standby',
+        smsGateway: smsConfigured ? 'operational' : 'standby',
+      },
+    });
+  }
+
   return NextResponse.json({
     status: isConnected ? 'healthy' : (isServerSupabaseConfigured ? 'degraded' : 'local_fallback'),
     backendEngine: 'Next.js App Router API & Supabase Edge',
@@ -219,6 +252,19 @@ export async function GET() {
         },
       },
     },
+    communications: {
+      resend: {
+        configured: emailConfigured,
+        fromEmail: EmailService.getFromEmail(),
+        adminEmail: EmailService.getAdminEmail(),
+        webhookSecretConfigured: Boolean(process.env.RESEND_WEBHOOK_SECRET?.trim()),
+        inboundWebhookPath: '/api/webhooks/resend-inbound',
+      },
+      textlk: {
+        configured: smsConfigured,
+        senderId: SmsService.getSenderId(),
+      },
+    },
     diagnostics: {
       supabaseConfigured: isServerSupabaseConfigured,
       supabaseConnected: isConnected,
@@ -245,6 +291,8 @@ export async function GET() {
       paymentsLedger: 'operational',
       videoVaultWorker: 'operational',
       broadcastDispatcher: 'operational',
+      emailService: emailConfigured ? 'operational' : 'standby',
+      smsGateway: smsConfigured ? 'operational' : 'standby',
       cloudflareR2Storage: r2Config.isConfigured && r2PingResult?.ok ? 'operational' : (r2Config.isConfigured ? 'degraded' : 'fallback_local'),
     },
   });

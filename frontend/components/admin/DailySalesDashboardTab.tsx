@@ -24,6 +24,7 @@ import {
   Info,
 } from 'lucide-react';
 import { DailySalesRecord, CrmMarketingSummary } from '@/lib/types';
+import { useAuth } from '@/lib/context/auth-context';
 
 interface DailySalesDashboardTabProps {
   onNotify: (type: 'success' | 'error', text: string) => void;
@@ -31,10 +32,14 @@ interface DailySalesDashboardTabProps {
 }
 
 export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySalesDashboardTabProps) {
+  const { currentUser } = useAuth();
   const [records, setRecords] = useState<DailySalesRecord[]>([]);
-  const [lifetimeSpend, setLifetimeSpend] = useState<number>(635555.2);
+  const [lifetimeSpend, setLifetimeSpend] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState('11/2026');
+  const [selectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getMonth() + 1}/${now.getFullYear()}`;
+  });
 
   // Edit Modal State
   const [editingRecord, setEditingRecord] = useState<DailySalesRecord | null>(null);
@@ -50,7 +55,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
 
   // Settings Modal State (Lifetime ad spend)
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [tempLifetimeSpend, setTempLifetimeSpend] = useState('635555.20');
+  const [tempLifetimeSpend, setTempLifetimeSpend] = useState('0.00');
 
   // Quick Log Today Modal State
   const [quickLogOpen, setQuickLogOpen] = useState(false);
@@ -91,9 +96,10 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
 
   // Compute live cumulative sums and CRM metrics
   const summary: CrmMarketingSummary = useMemo(() => {
+    const todayDisplay = new Date().toLocaleDateString('en-US');
     const active = records.filter((r) => r.spend > 0 || r.messageCount > 0 || r.actual > 0 || r.orderCount > 0);
     const latest = active.length > 0 ? active[active.length - 1] : records[0] || {
-      date: '11/1/2026',
+      date: todayDisplay,
       spend: 0,
       actual: 0,
       orderCount: 0,
@@ -156,10 +162,12 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/daily-sales', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/daily-sales${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          adminId: currentUser?.id,
           record: {
             id: editingRecord?.id,
             ...editFormData,
@@ -201,10 +209,11 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
         target: 0,
       };
 
-      const res = await fetch('/api/admin/daily-sales', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/daily-sales${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ record: payload }),
+        body: JSON.stringify({ adminId: currentUser?.id, record: payload }),
       });
 
       if (res.ok) {
@@ -232,10 +241,12 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
     const num = parseFloat(tempLifetimeSpend) || 0;
 
     try {
-      const res = await fetch('/api/admin/daily-sales', {
+      const adminQuery = currentUser?.id ? `?adminId=${encodeURIComponent(currentUser.id)}` : '';
+      const res = await fetch(`/api/admin/daily-sales${adminQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          adminId: currentUser?.id,
           action: 'update_settings',
           lifetimeSpend: num,
         }),
@@ -557,7 +568,7 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
           {/* Quick Metrics Cards */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-[#111116] border border-white/[0.08] shadow-sm">
-              <span className="text-[10px] text-gray-400 uppercase font-bold block">Nov Total Spend</span>
+              <span className="text-[10px] text-gray-400 uppercase font-bold block">MTD Total Spend</span>
               <span className="text-lg font-mono font-extrabold text-amber-300 mt-1 block">
                 Rs. {summary.cumulativeSpend.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
@@ -647,31 +658,37 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                     </linearGradient>
                   </defs>
 
-                  <path
-                    d={
-                      records
-                        .map((r, i) => {
-                          const x = (i / Math.max(records.length - 1, 1)) * 300;
-                          const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
-                          return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                        })
-                        .join(' ') + ' L 300 100 L 0 100 Z'
-                    }
-                    fill="url(#spendGrad)"
-                  />
+                  {records.length > 0 ? (
+                    <>
+                      <path
+                        d={
+                          records
+                            .map((r, i) => {
+                              const x = (i / Math.max(records.length - 1, 1)) * 300;
+                              const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
+                              return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                            })
+                            .join(' ') + ' L 300 100 L 0 100 Z'
+                        }
+                        fill="url(#spendGrad)"
+                      />
 
-                  <path
-                    d={records
-                      .map((r, i) => {
-                        const x = (i / Math.max(records.length - 1, 1)) * 300;
-                        const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
-                        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                      })
-                      .join(' ')}
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="2.5"
-                  />
+                      <path
+                        d={records
+                          .map((r, i) => {
+                            const x = (i / Math.max(records.length - 1, 1)) * 300;
+                            const y = 100 - (Number(r.spend || 0) / maxSpend) * 85;
+                            return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                          })
+                          .join(' ')}
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth="2.5"
+                      />
+                    </>
+                  ) : (
+                    <line x1="0" y1="100" x2="300" y2="100" stroke="#3b82f6" strokeWidth="2" strokeDasharray="3 3" />
+                  )}
 
                   {records
                     .slice(0, 7)
@@ -733,7 +750,26 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04] text-[11px] font-mono">
-                  {records.map((r) => {
+                  {records.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-16 px-6 text-center font-sans">
+                        <Target className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+                        <p className="text-sm font-semibold text-gray-200">No daily ad spend or sales entries logged yet</p>
+                        <p className="text-xs text-gray-400 mt-1 max-w-md mx-auto">
+                          Start tracking your Meta Ads daily spend, WhatsApp lead messages, closed orders, and ROAS directly in this sheet.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setQuickLogOpen(true)}
+                          className="mt-4 px-4 py-2.5 bg-crimson-600 hover:bg-crimson-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Log First Day Entry</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                  records.map((r) => {
                     const diff = (r.actual || 0) - (r.target || 0);
                     const cpr = r.messageCount > 0 ? (r.spend / r.messageCount).toFixed(2) : '0.00';
                     const roas = r.spend > 0 ? (r.actual / r.spend).toFixed(1) : '0.0';
@@ -804,7 +840,8 @@ export default function DailySalesDashboardTab({ onNotify, onAuditLog }: DailySa
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                  )}
                 </tbody>
 
                 {/* ── CUMULATIVE SUMMARY FOOTER ROW ── */}

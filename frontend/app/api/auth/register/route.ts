@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/services/auth-service';
 import { supabaseServer, isServerSupabaseConfigured } from '@/lib/supabase/server';
 import { SmsService } from '@/lib/services/sms-service';
+import { EmailService } from '@/lib/services/email-service';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rate = checkRateLimit('auth_register', ip, 10, 15 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Please try again in ${rate.retryAfterSeconds}s.` },
+        { status: 429 }
+      );
+    }
     const body = await req.json();
     const { name, email, password, phone, tier, packageName, packageType } = body;
 
@@ -157,6 +167,16 @@ export async function POST(req: NextRequest) {
       } catch (smsErr) {
         console.warn('Welcome SMS dispatch warning:', smsErr);
       }
+    }
+
+    // Automatic Welcome Email Notification via Resend
+    try {
+      await EmailService.notifyWelcomeRegistered({
+        email: cleanEmail,
+        name: cleanName,
+      });
+    } catch (emailErr) {
+      console.warn('Welcome Email dispatch warning:', emailErr);
     }
 
     return NextResponse.json(
