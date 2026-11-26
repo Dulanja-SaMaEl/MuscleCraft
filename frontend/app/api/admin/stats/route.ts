@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { AdminService } from '@/lib/services/admin-service';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function generateSalesTrend(approvedPayments: any[]) {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -43,6 +47,7 @@ function generateSalesTrend(approvedPayments: any[]) {
 }
 
 export async function GET(req: NextRequest) {
+  noStore();
   try {
     const { searchParams } = new URL(req.url);
     const adminId = searchParams.get('adminId');

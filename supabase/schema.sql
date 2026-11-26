@@ -361,15 +361,10 @@ ON CONFLICT (id) DO UPDATE SET
     active = EXCLUDED.active,
     updated_at = NOW();
 
--- 3. Insert Personas / User Profiles
+-- 3. Insert Owner / Admin Account Only (Clean Production Handover Seed)
 INSERT INTO public.profiles (id, email, name, phone, role, tier, package_id, package_name, package_type, status, avatar_url, joined_at)
 VALUES
-    ('usr_admin_1', 'adeesha@musclecraft.lk', 'Adeesha Kumarasingha (Owner & Head Coach)', '+94 77 123 4567', 'admin', 'sole_1y', 'sole_1y', '1 Year Membership (Sole)', 'membership', 'active', 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '365 days'),
-    ('usr_inst_1', 'coach.kasun@musclecraft.lk', 'Kasun Perera (Senior Coach)', '+94 77 234 5678', 'instructor', 'sole_1y', 'sole_1y', '1 Year Membership (Sole)', 'membership', 'active', 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '180 days'),
-    ('usr_client_90', 'marcus@musclecraft.lk', 'Marcus Vance (90-Day VIP)', '+94 71 889 1234', 'client', 'coaching_90', 'coaching_90', '90-Day Better Me Online Coaching', 'coaching', 'active', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '30 days'),
-    ('usr_client_sole', 'dinuka@gmail.com', 'Dinuka Jayasuriya', '+94 76 555 4321', 'client', 'sole_3m', 'sole_3m', '3 Months Membership (Sole)', 'membership', 'active', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '15 days'),
-    ('usr_client_couple', 'saman.rashmi@gmail.com', 'Saman & Rashmi', '+94 70 888 9999', 'client', 'couple_6m', 'couple_6m', '6 Months Membership (Couple)', 'membership', 'active', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '45 days'),
-    ('usr_client_pending', 'rohan.v@gmail.com', 'Rohan Vidyaratne', '+94 78 333 2211', 'client', 'sole_1m', 'sole_1m', '1 Month Membership (Sole)', 'membership', 'pending', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80', NOW() - INTERVAL '1 day')
+    ('a0000000-0000-0000-0000-000000000001', 'adeesha@musclecraft.lk', 'Adeesha Kumarasingha (Owner & Head Coach)', '+94 77 123 4567', 'admin', 'sole_1y', 'sole_1y', '1 Year Membership (Sole)', 'membership', 'active', 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=150&auto=format&fit=crop&q=80', NOW())
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     email = EXCLUDED.email,
@@ -378,71 +373,7 @@ ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
     updated_at = NOW();
 
--- 4. Insert November 2026 Daily Sales Review Records (Matching Client Spreadsheet Images)
-INSERT INTO public.daily_sales_reviews (date, target, actual, spend, message_count, order_count, roas, cpr, notes)
-VALUES
-    ('2026-11-01', 0.00, 0.00, 1986.11, 45, 0, 0.0, 44.14, 'Campaign launch Day 1'),
-    ('2026-11-02', 0.00, 0.00, 1277.03, 30, 0, 0.0, 42.57, 'Meta Ads Instagram Feed'),
-    ('2026-11-03', 0.00, 0.00, 781.12, 17, 0, 0.0, 45.95, 'Story video creatives'),
-    ('2026-11-04', 0.00, 0.00, 700.11, 24, 0, 0.0, 29.17, 'WhatsApp click-to-chat'),
-    ('2026-11-05', 0.00, 0.00, 777.44, 19, 0, 0.0, 40.92, '90-Day VIP intake ads'),
-    ('2026-11-06', 0.00, 0.00, 699.26, 23, 0, 0.0, 30.40, 'Strength & Hypertrophy promo')
-ON CONFLICT (date) DO UPDATE SET
-    spend = EXCLUDED.spend,
-    message_count = EXCLUDED.message_count,
-    cpr = EXCLUDED.cpr,
-    notes = EXCLUDED.notes,
-    updated_at = NOW();
-
--- 5. Insert Verified & Pending Payments
-INSERT INTO public.payments (id, user_id, reference_code, package_id, tier, amount, currency, bank_name, transfer_date, sender_account_name, status, admin_notes)
-VALUES
-    ('pay_001', 'usr_client_90', 'TRF-MC-908122', 'coaching_90', 'coaching_90', 8000.00, 'LKR', 'Commercial Bank of Ceylon', '2026-10-10', 'Marcus Vance', 'approved', 'Reconciled & activated 90-day cohort'),
-    ('pay_002', 'usr_client_sole', 'TRF-MC-304192', 'sole_3m', 'sole_3m', 12500.00, 'LKR', 'Bank of Ceylon', '2026-10-25', 'Dinuka Jayasuriya', 'approved', 'Verified slip reference. Admitted with Rs. 500 admission fee.'),
-    ('pay_003', 'usr_client_couple', 'TRF-MC-881204', 'couple_6m', 'couple_6m', 43000.00, 'LKR', 'Hatton National Bank', '2026-09-20', 'Saman Perera', 'approved', 'Couple 6M pass activated.'),
-    ('pay_004', 'usr_client_pending', 'TRF-MC-541908', 'sole_1m', 'sole_1m', 5000.00, 'LKR', 'Sampath Bank PLC', '2026-11-08', 'Rohan Vidyaratne', 'pending', 'Awaiting slip receipt image check')
-ON CONFLICT (id) DO UPDATE SET
-    status = EXCLUDED.status,
-    amount = EXCLUDED.amount;
-
--- 6. Insert Body Measurements for Marcus Vance (90-Day Cohort)
-INSERT INTO public.body_measurements (id, user_id, week_number, date, weight_kg, body_fat_percentage, chest_cm, waist_cm, hips_cm, arms_cm, thighs_cm, notes, coach_feedback, feedback_at)
-VALUES
-    ('meas_w1', 'usr_client_90', 1, '2026-10-12', 88.5, 23.2, 105.0, 94.0, 102.0, 37.0, 61.0, 'Baseline measurement after joining 90-day cohort.', 'Solid baseline Marcus. Focus on hitting the 205g daily protein target this week.', NOW() - INTERVAL '25 days'),
-    ('meas_w2', 'usr_client_90', 2, '2026-10-19', 87.2, 22.4, 104.5, 92.5, 101.5, 37.2, 60.5, 'Felt good energy throughout sessions.', 'Great waist reduction of 1.5cm in one week! Keep water above 4 liters.', NOW() - INTERVAL '18 days'),
-    ('meas_w3', 'usr_client_90', 3, '2026-10-26', 86.0, 21.6, 105.0, 91.0, 101.0, 37.5, 60.0, 'Workouts felt strong. Recovery is smooth.', 'Chest holding strong while waist continues tapering down. Fantastic progress.', NOW() - INTERVAL '11 days'),
-    ('meas_w4', 'usr_client_90', 4, '2026-11-02', 85.1, 20.8, 105.5, 89.5, 100.5, 37.8, 59.8, 'Week 4 milestone completed.', 'Down 3.4kg total with arms up! Perfect body recomposition trajectory.', NOW() - INTERVAL '4 days')
-ON CONFLICT (user_id, week_number) DO UPDATE SET
-    weight_kg = EXCLUDED.weight_kg,
-    body_fat_percentage = EXCLUDED.body_fat_percentage,
-    coach_feedback = EXCLUDED.coach_feedback;
-
--- 7. Insert Diet Plan for Marcus Vance
-INSERT INTO public.diet_plans (id, user_id, assigned_by, title, phase, daily_calories, protein_g, carbs_g, fats_g, water_liters, guidelines, meals)
-VALUES
-    ('diet_01', 'usr_client_90', 'usr_admin_1', '90-Day Athletic Recomposition & Hypertrophy Blueprint', 'Phase 2: Lean Recomposition & Strength Convergence', 2650, 205, 280, 65, 4.5,
-    '["Maintain 4.5L pure water intake daily", "Take whey protein within 45 mins post-workout", "Creatine monohydrate 5g with breakfast", "Last solid carbohydrate meal 2.5 hours before sleep"]'::jsonb,
-    '[{"mealNumber": 1, "title": "Breakfast Power Stack", "items": ["6 Whole Eggs + 2 Whites", "100g Rolled Oats with cinnamon", "1 Medium Banana", "Black Coffee / Green Tea"], "calories": 680, "protein": 48, "carbs": 72, "fats": 22}, {"mealNumber": 2, "title": "Mid-Day Anabolic Fuel", "items": ["220g Grilled Chicken Breast", "250g Steamed Basmati Rice", "Broccoli & Green Beans in olive oil"], "calories": 720, "protein": 62, "carbs": 80, "fats": 16}, {"mealNumber": 3, "title": "Pre-Workout Primer", "items": ["1 Scoop Whey Isolate", "2 Rice Cakes with natural peanut butter", "1 Apple"], "calories": 350, "protein": 30, "carbs": 42, "fats": 7}, {"mealNumber": 4, "title": "Post-Workout Recovery Dinner", "items": ["200g Lean Beef or White Fish", "300g Baked Sweet Potato", "Large Mixed Leaf Salad with balsamic"], "calories": 640, "protein": 52, "carbs": 75, "fats": 14}]'::jsonb)
-ON CONFLICT (id) DO UPDATE SET
-    daily_calories = EXCLUDED.daily_calories,
-    protein_g = EXCLUDED.protein_g,
-    updated_at = NOW();
-
--- 8. Insert Exercise Videos (Common & VIP Exclusive)
-INSERT INTO public.exercise_videos (id, title, category, duration, access_level, video_url, thumbnail_url, description, instructor_name)
-VALUES
-    ('vid_01', 'Barbell Back Squat — Biomechanics & Depth Mechanics', 'Powerlifting', '18:42', 'common', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop', 'Comprehensive foot stance, hip hinge, knee tracking, and bracing tutorial by Head Coach Adeesha.', 'Adeesha Kumarasingha'),
-    ('vid_02', 'Overhead Press Shoulder Mobility & Scapular Rhythm', 'Mobility', '14:15', 'common', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop', 'Thoracic spine extension and shoulder external rotation drills to prevent impingement.', 'Adeesha Kumarasingha'),
-    ('vid_03', '90-Day VIP Coaching: Masterclass on Macronutrient Timing', 'Coaching Clinic', '28:10', 'coaching_90', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop', 'Private VIP cohort clinical deep dive on carb backloading, glycemic control, and training energy optimization.', 'Adeesha Kumarasingha')
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    access_level = EXCLUDED.access_level;
-
--- 9. Insert Broadcast Announcements
-INSERT INTO public.broadcast_messages (id, title, body, target_audience, sender_name, channels, sent_count, status)
-VALUES
-    ('bc_01', 'New Eleiko Olympic Barbells Installed at MuscleCraft Floor', 'We have installed brand new Eleiko competition barbells and calibrated bumper plates on Platforms 1 & 2. Enjoy your personal record attempts!', 'all', 'Coach Adeesha', '["in_app", "push"]'::jsonb, 142, 'sent'),
-    ('bc_02', 'Sunday 90-Day VIP Cohort WhatsApp Check-in Reminder', 'Gentle reminder to all 90-Day Better Me athletes: please log your Week 4 body weight and waist measurements by 8:00 PM Sunday for weekly review.', 'coaching_90', 'Coach Adeesha', '["in_app", "sms"]'::jsonb, 12, 'sent')
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    body = EXCLUDED.body;
+-- 4. Initialize Clean CRM Ad Spend Settings (Zeroed for Handover)
+INSERT INTO public.crm_marketing_settings (id, ad_account_lifetime_spend, updated_at)
+VALUES ('default', 0.00, NOW())
+ON CONFLICT (id) DO NOTHING;

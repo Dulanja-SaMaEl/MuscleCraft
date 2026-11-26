@@ -512,8 +512,8 @@ export default function BodyAnalyticsTab({
                     </option>
                   ))}
                   {allClientMembers.length === 0 && (
-                    <option value="usr_client_90" className="bg-[#14141d] text-white">
-                      Rohan Vidyaratne (rohan.v@gmail.com)
+                    <option value="" className="bg-[#14141d] text-gray-400">
+                      No athletes registered yet
                     </option>
                   )}
                 </select>

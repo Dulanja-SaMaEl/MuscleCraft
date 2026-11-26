@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { db } from '@/lib/db/mock-db';
 import { DailySalesRecord, CrmMarketingSummary } from '@/lib/types';
 import { supabaseServer, isServerSupabaseConfigured, resolveServerUser } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 function formatDisplayDate(rawDate: string): string {
   if (!rawDate) return '';
@@ -81,6 +85,7 @@ function computeSummary(records: DailySalesRecord[], lifetimeSpend: number): Crm
 }
 
 export async function GET(req: NextRequest) {
+  noStore();
   try {
     let records: DailySalesRecord[] = db.dailySalesRecords;
     let lifetimeSpend: number = db.crmAccountLifetimeSpend;

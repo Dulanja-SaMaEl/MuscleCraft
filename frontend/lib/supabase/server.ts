@@ -148,6 +148,11 @@ export const supabaseServer = isServerSupabaseConfigured
         persistSession: false,
         autoRefreshToken: false,
       },
+      global: {
+        // Prevent Next.js 14 / Vercel Data Cache from serving stale PostgREST responses
+        fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, { ...init, cache: 'no-store' }),
+      },
     })
   : null;
 
