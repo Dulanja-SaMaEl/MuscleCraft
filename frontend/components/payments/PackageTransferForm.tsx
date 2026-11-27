@@ -52,7 +52,10 @@ export default function PackageTransferForm({
   const [referenceCode, setReferenceCode] = useState('');
   const [bankName, setBankName] = useState('Commercial Bank of Ceylon (Online Transfer / Deposit)');
   const [senderAccountName, setSenderAccountName] = useState('');
+  const [partnerName, setPartnerName] = useState('');
+  const [partnerEmail, setPartnerEmail] = useState('');
   const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
+  const isCoupleTier = selectedTier.startsWith('couple');
   const [receiptNotes, setReceiptNotes] = useState('');
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const [slipPreviewUrl, setSlipPreviewUrl] = useState<string>('');
@@ -132,6 +135,23 @@ export default function PackageTransferForm({
         uploadedSlipUrl = await uploadSlipFileToServer(slipFile, currentUser.id);
       }
 
+      if (isCoupleTier) {
+        if (partnerName.trim().length < 2) {
+          throw new Error('Please enter Partner 2 full name for this Couple package.');
+        }
+        if (!partnerEmail.trim().includes('@')) {
+          throw new Error('Please enter a valid separate email address for Partner 2.');
+        }
+        if (partnerEmail.trim().toLowerCase() === (currentUser.email || '').toLowerCase()) {
+          throw new Error('Partner 2 must have a different email address from your account.');
+        }
+      }
+
+      const coupleNote = isCoupleTier
+        ? `Couple Partner 2: ${partnerName.trim()} (${partnerEmail.trim().toLowerCase()})`
+        : '';
+      const combinedNotes = [coupleNote, receiptNotes.trim()].filter(Boolean).join(' | ');
+
       const res = await fetch(`/api/payments?userId=${encodeURIComponent(currentUser.id)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,7 +161,7 @@ export default function PackageTransferForm({
           bankName,
           transferDate,
           senderAccountName: senderAccountName.trim() || currentUser.name,
-          receiptNotes: receiptNotes.trim() || undefined,
+          receiptNotes: combinedNotes || undefined,
           receiptUrl: uploadedSlipUrl,
         }),
       });
@@ -447,6 +467,43 @@ export default function PackageTransferForm({
         <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-600/40 text-rose-200 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {isCoupleTier && (
+        <div className="p-4 rounded-xl bg-crimson-950/20 border border-crimson-500/40 space-y-3">
+          <div>
+            <span className="text-xs font-bold text-crimson-300 block">
+              Couple Package — Partner 2 Details (2nd Person) *
+            </span>
+            <span className="text-[11px] text-gray-400 block mt-0.5">
+              Enter your partner&apos;s full name and separate email address so both partners receive portal access upon approval.
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Partner 2 Full Name *</label>
+              <input
+                type="text"
+                required
+                value={partnerName}
+                onChange={(e) => setPartnerName(e.target.value)}
+                placeholder="Partner's full name"
+                className="w-full px-3.5 py-2.5 bg-[#18181f] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none min-h-[42px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Partner 2 Email Address *</label>
+              <input
+                type="email"
+                required
+                value={partnerEmail}
+                onChange={(e) => setPartnerEmail(e.target.value)}
+                placeholder="partner@example.com"
+                className="w-full px-3.5 py-2.5 bg-[#18181f] border border-white/10 rounded-xl text-white text-xs focus:border-crimson-500 focus:outline-none min-h-[42px]"
+              />
+            </div>
+          </div>
         </div>
       )}
 

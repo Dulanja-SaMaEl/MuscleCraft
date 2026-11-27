@@ -7,6 +7,7 @@ import {
   supabaseServer,
   isServerSupabaseConfigured,
   resolveServerUser,
+  findAuthUserByEmail,
 } from '@/lib/supabase/server';
 import { db } from '@/lib/db/mock-db';
 import { UserStatus } from '@/lib/types';
@@ -268,6 +269,7 @@ export async function POST(req: NextRequest) {
       recordPayment = true,
       paymentMethod = 'Cash / In-Person (Admin Enrolled)',
       customAmount,
+      partner,
     } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
@@ -287,6 +289,54 @@ export async function POST(req: NextRequest) {
       status === 'pending' || status === 'suspended' || status === 'expired' ? status : 'active';
     const selectedTier = tier || 'sole_1m';
 
+    // Couple package requires 2 separate persons with 2 separate email addresses
+    const isCoupleClient = safeRole === 'client' && selectedTier.startsWith('couple');
+    let partnerCleanName = '';
+    let partnerCleanEmail = '';
+    let partnerPassword = '';
+    let partnerPhone = '';
+
+    if (isCoupleClient) {
+      if (!partner || typeof partner !== 'object') {
+        return NextResponse.json(
+          { error: 'Couple packages require entering Partner 2 details (full name and a separate email address).' },
+          { status: 400 }
+        );
+      }
+      partnerCleanName = typeof partner.name === 'string' ? partner.name.trim() : '';
+      partnerCleanEmail = typeof partner.email === 'string' ? partner.email.toLowerCase().trim() : '';
+      partnerPassword =
+        typeof partner.password === 'string' && partner.password.trim().length > 0
+          ? partner.password.trim()
+          : password;
+      partnerPhone = typeof partner.phone === 'string' ? partner.phone.trim() : '';
+
+      if (partnerCleanName.length < 2) {
+        return NextResponse.json(
+          { error: 'Please enter Partner 2 full name (min 2 characters) for Couple packages.' },
+          { status: 400 }
+        );
+      }
+      if (!partnerCleanEmail || !partnerCleanEmail.includes('@')) {
+        return NextResponse.json(
+          { error: 'Please provide a valid email address for Partner 2.' },
+          { status: 400 }
+        );
+      }
+      if (partnerCleanEmail === cleanEmail) {
+        return NextResponse.json(
+          { error: 'Partner 1 and Partner 2 must have two separate email addresses.' },
+          { status: 400 }
+        );
+      }
+      if (partnerPassword.length < 6) {
+        return NextResponse.json(
+          { error: 'Partner 2 login password must be at least 6 characters.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const priceInfo = await resolveLiveTierPrice(selectedTier);
     const pkgType = inferPackageType(selectedTier);
     const validDays =
@@ -301,46 +351,29 @@ export async function POST(req: NextRequest) {
       validDays > 0 ? new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString() : null;
 
     let userId = `usr_${Date.now()}`;
+    let partnerUserId = `usr_${Date.now() + 1}`;
     let createdMember: any = null;
+    let createdPartnerMember: any = null;
 
     if (isServerSupabaseConfigured && supabaseServer) {
-      const { data: existingProfile } = await supabaseServer
-        .from('profiles')
-        .select('id')
-        .ilike('email', cleanEmail)
-        .maybeSingle();
+      // Pre-check email uniqueness for Partner 1 (and Partner 2 if couple) BEFORE inserting anything
+      const emailsToCheck = isCoupleClient ? [cleanEmail, partnerCleanEmail] : [cleanEmail];
+      for (const checkEmail of emailsToCheck) {
+        const { data: existingProfile } = await supabaseServer
+          .from('profiles')
+          .select('id, email')
+          .ilike('email', checkEmail)
+          .maybeSingle();
 
-      if (existingProfile) {
-        return NextResponse.json(
-          { error: 'An account with this email already exists.' },
-          { status: 409 }
-        );
+        if (existingProfile) {
+          return NextResponse.json(
+            { error: `An account with email "${checkEmail}" already exists.` },
+            { status: 409 }
+          );
+        }
       }
 
-      const { data: authData, error: authErr } = await supabaseServer.auth.admin.createUser({
-        email: cleanEmail,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          name: cleanName,
-          role: safeRole,
-          phone: phone?.trim() || null,
-          tier: selectedTier,
-        },
-      });
-
-      if (authErr && authErr.message?.toLowerCase().includes('already')) {
-        return NextResponse.json(
-          { error: 'An account with this email already exists in authentication records.' },
-          { status: 409 }
-        );
-      }
-
-      if (authData?.user?.id) {
-        userId = authData.user.id;
-      }
-
-      // Resolve real head coach profile ID so assigned_instructor_id satisfies PostgreSQL FK
+      // Resolve real head coach profile ID once so assigned_instructor_id satisfies PostgreSQL FK
       let defaultCoachId: string | null = null;
       if (safeRole === 'client') {
         try {
@@ -354,66 +387,125 @@ export async function POST(req: NextRequest) {
         } catch (_) {}
       }
 
-      const profilePayload = {
-        id: userId,
-        email: cleanEmail,
-        name: cleanName,
-        phone: phone?.trim() || null,
-        role: safeRole,
-        tier: safeStatus === 'pending' && selectedTier === 'none' ? 'none' : selectedTier,
-        package_id: selectedTier !== 'none' ? selectedTier : null,
-        package_name: selectedTier !== 'none' ? priceInfo.name : 'No Active Plan',
-        package_type: pkgType,
-        status: safeStatus,
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-        assigned_instructor_id: defaultCoachId,
-        assigned_instructor_name: safeRole === 'client' ? 'Adeesha Kumarasingha (Founder & Head Coach)' : null,
-        membership_expires_at: expiresAt,
-        joined_at: nowIso,
-        updated_at: nowIso,
+      const provisionSupabaseAccount = async (acc: {
+        fallbackId: string;
+        name: string;
+        email: string;
+        password: string;
+        phone?: string;
+        packageDisplayName: string;
+      }) => {
+        const { data: authData, error: authErr } = await supabaseServer!.auth.admin.createUser({
+          email: acc.email,
+          password: acc.password,
+          email_confirm: true,
+          user_metadata: {
+            name: acc.name,
+            role: safeRole,
+            phone: acc.phone || null,
+            tier: selectedTier,
+          },
+        });
+
+        if (authErr && authErr.message?.toLowerCase().includes('already')) {
+          throw new Error(`An account with email "${acc.email}" already exists in authentication records.`);
+        }
+
+        const resolvedId = authData?.user?.id || acc.fallbackId;
+        const profilePayload = {
+          id: resolvedId,
+          email: acc.email,
+          name: acc.name,
+          phone: acc.phone || null,
+          role: safeRole,
+          tier: safeStatus === 'pending' && selectedTier === 'none' ? 'none' : selectedTier,
+          package_id: selectedTier !== 'none' ? selectedTier : null,
+          package_name: acc.packageDisplayName,
+          package_type: pkgType,
+          status: safeStatus,
+          avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          assigned_instructor_id: defaultCoachId,
+          assigned_instructor_name: safeRole === 'client' ? 'Adeesha Kumarasingha (Founder & Head Coach)' : null,
+          membership_expires_at: expiresAt,
+          joined_at: nowIso,
+          updated_at: nowIso,
+        };
+
+        const { data: inserted, error: profErr } = await supabaseServer!
+          .from('profiles')
+          .upsert(profilePayload, { onConflict: 'email' })
+          .select('*')
+          .single();
+
+        if (profErr) {
+          throw new Error(`Failed to create profile for ${acc.name}: ${profErr.message}`);
+        }
+
+        return {
+          id: String(inserted.id),
+          email: inserted.email,
+          name: inserted.name,
+          role: inserted.role,
+          tier: inserted.tier,
+          packageId: inserted.package_id,
+          packageName: inserted.package_name,
+          packageType: inserted.package_type,
+          status: inserted.status,
+          avatarUrl: inserted.avatar_url,
+          assignedInstructorId: inserted.assigned_instructor_id,
+          assignedInstructorName: inserted.assigned_instructor_name,
+          membershipExpiresAt: inserted.membership_expires_at,
+          joinedAt: inserted.joined_at,
+          phone: inserted.phone,
+        };
       };
 
-      const { data: inserted, error: profErr } = await supabaseServer
-        .from('profiles')
-        .upsert(profilePayload, { onConflict: 'email' })
-        .select('*')
-        .single();
+      try {
+        createdMember = await provisionSupabaseAccount({
+          fallbackId: userId,
+          name: cleanName,
+          email: cleanEmail,
+          password,
+          phone: phone?.trim() || undefined,
+          packageDisplayName:
+            selectedTier !== 'none'
+              ? isCoupleClient
+                ? `${priceInfo.name} (Partner: ${partnerCleanName})`
+                : priceInfo.name
+              : 'No Active Plan',
+        });
+        userId = createdMember.id;
 
-      if (profErr) {
-        return NextResponse.json({ error: `Failed to create member profile: ${profErr.message}` }, { status: 400 });
+        if (isCoupleClient) {
+          createdPartnerMember = await provisionSupabaseAccount({
+            fallbackId: partnerUserId,
+            name: partnerCleanName,
+            email: partnerCleanEmail,
+            password: partnerPassword,
+            phone: partnerPhone || undefined,
+            packageDisplayName: `${priceInfo.name} (Partner: ${cleanName})`,
+          });
+          partnerUserId = createdPartnerMember.id;
+        }
+      } catch (provErr: any) {
+        return NextResponse.json({ error: provErr.message || 'Failed to provision account.' }, { status: 409 });
       }
-
-      createdMember = {
-        id: String(inserted.id),
-        email: inserted.email,
-        name: inserted.name,
-        role: inserted.role,
-        tier: inserted.tier,
-        packageId: inserted.package_id,
-        packageName: inserted.package_name,
-        packageType: inserted.package_type,
-        status: inserted.status,
-        avatarUrl: inserted.avatar_url,
-        assignedInstructorId: inserted.assigned_instructor_id,
-        assignedInstructorName: inserted.assigned_instructor_name,
-        membershipExpiresAt: inserted.membership_expires_at,
-        joinedAt: inserted.joined_at,
-        phone: inserted.phone,
-      };
 
       try {
         await supabaseServer.from('audit_logs').insert({
           actor_id: adminUser.id.includes('-') ? adminUser.id : null,
           actor_email: adminUser.email || 'musclecraftlk@gmail.com',
-          action: 'ADMIN_MEMBER_CREATED',
+          action: isCoupleClient ? 'ADMIN_COUPLE_CREATED' : 'ADMIN_MEMBER_CREATED',
           target_type: 'user',
           target_id: createdMember.id,
-          details: `Admin created ${safeRole} account for ${cleanName} (${cleanEmail}) [Plan: ${createdMember.packageName}, Status: ${safeStatus}].`,
+          details: isCoupleClient
+            ? `Admin created Couple Package pair: ${cleanName} (${cleanEmail}) & ${partnerCleanName} (${partnerCleanEmail}) [Plan: ${priceInfo.name}, Status: ${safeStatus}].`
+            : `Admin created ${safeRole} account for ${cleanName} (${cleanEmail}) [Plan: ${createdMember.packageName}, Status: ${safeStatus}].`,
         });
       } catch (_) {}
     }
 
-    // Automatically record an approved payment into Revenue & Profits ledger when Admin assigns an active client package (no receipt upload required)
+    // Automatically record ONE approved payment into Revenue & Profits ledger when Admin assigns an active client package (no receipt upload required; Couple fee recorded once for the pair)
     let recordedPayment: any = null;
     const shouldRecordPayment =
       safeRole === 'client' &&
@@ -425,7 +517,7 @@ export async function POST(req: NextRequest) {
     if (shouldRecordPayment) {
       recordedPayment = await recordAdminDirectPayment({
         memberId: createdMember?.id || userId,
-        memberName: cleanName,
+        memberName: isCoupleClient ? `${cleanName} & ${partnerCleanName}` : cleanName,
         memberEmail: cleanEmail,
         tier: selectedTier,
         priceInfo,
@@ -435,6 +527,9 @@ export async function POST(req: NextRequest) {
             : null,
         paymentMethod,
         adminUser,
+        note: isCoupleClient
+          ? `Couple Package (${cleanName} & ${partnerCleanName}) — 2 separate accounts provisioned, single couple fee recorded (no receipt upload required).`
+          : undefined,
       });
     }
 
@@ -446,15 +541,37 @@ export async function POST(req: NextRequest) {
       phone: phone?.trim() || undefined,
       role: safeRole,
       tier: selectedTier,
-      packageName: selectedTier !== 'none' ? priceInfo.name : 'No Active Plan',
+      packageName:
+        selectedTier !== 'none'
+          ? isCoupleClient
+            ? `${priceInfo.name} (Partner: ${partnerCleanName})`
+            : priceInfo.name
+          : 'No Active Plan',
       packageType: pkgType,
       status: safeStatus,
       membershipExpiresAt: expiresAt || undefined,
     });
-
     AuthService.setPassword(cleanEmail, password);
 
-    // Automatic SMS Notification: Admin Created Member with Credentials
+    let syncedPartnerLocal: any = null;
+    if (isCoupleClient) {
+      syncedPartnerLocal = AuthService.registerUser({
+        id: partnerUserId,
+        name: partnerCleanName,
+        email: partnerCleanEmail,
+        password: partnerPassword,
+        phone: partnerPhone || undefined,
+        role: safeRole,
+        tier: selectedTier,
+        packageName: `${priceInfo.name} (Partner: ${cleanName})`,
+        packageType: pkgType,
+        status: safeStatus,
+        membershipExpiresAt: expiresAt || undefined,
+      });
+      AuthService.setPassword(partnerCleanEmail, partnerPassword);
+    }
+
+    // Automatic SMS Notifications: Partner 1 (and Partner 2 if Couple)
     if (phone) {
       try {
         await SmsService.notifyAdminCreatedMember({
@@ -467,8 +584,20 @@ export async function POST(req: NextRequest) {
         console.warn('Admin member creation SMS dispatch warning:', smsErr);
       }
     }
+    if (isCoupleClient && partnerPhone) {
+      try {
+        await SmsService.notifyAdminCreatedMember({
+          phone: partnerPhone,
+          name: partnerCleanName,
+          email: partnerCleanEmail,
+          password: partnerPassword,
+        });
+      } catch (smsErr) {
+        console.warn('Couple Partner 2 SMS dispatch warning:', smsErr);
+      }
+    }
 
-    // Automatic Email Notification: Admin Created Member Credentials via Resend
+    // Automatic Email Notifications: Partner 1 (and Partner 2 if Couple) via Resend
     let emailDispatch: any = null;
     try {
       emailDispatch = await EmailService.notifyAdminCreatedMember({
@@ -480,6 +609,18 @@ export async function POST(req: NextRequest) {
     } catch (emailErr) {
       console.warn('Admin member creation Email dispatch warning:', emailErr);
     }
+    if (isCoupleClient) {
+      try {
+        await EmailService.notifyAdminCreatedMember({
+          email: partnerCleanEmail,
+          name: partnerCleanName,
+          password: partnerPassword,
+          packageName: priceInfo.name,
+        });
+      } catch (emailErr) {
+        console.warn('Couple Partner 2 Email dispatch warning:', emailErr);
+      }
+    }
 
     const revNote = recordedPayment
       ? ` Rs. ${Number(recordedPayment.amount).toLocaleString()} LKR recorded to Revenue & Profits (no receipt required).`
@@ -489,9 +630,12 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         member: createdMember || syncedLocal,
+        partnerMember: isCoupleClient ? createdPartnerMember || syncedPartnerLocal : null,
         recordedPayment,
         email: emailDispatch,
-        message: `Member ${cleanName} added with login access (${safeStatus.toUpperCase()}).${revNote}`,
+        message: isCoupleClient
+          ? `Couple Package activated for ${cleanName} & ${partnerCleanName} with 2 separate login accounts (${safeStatus.toUpperCase()}).${revNote}`
+          : `Member ${cleanName} added with login access (${safeStatus.toUpperCase()}).${revNote}`,
       },
       { status: 201 }
     );
@@ -885,5 +1029,142 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, member: updatedMember });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  noStore();
+  try {
+    const { searchParams } = new URL(req.url);
+    const adminId = searchParams.get('adminId');
+    const memberId = searchParams.get('memberId');
+    const deletePayments = searchParams.get('deletePayments') === 'true';
+
+    const adminUser = await resolveServerUser(adminId);
+    if (adminUser.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only administrators can permanently delete user accounts.' },
+        { status: 403 }
+      );
+    }
+
+    if (!memberId || !memberId.trim()) {
+      return NextResponse.json({ error: 'Missing memberId parameter.' }, { status: 400 });
+    }
+
+    if (memberId === adminUser.id) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own currently signed-in administrator account.' },
+        { status: 400 }
+      );
+    }
+
+    let deletedName = 'Member';
+    let deletedEmail = '';
+    let deletedRole = 'client';
+
+    if (isServerSupabaseConfigured && supabaseServer) {
+      const { data: targetProfile, error: fetchErr } = await supabaseServer
+        .from('profiles')
+        .select('id, name, email, role')
+        .eq('id', memberId)
+        .maybeSingle();
+
+      if (fetchErr) {
+        return NextResponse.json({ error: `Failed to locate user: ${fetchErr.message}` }, { status: 400 });
+      }
+      if (!targetProfile) {
+        return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
+      }
+
+      if (targetProfile.role === 'admin') {
+        const { count: adminCount } = await supabaseServer
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'admin');
+        if ((adminCount || 0) <= 1) {
+          return NextResponse.json(
+            { error: 'Cannot delete the last remaining administrator account.' },
+            { status: 400 }
+          );
+        }
+      }
+
+      deletedName = targetProfile.name || 'Member';
+      deletedEmail = targetProfile.email || '';
+      deletedRole = targetProfile.role || 'client';
+
+      // Optionally remove member's payment records (for accidental/test accounts); otherwise schema sets user_id = NULL to preserve financial history
+      if (deletePayments) {
+        await supabaseServer.from('payments').delete().eq('user_id', memberId);
+      }
+
+      // Delete dependent records explicitly to guarantee clean removal even if FK cascade differs
+      await Promise.allSettled([
+        supabaseServer.from('body_measurements').delete().eq('user_id', memberId),
+        supabaseServer.from('diet_plans').delete().eq('user_id', memberId),
+        supabaseServer.from('appointments').delete().eq('client_id', memberId),
+      ]);
+
+      // Delete profile row
+      const { error: delProfErr } = await supabaseServer
+        .from('profiles')
+        .delete()
+        .eq('id', memberId);
+
+      if (delProfErr) {
+        return NextResponse.json(
+          { error: `Failed to delete user profile: ${delProfErr.message}` },
+          { status: 400 }
+        );
+      }
+
+      // Remove from Supabase Auth (by ID first, then email fallback so email is freed for re-registration)
+      try {
+        await supabaseServer.auth.admin.deleteUser(memberId);
+      } catch (_) {}
+      if (deletedEmail) {
+        try {
+          const authMatch = await findAuthUserByEmail(deletedEmail);
+          if (authMatch?.id) {
+            await supabaseServer.auth.admin.deleteUser(authMatch.id);
+          }
+        } catch (_) {}
+      }
+
+      try {
+        await supabaseServer.from('audit_logs').insert({
+          actor_id: adminUser.id.includes('-') ? adminUser.id : null,
+          actor_email: adminUser.email || 'musclecraftlk@gmail.com',
+          action: 'ADMIN_MEMBER_DELETED',
+          target_type: 'user',
+          target_id: memberId,
+          details: `Admin permanently deleted ${deletedRole} account: ${deletedName} (${deletedEmail}).${
+            deletePayments ? ' Associated payment records were also removed.' : ' Historical payment ledger preserved.'
+          }`,
+        });
+      } catch (_) {}
+    }
+
+    // Sync local fallback store
+    const localIdx = db.users.findIndex((u) => u.id === memberId);
+    if (localIdx !== -1) {
+      if (!deletedEmail) deletedEmail = db.users[localIdx].email;
+      if (deletedName === 'Member') deletedName = db.users[localIdx].name;
+      db.users.splice(localIdx, 1);
+    }
+    if (deletePayments) {
+      db.payments = db.payments.filter((p) => p.userId !== memberId);
+    }
+
+    return NextResponse.json({
+      success: true,
+      deletedId: memberId,
+      message: `Permanently deleted ${deletedName}${deletedEmail ? ` (${deletedEmail})` : ''}.${
+        deletePayments ? ' Associated payment records removed.' : ''
+      }`,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete user.' }, { status: 500 });
   }
 }

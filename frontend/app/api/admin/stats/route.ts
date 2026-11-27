@@ -83,9 +83,10 @@ export async function GET(req: NextRequest) {
         const suspendedClients = clientProfiles.filter((p) => p.status === 'suspended' || p.status === 'rejected');
 
         const soleMembers = activeClients.filter((p) => p.tier?.startsWith('sole') || p.package_type === 'sole').length;
-        const coupleMembers = activeClients.filter((p) => p.tier?.startsWith('couple') || p.package_type === 'couple').length;
+        const coupleMemberAccounts = activeClients.filter((p) => p.tier?.startsWith('couple') || p.package_type === 'couple').length;
+        const coupleMembers = coupleMemberAccounts > 0 ? Math.max(1, Math.round(coupleMemberAccounts / 2)) : 0;
         const coachingMembers = activeClients.filter((p) => p.tier === 'coaching_90' || p.package_type === 'coaching').length;
-        const activeAthleteBase = soleMembers + coupleMembers * 2 + coachingMembers;
+        const activeAthleteBase = activeClients.length;
 
         const approvedPayments = allPayments.filter((p) => p.status === 'approved');
         const pendingTransfers = allPayments.filter((p) => p.status === 'pending').length;

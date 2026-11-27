@@ -48,6 +48,7 @@ import {
   Ban,
   ShieldCheck,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { User, UserRole, UserStatus, PaymentRecord, AuditLog, BodyMeasurement, ExerciseVideo } from '@/lib/types';
 import dynamic from 'next/dynamic';
@@ -323,10 +324,13 @@ export default function AdminDashboard() {
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Admin Create Member Modal State
+  // Admin Create / Edit / Delete Member Modal State
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [isCreatingMember, setIsCreatingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<User | null>(null);
+  const [deletingMember, setDeletingMember] = useState<User | null>(null);
+  const [isDeletingMember, setIsDeletingMember] = useState(false);
+  const [deleteMemberPayments, setDeleteMemberPayments] = useState(false);
   const [membersPage, setMembersPage] = useState<number>(1);
   const [membersPageSize, setMembersPageSize] = useState<number>(8);
   const [auditSearch, setAuditSearch] = useState<string>('');
@@ -345,6 +349,10 @@ export default function AdminDashboard() {
     recordPayment: true,
     paymentMethod: 'Cash / In-Person (Admin Enrolled)',
     customAmount: '',
+    partnerName: '',
+    partnerEmail: '',
+    partnerPassword: '',
+    partnerPhone: '',
   });
 
   useEffect(() => {
@@ -622,14 +630,44 @@ export default function AdminDashboard() {
 
   const handleCreateMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isCouple = newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple');
+
+    if (isCouple) {
+      if (newMemberForm.partnerName.trim().length < 2) {
+        setActionMessage({ type: 'error', text: 'Please enter Partner 2 full name (min 2 characters) for Couple packages.' });
+        return;
+      }
+      if (!newMemberForm.partnerEmail.trim().includes('@')) {
+        setActionMessage({ type: 'error', text: 'Please enter a valid email address for Partner 2.' });
+        return;
+      }
+      if (newMemberForm.partnerEmail.trim().toLowerCase() === newMemberForm.email.trim().toLowerCase()) {
+        setActionMessage({ type: 'error', text: 'Partner 1 and Partner 2 must use two separate email addresses.' });
+        return;
+      }
+    }
+
     setIsCreatingMember(true);
     setActionMessage(null);
     try {
       const adminId = currentUser?.id || 'usr_admin_1';
+      const payload: any = {
+        ...newMemberForm,
+        ...(isCouple
+          ? {
+              partner: {
+                name: newMemberForm.partnerName.trim(),
+                email: newMemberForm.partnerEmail.trim().toLowerCase(),
+                password: newMemberForm.partnerPassword.trim() || newMemberForm.password,
+                phone: newMemberForm.partnerPhone.trim(),
+              },
+            }
+          : {}),
+      };
       const res = await fetch(`/api/admin/members?adminId=${adminId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMemberForm),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -653,12 +691,44 @@ export default function AdminDashboard() {
         recordPayment: true,
         paymentMethod: 'Cash / In-Person (Admin Enrolled)',
         customAmount: '',
+        partnerName: '',
+        partnerEmail: '',
+        partnerPassword: '',
+        partnerPhone: '',
       });
       await loadAdminData();
     } catch (err: any) {
       setActionMessage({ type: 'error', text: err.message || 'Error adding member.' });
     } finally {
       setIsCreatingMember(false);
+    }
+  };
+
+  const handleConfirmDeleteMember = async () => {
+    if (!deletingMember) return;
+    setIsDeletingMember(true);
+    setActionMessage(null);
+    try {
+      const adminId = currentUser?.id || '';
+      const res = await fetch(
+        `/api/admin/members?adminId=${encodeURIComponent(adminId)}&memberId=${encodeURIComponent(deletingMember.id)}&deletePayments=${deleteMemberPayments ? 'true' : 'false'}`,
+        { method: 'DELETE' }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete user account.');
+      }
+      setActionMessage({
+        type: 'success',
+        text: data.message || `Deleted ${deletingMember.name} permanently.`,
+      });
+      setDeletingMember(null);
+      setDeleteMemberPayments(false);
+      await loadAdminData();
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message || 'Failed to delete user.' });
+    } finally {
+      setIsDeletingMember(false);
     }
   };
 
@@ -2278,27 +2348,41 @@ export default function AdminDashboard() {
                                 <span>Edit Details</span>
                               </button>
                               {!isSelfRow && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleMemberStatus(m)}
-                                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer ${
-                                    m.status === 'active'
-                                      ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
-                                      : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
-                                  }`}
-                                >
-                                  {m.status === 'active' ? (
-                                    <>
-                                      <Ban className="w-3.5 h-3.5" />
-                                      <span>Ban</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ShieldCheck className="w-3.5 h-3.5" />
-                                      <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
-                                    </>
-                                  )}
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleMemberStatus(m)}
+                                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer ${
+                                      m.status === 'active'
+                                        ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
+                                        : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                                    }`}
+                                  >
+                                    {m.status === 'active' ? (
+                                      <>
+                                        <Ban className="w-3.5 h-3.5" />
+                                        <span>Ban</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeleteMemberPayments(false);
+                                      setDeletingMember(m);
+                                    }}
+                                    aria-label={`Delete ${m.name}`}
+                                    title={`Permanently delete ${m.name}`}
+                                    className="px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/70 text-rose-300 border border-rose-700/40 text-xs font-semibold flex items-center justify-center min-h-[40px] min-w-[40px] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -2476,28 +2560,43 @@ export default function AdminDashboard() {
                                       <span>Edit</span>
                                     </button>
                                     {!isSelfRow && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleMemberStatus(m)}
-                                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500 ${
-                                          m.status === 'active'
-                                            ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
-                                            : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
-                                        }`}
-                                        title={m.status === 'active' ? 'Ban / Suspend user portal access' : 'Unban & activate member portal'}
-                                      >
-                                        {m.status === 'active' ? (
-                                          <>
-                                            <Ban className="w-3.5 h-3.5" />
-                                            <span>Ban</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ShieldCheck className="w-3.5 h-3.5" />
-                                            <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
-                                          </>
-                                        )}
-                                      </button>
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleToggleMemberStatus(m)}
+                                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson-500 ${
+                                            m.status === 'active'
+                                              ? 'bg-white/[0.03] hover:bg-rose-950/60 text-zinc-300 hover:text-rose-300 border border-white/[0.08] hover:border-rose-500/40'
+                                              : 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                                          }`}
+                                          title={m.status === 'active' ? 'Ban / Suspend user portal access' : 'Unban & activate member portal'}
+                                        >
+                                          {m.status === 'active' ? (
+                                            <>
+                                              <Ban className="w-3.5 h-3.5" />
+                                              <span>Ban</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <ShieldCheck className="w-3.5 h-3.5" />
+                                              <span>{m.status === 'suspended' ? 'Unban' : 'Activate'}</span>
+                                            </>
+                                          )}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setDeleteMemberPayments(false);
+                                            setDeletingMember(m);
+                                          }}
+                                          className="px-2.5 py-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/80 text-rose-300 hover:text-white border border-rose-700/40 hover:border-rose-500 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                                          title={`Permanently delete ${m.name}`}
+                                          aria-label={`Delete ${m.name}`}
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                          <span>Delete</span>
+                                        </button>
+                                      </>
                                     )}
                                   </div>
                                 </td>
@@ -2763,8 +2862,8 @@ export default function AdminDashboard() {
           }}
           className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
         >
-          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
-            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e]">
+          <div className="bg-[#111116] border border-crimson-800/60 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#15151e] shrink-0">
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-xl bg-crimson-950 border border-crimson-600 flex items-center justify-center text-crimson-400">
                   <UserPlus className="w-5 h-5" />
@@ -2784,10 +2883,18 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateMember} className="p-6 space-y-4">
+            <form onSubmit={handleCreateMember} className="p-6 space-y-4 overflow-y-auto">
+              {newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple') && (
+                <div className="text-[11px] font-bold uppercase tracking-wider text-crimson-400 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Partner 1 Details (Primary Account)</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1">Full Name *</label>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    {newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple') ? 'Partner 1 Full Name *' : 'Full Name *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -2798,7 +2905,9 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-300 block mb-1">Email Address *</label>
+                  <label className="text-xs font-bold text-gray-300 block mb-1">
+                    {newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple') ? 'Partner 1 Email Address *' : 'Email Address *'}
+                  </label>
                   <input
                     type="email"
                     required
@@ -2909,6 +3018,72 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Couple Package: Separate Partner 2 Account Fields */}
+              {newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple') && (
+                <div className="p-4 rounded-2xl bg-crimson-950/20 border border-crimson-500/40 space-y-3.5">
+                  <div>
+                    <span className="text-xs font-bold text-crimson-300 flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-crimson-400" />
+                      Partner 2 Details (Couple Package — 2nd Separate Account) *
+                    </span>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      Both partners get separate login accounts, SMS &amp; Email credentials, while a single Couple package fee is recorded to Revenue.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-300 block mb-1">Partner 2 Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newMemberForm.partnerName}
+                        onChange={(e) => setNewMemberForm({ ...newMemberForm, partnerName: e.target.value })}
+                        placeholder="e.g. Nimali Perera"
+                        className="w-full px-3.5 py-2.5 bg-[#121218] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-300 block mb-1">Partner 2 Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        value={newMemberForm.partnerEmail}
+                        onChange={(e) => setNewMemberForm({ ...newMemberForm, partnerEmail: e.target.value })}
+                        placeholder="nimali@example.com"
+                        className="w-full px-3.5 py-2.5 bg-[#121218] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-300 block mb-1">
+                        Partner 2 Password <span className="text-gray-500 font-normal">(blank = same as P1)</span>
+                      </label>
+                      <input
+                        type="text"
+                        minLength={6}
+                        value={newMemberForm.partnerPassword}
+                        onChange={(e) => setNewMemberForm({ ...newMemberForm, partnerPassword: e.target.value })}
+                        placeholder="Leave blank or set separate password"
+                        className="w-full px-3.5 py-2.5 bg-[#121218] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-300 block mb-1">Partner 2 Phone / WhatsApp</label>
+                      <input
+                        type="tel"
+                        value={newMemberForm.partnerPhone}
+                        onChange={(e) => setNewMemberForm({ ...newMemberForm, partnerPhone: e.target.value })}
+                        placeholder="+94 77 987 6543"
+                        className="w-full px-3.5 py-2.5 bg-[#121218] border border-white/10 rounded-xl text-xs text-white focus:border-crimson-500 focus:outline-none min-h-[42px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {newMemberForm.role === 'client' && newMemberForm.status === 'active' && (
                 <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/30 space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -2985,10 +3160,105 @@ export default function AdminDashboard() {
                   className="px-6 py-2.5 bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-crimson-glow flex items-center gap-2 cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>{isCreatingMember ? 'Creating Account...' : 'Create Member & Grant Access'}</span>
+                  <span>
+                    {isCreatingMember
+                      ? 'Creating Account...'
+                      : newMemberForm.role === 'client' && newMemberForm.tier.startsWith('couple')
+                      ? 'Create Couple Pair (2 Accounts)'
+                      : 'Create Member & Grant Access'}
+                  </span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Member Confirmation Modal */}
+      {deletingMember && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-member-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isDeletingMember) setDeletingMember(null);
+          }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto"
+        >
+          <div className="bg-[#111116] border border-rose-700/60 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden my-auto">
+            <div className="px-6 py-4 border-b border-white/[0.08] flex items-center justify-between bg-[#1a1014]">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-rose-950 border border-rose-600/60 flex items-center justify-center text-rose-400">
+                  <Trash2 className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 id="delete-member-title" className="text-base font-bold text-white">
+                    Delete User Account
+                  </h3>
+                  <p className="text-xs text-rose-300/80">Permanent action — cannot be undone</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isDeletingMember}
+                onClick={() => setDeletingMember(null)}
+                aria-label="Close delete modal"
+                className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/[0.06] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-2xl bg-[#161620] border border-white/[0.08] space-y-1">
+                <span className="text-sm font-bold text-white block">{deletingMember.name}</span>
+                <span className="text-xs text-gray-400 font-mono block">{deletingMember.email}</span>
+                <span className="text-[11px] text-gray-500 block">
+                  Plan: {deletingMember.packageName || deletingMember.tier || 'None'} · Role: {deletingMember.role}
+                </span>
+              </div>
+
+              <p className="text-xs text-gray-300 leading-relaxed">
+                This will permanently remove <strong className="text-white">{deletingMember.name}</strong>&apos;s login credentials, profile, body measurements, and diet plans. Their email address will become available for re-registration.
+              </p>
+
+              <label className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-rose-950/25 border border-rose-600/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deleteMemberPayments}
+                  onChange={(e) => setDeleteMemberPayments(e.target.checked)}
+                  className="mt-0.5 rounded border-rose-500/60 bg-[#111116] text-rose-500 focus:ring-rose-500"
+                />
+                <span>
+                  <span className="text-xs font-bold text-rose-200 block">
+                    Also delete payment records from Revenue &amp; Profits
+                  </span>
+                  <span className="text-[11px] text-gray-400 block mt-0.5">
+                    Leave unchecked to keep historical financial ledger intact. Check this if removing a test or accidental entry.
+                  </span>
+                </span>
+              </label>
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  disabled={isDeletingMember}
+                  onClick={() => setDeletingMember(null)}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-300 hover:text-white text-xs font-bold cursor-pointer min-h-[42px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingMember}
+                  onClick={handleConfirmDeleteMember}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer min-h-[42px] shadow-lg"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{isDeletingMember ? 'Deleting...' : 'Permanently Delete User'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

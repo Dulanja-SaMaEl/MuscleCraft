@@ -26,7 +26,8 @@ export class AdminService {
     const soleMembers = clientMembers.filter(
       (u) => u.tier?.startsWith('sole') || u.tier === 'monthly'
     ).length;
-    const coupleMembers = clientMembers.filter((u) => u.tier?.startsWith('couple')).length;
+    const coupleMemberAccounts = clientMembers.filter((u) => u.tier?.startsWith('couple')).length;
+    const coupleMembers = coupleMemberAccounts > 0 ? Math.max(1, Math.round(coupleMemberAccounts / 2)) : 0;
     const coachingMembers = clientMembers.filter(
       (u) => u.tier === 'coaching_90' || u.tier === 'burnzone'
     ).length;
@@ -90,7 +91,7 @@ export class AdminService {
       soleMembers,
       coupleMembers,
       coachingMembers,
-      activeAthleteBase: soleMembers + coupleMembers * 2 + coachingMembers,
+      activeAthleteBase: activeMembers,
       expiringSoonCount,
       checkinsToday: activeMembers === 0 ? 0 : Math.min(activeMembers, Math.max(1, Math.round(activeMembers * 0.6))),
       pendingCoachReviews,
