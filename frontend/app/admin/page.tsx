@@ -1255,7 +1255,7 @@ export default function AdminDashboard() {
           {/* Owner Profile Card */}
           <div className="p-2 rounded-xl bg-[#14141c] border border-white/[0.06] flex items-center gap-2.5">
             <img
-              src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+              src={currentUser?.avatarUrl || '/images/coach-adeesha.jpg'}
               alt={currentUser?.name || 'Adeesha Kumarasingha'}
               className="w-7 h-7 rounded-full object-cover border border-crimson-500/50 shrink-0"
             />

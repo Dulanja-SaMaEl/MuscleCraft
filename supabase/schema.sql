@@ -364,7 +364,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- 3. Insert Owner / Admin Account Only (Clean Production Handover Seed)
 INSERT INTO public.profiles (id, email, name, phone, role, tier, package_id, package_name, package_type, status, avatar_url, joined_at)
 VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'musclecraftlk@gmail.com', 'Adeesha Kumarasingha (Owner & Head Coach)', '+94 77 123 4567', 'admin', 'sole_1y', 'sole_1y', '1 Year Membership (Sole)', 'membership', 'active', 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=150&auto=format&fit=crop&q=80', NOW())
+    ('a0000000-0000-0000-0000-000000000001', 'musclecraftlk@gmail.com', 'Adeesha Kumarasingha (Owner & Head Coach)', '+94 77 123 4567', 'admin', 'sole_1y', 'sole_1y', '1 Year Membership (Sole)', 'membership', 'active', '/images/coach-adeesha.jpg', NOW())
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     email = EXCLUDED.email,

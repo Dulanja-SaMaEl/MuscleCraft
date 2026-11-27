@@ -203,8 +203,8 @@ export default function InstructorWorkspace() {
         <div className="bg-[#121215] border border-blue-800/40 p-6 sm:p-8 rounded-lg mb-8 shadow-card-dark flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <img
-              src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=150'}
-              alt={currentUser?.name || 'Elena Rostova'}
+              src={currentUser?.avatarUrl || '/images/coach-adeesha.jpg'}
+              alt={currentUser?.name || 'Adeesha Kumarasingha'}
               className="w-16 h-16 rounded-full border-2 border-blue-500 object-cover"
             />
             <div>
@@ -217,7 +217,7 @@ export default function InstructorWorkspace() {
                   }}
                   className="text-[24px] sm:text-[28px] text-white tracking-tight"
                 >
-                  {currentUser?.name || 'Elena Rostova'}
+                  {currentUser?.name || 'Adeesha Kumarasingha'}
                 </h1>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider bg-blue-900/40 text-blue-300 border-blue-700/60">
                   Head Strength Coach

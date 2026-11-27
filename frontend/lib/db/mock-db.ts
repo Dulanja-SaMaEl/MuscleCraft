@@ -26,7 +26,7 @@ export class MuscleCraftDatabase {
       packageName: '1 Year Membership (Sole)',
       status: 'active',
       phone: '+94 77 123 4567',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: '/images/coach-adeesha.jpg',
       membershipExpiresAt: '2028-12-31T23:59:59Z',
       joinedAt: '2023-01-01T08:00:00Z',
     },

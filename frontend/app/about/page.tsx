@@ -21,29 +21,19 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  const coaches = [
-    {
-      name: 'Adeesha Kumarasingha',
-      role: 'Founder & Head Coach',
-      spec: 'NVQ Certified • ISO 9001 Instructor • Dip. Sports Science',
-      bio: 'With over 7 years of fitness industry leadership, Adeesha founded MuscleCraft to help clients build sustainable habits and true physical strength. Specializes in custom progressive overload, personalized nutrition protocols, and empathetic accountability.',
-      img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop',
-    },
-    {
-      name: 'Elena Rostova',
-      role: 'Senior Strength & Conditioning Specialist',
-      spec: 'Competitive Powerlifting & Hypertrophy Periodization',
-      bio: 'Former national powerlifter with over 12 years of coaching experience. Specializes in deadlift wedge mechanics, kinetic chain alignment, and targeted metabolic recomposition.',
-      img: 'https://images.unsplash.com/photo-1594381898411-846e7d193883?w=600&auto=format&fit=crop',
-    },
-    {
-      name: 'Victor Thorne',
-      role: 'Athletic Performance Director',
-      spec: 'Functional Conditioning & BurnZone Coach',
-      bio: 'Certified CSCS and sports physiologist. Oversees athlete programming, injury risk mitigation, and functional mobility circuits.',
-      img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop',
-    },
-  ];
+  const headCoach = {
+    name: 'Adeesha Kumarasingha',
+    role: 'Founder & Head Coach',
+    spec: 'NVQ Certified • ISO 9001 Instructor • Dip. Sports Science',
+    bio: 'With over 7 years of fitness industry leadership, Adeesha founded MuscleCraft to help clients build sustainable habits and true physical strength. Specializes in custom progressive overload, personalized nutrition protocols, BurnZone functional conditioning, and empathetic 1-on-1 accountability.',
+    img: '/images/coach-adeesha.jpg',
+    highlights: [
+      'NVQ Certified Fitness & Personal Trainer',
+      'ISO 9001 Certified Aerobic Instructor',
+      'Diploma in Exercise & Sport Science',
+      '7+ Years Coaching & Athlete Transformation',
+    ],
+  };
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -63,6 +53,7 @@ export default function AboutPage() {
           '@type': 'Person',
           name: 'Adeesha Kumarasingha',
           jobTitle: 'Founder & Head Coach',
+          image: 'https://www.musclecraftlk.com/images/coach-adeesha.jpg',
           worksFor: { '@type': 'Organization', name: 'MuscleCraft' },
         },
       },
@@ -165,7 +156,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Coaching Leadership */}
+        {/* Head Coach Spotlight */}
         <div className="mb-20">
           <div className="text-center mb-12">
             <h2
@@ -176,32 +167,42 @@ export default function AboutPage() {
               }}
               className="text-[28px] sm:text-[34px] text-white tracking-tight"
             >
-              Elite Coaching Leadership
+              Meet Your Head Coach
             </h2>
             <div className="w-12 h-1 bg-crimson mx-auto mt-3 rounded-full" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {coaches.map((c, idx) => (
-              <div
-                key={idx}
-                className="bg-[#121215] border border-white/[0.08] hover:border-crimson/40 rounded-lg overflow-hidden transition-all shadow-card-dark"
-              >
-                <img
-                  src={c.img}
-                  alt={c.name}
-                  className="w-full h-64 object-cover filter contrast-110 brightness-95"
-                />
-                <div className="p-6 space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-crimson-400 tracking-widest font-mono">
-                    {c.spec}
-                  </span>
-                  <h3 className="text-xl font-bold text-white">{c.name}</h3>
-                  <p className="text-xs text-gray-400 font-semibold">{c.role}</p>
-                  <p className="text-xs text-gray-300 leading-relaxed pt-2">{c.bio}</p>
-                </div>
+          <div className="max-w-4xl mx-auto bg-[#121215] border border-white/[0.08] hover:border-crimson/40 rounded-2xl overflow-hidden transition-all shadow-card-dark grid grid-cols-1 md:grid-cols-12">
+            <div className="md:col-span-5 relative bg-[#0c0c0f]">
+              <img
+                src={headCoach.img}
+                alt={`${headCoach.name} — ${headCoach.role} at MuscleCraft`}
+                className="w-full h-80 sm:h-96 md:h-full object-cover object-top"
+              />
+            </div>
+            <div className="md:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-4">
+              <span className="text-[11px] font-bold uppercase text-crimson-400 tracking-widest font-mono">
+                {headCoach.spec}
+              </span>
+              <div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                  {headCoach.name}
+                </h3>
+                <p className="text-sm text-gray-400 font-semibold mt-1">{headCoach.role}</p>
               </div>
-            ))}
+              <p className="text-sm text-gray-300 leading-relaxed">{headCoach.bio}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+                {headCoach.highlights.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 text-xs text-gray-200 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3 py-2"
+                  >
+                    <Award className="w-3.5 h-3.5 text-crimson-400 shrink-0" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
