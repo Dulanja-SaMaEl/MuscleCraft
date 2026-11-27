@@ -385,6 +385,14 @@ export async function enforceAndSyncUserStatus(user: User | null): Promise<User 
           console.warn('Could not persist automatic expiration status:', err);
         }
       }
+
+      // Send deduplicated post-expiration SMS & Email immediately on automatic lockout
+      try {
+        const { notifySingleExpiredMemberIfNeeded } = await import('@/lib/services/membership-expiry-service');
+        await notifySingleExpiredMemberIfNeeded(user);
+      } catch (notifyErr) {
+        console.warn('Expired lockout notification warning:', notifyErr);
+      }
     }
   }
 

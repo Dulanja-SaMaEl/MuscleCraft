@@ -955,4 +955,115 @@ export class EmailService {
       tags: [{ name: 'type', value: 'broadcast_blast' }],
     });
   }
+
+  /**
+   * Automatic Notification: Membership Expiring Soon (3 Days Before Expiration)
+   */
+  public static async notifyMembershipExpiringSoon({
+    email,
+    name,
+    packageName,
+    daysLeft,
+    expiresAt,
+    tier,
+  }: {
+    email?: string | null;
+    name: string;
+    packageName?: string;
+    daysLeft: number;
+    expiresAt: string;
+    tier?: string;
+  }): Promise<EmailSendResult | null> {
+    if (!email) return null;
+    const baseUrl = getAppBaseUrl();
+    const renewUrl =
+      tier && tier !== 'none'
+        ? `${baseUrl}/checkout?tier=${encodeURIComponent(tier)}`
+        : `${baseUrl}/pricing`;
+    const expDisplay = new Date(expiresAt).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const dayLabel = daysLeft === 1 ? '1 Day' : `${daysLeft} Days`;
+
+    const html = renderBrandedHtml({
+      eyebrow: `Renewal Reminder · ${dayLabel} Remaining`,
+      heading: `Your MuscleCraft Membership Expires in ${dayLabel}`,
+      bodyHtml: `
+        <p style="margin:0 0 12px 0;">Hi ${escapeHtml(name)},</p>
+        <p style="margin:0 0 14px 0;">This is a friendly heads-up that your <strong style="color:#ffffff;">${escapeHtml(packageName || 'MuscleCraft Membership')}</strong> is scheduled to expire on <strong style="color:#fbbf24;">${escapeHtml(expDisplay)}</strong>.</p>
+        <div style="padding:16px;background-color:#261a0c;border:1px solid #b45309;border-radius:12px;margin:16px 0;font-size:13px;color:#fde68a;">
+          <strong>Automatic Portal Lockout Policy:</strong> Once your expiration date passes, your athlete portal (training plans, diet blueprints, body analytics &amp; video vault) is automatically locked until your renewal is confirmed.
+        </div>
+        <p style="margin:0;">Renew early below to keep your training streak and portal access uninterrupted.</p>
+      `,
+      ctaLabel: 'Renew Membership Now',
+      ctaUrl: renewUrl,
+      footerNote: 'You can also visit Coach Adeesha at the MuscleCraft desk (245, Kotugoda Road, Seeduwa) to renew in person.',
+    });
+
+    return this.sendEmail({
+      to: email,
+      subject: `MuscleCraft Reminder: Your Membership Expires in ${dayLabel} (${expDisplay})`,
+      html,
+      text: `Hi ${name}, your ${packageName || 'MuscleCraft'} membership expires in ${dayLabel} (${expDisplay}). Renew now at ${renewUrl} to avoid automatic portal lockout.`,
+      tags: [{ name: 'type', value: 'membership_expiring_3d' }],
+    });
+  }
+
+  /**
+   * Automatic Notification: Membership Expired & Portal Locked
+   */
+  public static async notifyMembershipExpired({
+    email,
+    name,
+    packageName,
+    expiresAt,
+    tier,
+  }: {
+    email?: string | null;
+    name: string;
+    packageName?: string;
+    expiresAt?: string;
+    tier?: string;
+  }): Promise<EmailSendResult | null> {
+    if (!email) return null;
+    const baseUrl = getAppBaseUrl();
+    const renewUrl =
+      tier && tier !== 'none'
+        ? `${baseUrl}/checkout?tier=${encodeURIComponent(tier)}`
+        : `${baseUrl}/pricing`;
+    const expDisplay = expiresAt
+      ? new Date(expiresAt).toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'today';
+
+    const html = renderBrandedHtml({
+      eyebrow: 'Membership Expired · Portal Locked',
+      heading: 'Your MuscleCraft Membership Has Expired',
+      bodyHtml: `
+        <p style="margin:0 0 12px 0;">Hi ${escapeHtml(name)},</p>
+        <p style="margin:0 0 14px 0;">Your <strong style="color:#ffffff;">${escapeHtml(packageName || 'MuscleCraft Membership')}</strong> expired on <strong style="color:#f87171;">${escapeHtml(expDisplay)}</strong>, and your MuscleCraft Athlete Portal has been automatically locked.</p>
+        <div style="padding:16px;background-color:#260c11;border:1px solid #9f1239;border-radius:12px;margin:16px 0;font-size:13px;color:#fecdd3;">
+          <strong>All your progress is safely saved:</strong> Your body measurement history, diet blueprints, and profile remain preserved. Renew your membership to restore full portal &amp; gym access immediately.
+        </div>
+        <p style="margin:0;">Click below to renew your package online or visit the MuscleCraft front desk to reactivate in person.</p>
+      `,
+      ctaLabel: 'Renew & Reactivate Membership',
+      ctaUrl: renewUrl,
+      footerNote: 'Need help choosing a renewal tier? Reply directly to this email or contact Coach Adeesha.',
+    });
+
+    return this.sendEmail({
+      to: email,
+      subject: 'MuscleCraft Notice: Your Membership Has Expired — Renew to Restore Portal Access',
+      html,
+      text: `Hi ${name}, your ${packageName || 'MuscleCraft'} membership expired on ${expDisplay} and your athlete portal is temporarily locked. Renew anytime at ${renewUrl} to restore access.`,
+      tags: [{ name: 'type', value: 'membership_expired_lockout' }],
+    });
+  }
 }

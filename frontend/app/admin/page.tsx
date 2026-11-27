@@ -331,6 +331,7 @@ export default function AdminDashboard() {
   const [deletingMember, setDeletingMember] = useState<User | null>(null);
   const [isDeletingMember, setIsDeletingMember] = useState(false);
   const [deleteMemberPayments, setDeleteMemberPayments] = useState(false);
+  const [isRunningExpirySweep, setIsRunningExpirySweep] = useState(false);
   const [membersPage, setMembersPage] = useState<number>(1);
   const [membersPageSize, setMembersPageSize] = useState<number>(8);
   const [auditSearch, setAuditSearch] = useState<string>('');
@@ -729,6 +730,30 @@ export default function AdminDashboard() {
       setActionMessage({ type: 'error', text: err.message || 'Failed to delete user.' });
     } finally {
       setIsDeletingMember(false);
+    }
+  };
+
+  const handleRunExpirySweep = async () => {
+    setIsRunningExpirySweep(true);
+    setActionMessage(null);
+    try {
+      const adminId = currentUser?.id || '';
+      const res = await fetch(`/api/cron/membership-expiry?adminId=${encodeURIComponent(adminId)}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Expiry check failed.');
+      }
+      setActionMessage({
+        type: 'success',
+        text: data.message || 'Membership expiry sweep & SMS/Email reminders completed.',
+      });
+      await loadAdminData();
+    } catch (err: any) {
+      setActionMessage({ type: 'error', text: err.message || 'Failed to run expiry sweep.' });
+    } finally {
+      setIsRunningExpirySweep(false);
     }
   };
 
@@ -1564,7 +1589,7 @@ export default function AdminDashboard() {
                         Membership Expirations & Renewals Desk
                       </h2>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Track upcoming and overdue renewals, auto-logout 90-day cohorts, and dispatch 1-click WhatsApp reminders
+                        Auto-locks expired portals daily (8:00 AM SLT) &amp; dispatches SMS + Email 3 days before and upon expiry
                       </p>
                     </div>
                   </div>
@@ -1576,6 +1601,16 @@ export default function AdminDashboard() {
                     <span className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300">
                       {expiringMembersCount} Expiring Soon (≤ 7d)
                     </span>
+                    <button
+                      type="button"
+                      disabled={isRunningExpirySweep}
+                      onClick={handleRunExpirySweep}
+                      className="px-3.5 py-1.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer min-h-[36px] shadow-sm"
+                      title="Run expiration lockout check and send 3-day & expired SMS/Email alerts now"
+                    >
+                      <Send className={`w-3.5 h-3.5 ${isRunningExpirySweep ? 'animate-pulse' : ''}`} />
+                      <span>{isRunningExpirySweep ? 'Sending Alerts...' : 'Run Expiry & SMS/Email Check'}</span>
+                    </button>
                   </div>
                 </div>
 

@@ -442,4 +442,71 @@ export class SmsService {
 
     return this.sendSms({ to: norm, message: msg });
   }
+
+  /**
+   * Automatic Notification: Membership Expiring Soon (3 Days Before Expiration)
+   */
+  public static async notifyMembershipExpiringSoon({
+    phone,
+    name,
+    packageName,
+    daysLeft,
+    expiresAt,
+    tier,
+  }: {
+    phone?: string | null;
+    name: string;
+    packageName?: string;
+    daysLeft: number;
+    expiresAt: string;
+    tier?: string;
+  }): Promise<SmsSendResult | null> {
+    const norm = this.normalizePhoneNumber(phone);
+    if (!norm) return null;
+
+    const expDate = new Date(expiresAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const renewUrl =
+      tier && tier !== 'none'
+        ? `https://www.musclecraftlk.com/checkout?tier=${encodeURIComponent(tier)}`
+        : 'https://www.musclecraftlk.com/pricing';
+    const dayWord = daysLeft === 1 ? '1 day' : `${daysLeft} days`;
+    const msg = `MuscleCraft Reminder: Hi ${name}, your ${packageName || 'Gym'} membership expires in ${dayWord} (${expDate}). Renew now at ${renewUrl} to keep your gym & athlete portal access uninterrupted!`;
+
+    return this.sendSms({ to: norm, message: msg });
+  }
+
+  /**
+   * Automatic Notification: Membership Expired & Portal Locked
+   */
+  public static async notifyMembershipExpired({
+    phone,
+    name,
+    packageName,
+    expiresAt,
+    tier,
+  }: {
+    phone?: string | null;
+    name: string;
+    packageName?: string;
+    expiresAt?: string;
+    tier?: string;
+  }): Promise<SmsSendResult | null> {
+    const norm = this.normalizePhoneNumber(phone);
+    if (!norm) return null;
+
+    const expDate = expiresAt
+      ? ` on ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      : '';
+    const renewUrl =
+      tier && tier !== 'none'
+        ? `https://www.musclecraftlk.com/checkout?tier=${encodeURIComponent(tier)}`
+        : 'https://www.musclecraftlk.com/pricing';
+    const msg = `MuscleCraft Notice: Hi ${name}, your ${packageName || 'Gym'} membership expired${expDate} and your athlete portal is now locked. Renew anytime at ${renewUrl} to reactivate access immediately.`;
+
+    return this.sendSms({ to: norm, message: msg });
+  }
 }

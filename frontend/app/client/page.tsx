@@ -419,9 +419,31 @@ export default function ClientDashboard() {
               {isSuspended
                 ? 'An administrator has temporarily suspended or banned this account. Training programs, video vault, and analytics cannot be accessed until an administrator unbans your profile.'
                 : isExpired
-                ? 'In accordance with MuscleCraft cohort rules, your account automatically becomes inactive once your plan duration ends. Renew your membership package or contact Coach Adeesha to restore portal access.'
+                ? 'Your membership duration has ended and your portal has been automatically locked. All your measurement history and profile data remain safely preserved — renew your plan below to restore full access immediately.'
                 : 'New accounts remain locked until a membership package is purchased on the Pricing page and your bank transfer receipt is verified by Coach Adeesha.'}
             </p>
+
+            {/* Expired Plan Details Summary */}
+            {!isSuspended && isExpired && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-[#16161f] border border-white/[0.08] text-xs">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block">Previous Plan</span>
+                  <span className="font-bold text-white mt-0.5 block">
+                    {currentUser.packageName || currentUser.tier || 'Gym Membership'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block">Expired On</span>
+                  <span className="font-mono font-bold text-amber-300 mt-0.5 block">
+                    {expiryDate ? expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Ended'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 block">Portal Access</span>
+                  <span className="font-bold text-rose-400 mt-0.5 block">Locked Until Renewed</span>
+                </div>
+              </div>
+            )}
 
             {/* Show own pending slip verification status if the member already submitted a transfer */}
             {!isSuspended && pendingSlips.length > 0 && (
@@ -467,13 +489,27 @@ export default function ClientDashboard() {
               </button>
 
               {!isSuspended && (
-                <Link
-                  href="/pricing"
-                  className="px-6 py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-crimson-glow min-h-[44px]"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>{isExpired ? 'Renew Package on Pricing' : 'Choose Package & Pay on Pricing'}</span>
-                </Link>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  {isExpired && (
+                    <Link
+                      href="/pricing"
+                      className="px-5 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-gray-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 min-h-[44px]"
+                    >
+                      <span>Compare Plans</span>
+                    </Link>
+                  )}
+                  <Link
+                    href={
+                      isExpired && currentUser.tier && currentUser.tier !== 'none'
+                        ? `/checkout?tier=${encodeURIComponent(currentUser.tier)}`
+                        : '/pricing'
+                    }
+                    className="px-6 py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-crimson-glow min-h-[44px]"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>{isExpired ? 'Renew Membership Now' : 'Choose Package & Pay on Pricing'}</span>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -488,6 +524,40 @@ export default function ClientDashboard() {
       <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-36 lg:pt-40 pb-12 sm:pb-16 w-full">
+        {/* 3-Day Advance Expiration Warning & Early Renewal Banner */}
+        {currentUser.role === 'client' && daysLeft !== null && daysLeft > 0 && daysLeft <= 3 && (
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-950/35 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-amber-200">
+                  Your membership expires in {daysLeft === 1 ? '1 day' : `${daysLeft} days`}
+                </h2>
+                <p className="text-xs text-amber-100/80 mt-0.5">
+                  Valid through{' '}
+                  <strong className="text-white">
+                    {expiryDate?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </strong>
+                  . Renew early to prevent automatic portal lockout.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={
+                currentUser.tier && currentUser.tier !== 'none'
+                  ? `/checkout?tier=${encodeURIComponent(currentUser.tier)}`
+                  : '/pricing'
+              }
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#111116] text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-1.5 shrink-0 min-h-[42px] transition-colors"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Renew Now</span>
+            </Link>
+          </div>
+        )}
+
         {/* Member Profile Header */}
         <div className="bg-[#121215] border border-white/[0.08] p-6 sm:p-8 rounded-lg mb-8 shadow-card-dark flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
