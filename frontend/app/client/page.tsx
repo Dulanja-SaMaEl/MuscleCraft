@@ -831,7 +831,7 @@ export default function ClientDashboard() {
                   Waist Measurement
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {latestMeas?.waistCm ? `${latestMeas.waistCm} cm` : 'Pending Entry'}
+                  {latestMeas?.waistCm ? `${latestMeas.waistCm} in` : 'Pending Entry'}
                 </span>
                 {measurements.length > 1 && deltaWaist !== null ? (
                   <span
@@ -840,7 +840,7 @@ export default function ClientDashboard() {
                     }`}
                   >
                     {deltaWaist <= 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                    {deltaWaist > 0 ? `+${deltaWaist}` : deltaWaist}cm waist reduction
+                    {deltaWaist > 0 ? `+${deltaWaist}` : deltaWaist} in waist {deltaWaist <= 0 ? 'reduction' : 'gain'}
                   </span>
                 ) : measurements.length === 1 && latestMeas?.waistCm ? (
                   <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
@@ -858,7 +858,7 @@ export default function ClientDashboard() {
                   Arm Circumference
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1 block">
-                  {latestMeas?.armsCm ? `${latestMeas.armsCm} cm` : 'Pending Entry'}
+                  {latestMeas?.armsCm ? `${latestMeas.armsCm} in` : 'Pending Entry'}
                 </span>
                 {measurements.length > 1 && deltaArms !== null ? (
                   <span
@@ -866,7 +866,7 @@ export default function ClientDashboard() {
                       deltaArms >= 0 ? 'text-gold' : 'text-gray-400'
                     }`}
                   >
-                    {deltaArms >= 0 ? `+${deltaArms}` : deltaArms}cm lean hypertrophy
+                    {deltaArms >= 0 ? `+${deltaArms}` : deltaArms} in lean hypertrophy
                   </span>
                 ) : measurements.length === 1 && latestMeas?.armsCm ? (
                   <span className="text-[11px] text-gray-400 flex items-center gap-1 mt-1 font-medium">
@@ -991,7 +991,7 @@ export default function ClientDashboard() {
                     Weekly Recomposition & Body Analytics
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
-                    Continuous monitoring prevents plateaus. Data is synchronized directly with Coach Elena.
+                    Continuous monitoring prevents plateaus. Data is synchronized directly with Coach Adeesha.
                   </p>
                 </div>
                 <button
@@ -1123,10 +1123,10 @@ export default function ClientDashboard() {
                           <td className="py-3.5 px-4 font-bold text-gold">Week {m.weekNumber}</td>
                           <td className="py-3.5 px-4 text-gray-300 font-mono">{m.date}</td>
                           <td className="py-3.5 px-4 font-bold text-white font-mono">{m.weightKg} kg</td>
-                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.bodyFatPercentage || '—'}%</td>
-                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.waistCm || '—'} cm</td>
-                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.chestCm || '—'} cm</td>
-                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.armsCm || '—'} cm</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.bodyFatPercentage ? `${m.bodyFatPercentage}%` : '—'}</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.waistCm ? `${m.waistCm} in` : '—'}</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.chestCm ? `${m.chestCm} in` : '—'}</td>
+                          <td className="py-3.5 px-4 text-gray-300 font-mono">{m.armsCm ? `${m.armsCm} in` : '—'}</td>
                           <td className="py-3.5 px-4 text-gray-300 italic max-w-xs">
                             {m.coachFeedback ? (
                               <span className="text-gold font-medium">"{m.coachFeedback}"</span>
@@ -1616,40 +1616,40 @@ export default function ClientDashboard() {
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-300 uppercase mb-1">
-                      Waist (cm)
+                      Waist (in)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       value={newWaist}
                       onChange={(e) => setNewWaist(e.target.value)}
-                      placeholder="85.0"
+                      placeholder="32.0"
                       className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-2.5 py-1.5 rounded text-xs text-white outline-none font-mono"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-300 uppercase mb-1">
-                      Chest (cm)
+                      Chest (in)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       value={newChest}
                       onChange={(e) => setNewChest(e.target.value)}
-                      placeholder="105.0"
+                      placeholder="40.0"
                       className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-2.5 py-1.5 rounded text-xs text-white outline-none font-mono"
                     />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-300 uppercase mb-1">
-                      Arms (cm)
+                      Arms (in)
                     </label>
                     <input
                       type="number"
                       step="0.1"
                       value={newArms}
                       onChange={(e) => setNewArms(e.target.value)}
-                      placeholder="38.5"
+                      placeholder="15.0"
                       className="w-full bg-[#18181d] border border-white/[0.1] focus:border-gold px-2.5 py-1.5 rounded text-xs text-white outline-none font-mono"
                     />
                   </div>

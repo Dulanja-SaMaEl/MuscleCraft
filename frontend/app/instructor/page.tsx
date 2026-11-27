@@ -335,6 +335,7 @@ export default function InstructorWorkspace() {
                             <th className="py-2.5 px-3">Weight</th>
                             <th className="py-2.5 px-3">Body Fat</th>
                             <th className="py-2.5 px-3">Waist</th>
+                            <th className="py-2.5 px-3">Chest</th>
                             <th className="py-2.5 px-3">Arms</th>
                             <th className="py-2.5 px-3">Coach Feedback Note</th>
                           </tr>
@@ -345,9 +346,10 @@ export default function InstructorWorkspace() {
                               <td className="py-3 px-3 font-bold text-gold">Wk {m.weekNumber}</td>
                               <td className="py-3 px-3 text-gray-300 font-mono">{m.date}</td>
                               <td className="py-3 px-3 font-bold text-white font-mono">{m.weightKg} kg</td>
-                              <td className="py-3 px-3 text-gray-300 font-mono">{m.bodyFatPercentage || '—'}%</td>
-                              <td className="py-3 px-3 text-gray-300 font-mono">{m.waistCm || '—'} cm</td>
-                              <td className="py-3 px-3 text-gray-300 font-mono">{m.armsCm || '—'} cm</td>
+                              <td className="py-3 px-3 text-gray-300 font-mono">{m.bodyFatPercentage ? `${m.bodyFatPercentage}%` : '—'}</td>
+                              <td className="py-3 px-3 text-gray-300 font-mono">{m.waistCm ? `${m.waistCm} in` : '—'}</td>
+                              <td className="py-3 px-3 text-gray-300 font-mono">{m.chestCm ? `${m.chestCm} in` : '—'}</td>
+                              <td className="py-3 px-3 text-gray-300 font-mono">{m.armsCm ? `${m.armsCm} in` : '—'}</td>
                               <td className="py-3 px-3">
                                 {m.coachFeedback ? (
                                   <span className="text-gray-300 italic">"{m.coachFeedback}"</span>

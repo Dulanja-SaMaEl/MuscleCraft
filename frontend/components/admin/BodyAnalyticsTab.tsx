@@ -654,7 +654,7 @@ export default function BodyAnalyticsTab({
                       </div>
                     ) : (
                       <div className="text-[10px] text-gray-500 mt-1 font-mono">
-                        Tape: W {entry.waistCm || '—'}cm / C {entry.chestCm || '—'}cm
+                        Tape: W {entry.waistCm ? `${entry.waistCm} in` : '—'} / C {entry.chestCm ? `${entry.chestCm} in` : '—'}
                       </div>
                     )}
                   </div>
@@ -844,21 +844,21 @@ export default function BodyAnalyticsTab({
                   <div className="bg-[#15151c] p-3 rounded-xl border border-white/[0.04]">
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Waist</span>
                     <span className="text-lg font-extrabold text-white font-mono mt-0.5 block">
-                      {entry.waistCm ? `${entry.waistCm} cm` : '—'}
+                      {entry.waistCm ? `${entry.waistCm} in` : '—'}
                     </span>
                   </div>
 
                   <div className="bg-[#15151c] p-3 rounded-xl border border-white/[0.04]">
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Chest</span>
                     <span className="text-lg font-extrabold text-white font-mono mt-0.5 block">
-                      {entry.chestCm ? `${entry.chestCm} cm` : '—'}
+                      {entry.chestCm ? `${entry.chestCm} in` : '—'}
                     </span>
                   </div>
 
                   <div className="bg-[#15151c] p-3 rounded-xl border border-white/[0.04]">
                     <span className="text-[10px] uppercase font-bold text-gray-400 block">Arms</span>
                     <span className="text-lg font-extrabold text-white font-mono mt-0.5 block">
-                      {entry.armsCm ? `${entry.armsCm} cm` : '—'}
+                      {entry.armsCm ? `${entry.armsCm} in` : '—'}
                     </span>
                   </div>
 
@@ -1028,12 +1028,12 @@ export default function BodyAnalyticsTab({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Waist (cm)
+                    Waist (in)
                   </label>
                   <input
                     type="number"
-                    step="0.5"
-                    placeholder="e.g. 82.0"
+                    step="0.1"
+                    placeholder="e.g. 32.0"
                     value={logForm.waistCm}
                     onChange={(e) => setLogForm({ ...logForm, waistCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
@@ -1041,12 +1041,12 @@ export default function BodyAnalyticsTab({
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Chest (cm)
+                    Chest (in)
                   </label>
                   <input
                     type="number"
-                    step="0.5"
-                    placeholder="e.g. 104.0"
+                    step="0.1"
+                    placeholder="e.g. 40.0"
                     value={logForm.chestCm}
                     onChange={(e) => setLogForm({ ...logForm, chestCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
@@ -1054,12 +1054,12 @@ export default function BodyAnalyticsTab({
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Arms (cm)
+                    Arms (in)
                   </label>
                   <input
                     type="number"
-                    step="0.5"
-                    placeholder="e.g. 38.5"
+                    step="0.1"
+                    placeholder="e.g. 15.0"
                     value={logForm.armsCm}
                     onChange={(e) => setLogForm({ ...logForm, armsCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
@@ -1206,11 +1206,12 @@ export default function BodyAnalyticsTab({
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Waist (cm):
+                    Waist (in):
                   </label>
                   <input
                     type="number"
-                    step="0.5"
+                    step="0.1"
+                    placeholder="e.g. 32.0"
                     value={editForm.waistCm}
                     onChange={(e) => setEditForm({ ...editForm, waistCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
@@ -1218,11 +1219,12 @@ export default function BodyAnalyticsTab({
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Chest (cm):
+                    Chest (in):
                   </label>
                   <input
                     type="number"
-                    step="0.5"
+                    step="0.1"
+                    placeholder="e.g. 40.0"
                     value={editForm.chestCm}
                     onChange={(e) => setEditForm({ ...editForm, chestCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"
@@ -1230,11 +1232,12 @@ export default function BodyAnalyticsTab({
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 block mb-1">
-                    Arms (cm):
+                    Arms (in):
                   </label>
                   <input
                     type="number"
-                    step="0.5"
+                    step="0.1"
+                    placeholder="e.g. 15.0"
                     value={editForm.armsCm}
                     onChange={(e) => setEditForm({ ...editForm, armsCm: e.target.value })}
                     className="w-full bg-[#161622] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono"

@@ -130,12 +130,19 @@ export async function PATCH(req: NextRequest) {
           updateData.feedback_at = new Date().toISOString();
         }
         if (weightKg !== undefined && weightKg !== '') updateData.weight_kg = Number(weightKg);
-        if (bodyFatPercentage !== undefined && bodyFatPercentage !== '') {
-          updateData.body_fat_percentage = Number(bodyFatPercentage);
+        if (bodyFatPercentage !== undefined) {
+          updateData.body_fat_percentage =
+            bodyFatPercentage === null || bodyFatPercentage === '' ? null : Number(bodyFatPercentage);
         }
-        if (waistCm !== undefined && waistCm !== '') updateData.waist_cm = Number(waistCm);
-        if (chestCm !== undefined && chestCm !== '') updateData.chest_cm = Number(chestCm);
-        if (armsCm !== undefined && armsCm !== '') updateData.arms_cm = Number(armsCm);
+        if (waistCm !== undefined) {
+          updateData.waist_cm = waistCm === null || waistCm === '' ? null : Number(waistCm);
+        }
+        if (chestCm !== undefined) {
+          updateData.chest_cm = chestCm === null || chestCm === '' ? null : Number(chestCm);
+        }
+        if (armsCm !== undefined) {
+          updateData.arms_cm = armsCm === null || armsCm === '' ? null : Number(armsCm);
+        }
         if (notes !== undefined) updateData.notes = notes;
         if (date) updateData.date = date;
         if (weekNumber !== undefined && weekNumber !== '') updateData.week_number = Number(weekNumber);
